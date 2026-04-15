@@ -1,0 +1,237 @@
+---
+name: demo-script-template
+description: >
+  Generates a structured Elastic demo script from a discovery profile and optional platform
+  audit. Produces two files: a full SE-facing script with scenes, timing, talking points,
+  on-screen steps, and wow moments; and a one-page audience brief the AE can use to follow
+  along. The script is personalized to the customer's language, industry, and pain points —
+  not a generic feature showcase.
+
+  ALWAYS use this skill when the user asks to "write the demo script", "build the script",
+  "create the demo outline", "what should we show them", or provides a discovery JSON and
+  wants a structured demo plan. Also trigger when the user says "we're ready to build" after
+  running demo-discovery-parser or demo-platform-audit. Run after demo-platform-audit when
+  possible — the audit shapes which features are safe to script.
+---
+
+# Demo Script Template
+
+You are writing a demo script for an Elastic pre-sales SE. The script must be good enough
+to hand to a competent SE who wasn't on the discovery call and have them deliver a credible,
+personalized demo. That means: every scene is grounded in something the customer actually
+said, every feature serves a pain point, and no scene exists just to show off a feature.
+
+The script is not a slide deck outline. It is a live demo plan — specific screens, specific
+queries, specific words to say.
+
+## Step 1: Read the Inputs
+
+Read all available files in this order:
+- `{slug}-discovery.json` — required. This is your primary source.
+- `{slug}-platform-audit.json` — use this to constrain which features can be scripted.
+  Any feature marked `upgrade_required` or `blocked` must not appear as a live scene.
+  Features marked `setup_required` can appear but must include a setup note.
+- `{slug}-current-state.json` — optional context for migration or existing-customer demos.
+
+If only raw discovery notes are provided (no parsed JSON), read them directly and extract
+what you need to proceed.
+
+## Step 2: Determine the Script Shape
+
+Before writing a single scene, answer these questions from the discovery JSON:
+
+**Who is in the room?**
+Map each contact to their demo attention needs:
+- `decision_maker` / exec: needs operational impact and business outcomes, loses interest
+  during live coding. Narrate what they're seeing; never leave them on a JSON blob.
+- `champion` / technical lead: wants to see the actual query, the actual index, the actual
+  config. This person will replay the demo mentally after the meeting.
+- `sre` / technical_user: wants to understand operational complexity. How is this maintained?
+  What breaks?
+- Mixed audience: design for the exec, narrate the bridge, go deep for the technical contact.
+  Never apologize for technical content — just narrate it.
+
+**What is the engagement type?**
+- `champion_enablement`: One contact, DM not present. Goal is internal ammunition. The
+  demo should produce something they can screenshot and share — a dashboard, a query result,
+  a before/after comparison. Close with "here's how you show this to your leadership."
+- `migration_assessment`: Existing on-prem customer. Lead with the delta — what they gain
+  by moving, what they won't lose. Show migration tooling, not just new features.
+- `technical_deep_dive` / `rag_demo` / `agentic_demo`: Feature demo. The script is a
+  showcase of specific capabilities tied to specific pain points.
+- `executive_alignment`: Short runtime (20–30 min), high-level, outcomes-first. No live
+  queries unless they're one-liners with immediate visible payoff.
+
+**What is the human story?**
+Every good demo has a person at the center — a real role at this company facing a real
+version of their core problem. The story thread runs through every scene. Name the person,
+name the scenario, and return to it. Don't invent a character who has nothing to do with
+the customer's world.
+
+Example: For a bank, it might be a fraud analyst who gets 400 alerts a day and has to
+manually correlate them. For a SOC team, it might be an analyst who finds a threat at 2am
+that the rule engine missed. For a retailer, it might be an associate who can't answer a
+customer's "do you have this in stock?" question. Ground the story in what they told you.
+
+**What is the right runtime?**
+- Executive briefing: 20–30 min
+- Standard discovery demo: 40–50 min
+- Technical deep-dive: 60–90 min (only when explicitly requested)
+- Always leave 10–15 min for Q&A and next steps — build this into the total.
+
+## Step 3: Design the Scenes
+
+Each scene must answer three questions before you write it:
+1. **What pain point does this address?** (from `pain_points` in the discovery JSON)
+2. **What feature demonstrates the resolution?** (from `demo_scope.recommended_features`)
+3. **What is the single wow moment?** (the thing they'll mention when they recap the demo)
+
+Scene design rules:
+- **First scene earns trust.** It should be the most immediately relatable pain point with
+  the most visceral proof — live data streaming, a query that returns in milliseconds, a
+  before/after contrast. Don't open with architecture slides.
+- **Build complexity gradually.** Start with data visibility, add intelligence, then add
+  automation/AI. Each scene should feel like a natural escalation of the previous one.
+- **One feature per scene.** A scene that tries to show ELSER and ML anomaly detection and
+  Agent Builder is a scene that shows nothing. Pick one. The other gets its own scene.
+- **Exec pivot points.** At natural scene breaks, give the exec contact a one-sentence
+  operational framing of what they just saw before moving on. This keeps them engaged.
+- **Platform-constrained features:** If the platform audit marks a feature as
+  `setup_required`, include a pre-demo setup note at the top of the scene. If it's
+  `upgrade_required`, replace the live scene with a narrative description or a reference
+  to a recording/screenshot, and note it explicitly.
+
+## Step 4: Write the Script
+
+### Output 1: `{slug}-demo-script.md`
+
+Use this structure. Adapt section names to fit the customer's context — don't be mechanical.
+
+```
+# [Demo Title — make it evocative, not generic]
+**Customer:** [Company] | **Date:** [date] | **Runtime:** [N] min
+**Presenters:** [Names and roles from elastic_team]
+**Audience:** [Names and roles from contacts]
+**Format:** Live Kibana + Dev Tools [adjust as needed]
+
+---
+
+## Context
+[2–3 sentences: what we learned in discovery, why this demo matters to this specific
+customer. This is for the SE, not the customer.]
+
+## Human Story
+[The person at the center of the demo. Name, role, the scenario they face. 2–4 sentences.
+This thread is woven through every scene.]
+
+## Opening ([N] min) — [Presenter]
+[The one-sentence framing that anchors the whole demo. Should reference something the
+customer said verbatim. The architecture diagram or setup screen, if any.]
+
+**Talking points:**
+- [Tight, specific. Attribute to discovery where possible: "You mentioned X — here's what
+  changes when Elastic sits between Y and Z."]
+
+---
+
+## Scene [N]: [Name] — [Feature] ([N] min)
+**Pain point addressed:** [label from discovery pain_points]
+**Presenter:** [Name]
+
+**Story:** [1–2 sentences connecting this scene to the human story thread]
+
+> ⚙️ **Pre-demo setup required:** [If applicable — what must be done before demo day]
+
+**On screen — Step 1 ([N] sec/min):**
+[Specific screen, specific action. "Kibana Discover on `store-transactions-*`, auto-refresh
+5s." Not "open Kibana and show some data."]
+[Include query/config verbatim if applicable]
+
+*Say:* "[Exact or near-exact talking point. Quote the customer back to themselves where
+impactful.]"
+
+**On screen — Step 2 ([N] min):**
+[Next step]
+
+**Wow moment:** *"[The single most memorable sentence of this scene. This is what they'll
+repeat to their colleagues tomorrow.]"*
+
+**Exec bridge:** *"[One sentence for the DM/exec contact — operational or business framing
+of what just happened, before moving to the next scene.]"* [Omit if no exec in audience]
+
+---
+
+[Repeat scene structure for each scene]
+
+---
+
+## Close ([N] min) — [Presenter]
+
+**Stack recap:** [One sentence — the complete picture of what they saw, in plain language]
+
+**Next steps:**
+[Specific asks — not generic "let's talk next steps". Pull from next_steps in discovery JSON.
+"Tom, you mentioned a slice of Smartstore transaction data — is there a sanitized set we
+could use for a POC?" "Balajee, which is the stronger first pilot — inventory accuracy for
+associates, or shrink anomaly monitoring for supply chain?"]
+
+---
+
+## Audience Flow
+| Segment | Time | Duration | What's Happening |
+|---|---|---|---|
+[One row per scene, with cumulative timing]
+
+## Platform Notes
+[Summary of any setup_required features and their pre-demo tasks, pulled from platform audit.
+If no audit was run: "Platform audit not completed — run demo-platform-audit before build."]
+```
+
+### Output 2: `{slug}-demo-brief.md`
+
+One page. This is what the AE reads before the meeting. No queries, no config details.
+
+```
+# Demo Brief — [Company] | [Date]
+
+**What we're showing:** [3 bullets — one per major scene, in plain language]
+
+**Why it matters to them:** [3 bullets — one per pain point, using their language]
+
+**The story we're telling:** [2 sentences — the human story thread, simplified]
+
+**Watch for these moments:**
+- [Wow moment from Scene 1]
+- [Wow moment from Scene 2]
+- [Wow moment from Scene 3]
+
+**Your job during the demo:**
+- When [feature] appears on screen: [what the AE should say or watch for]
+- At the close: ask [specific next-step question from discovery]
+- Do NOT mention: [competitors, internal terms, anything from the gap report that we
+  haven't addressed yet]
+```
+
+## What Good Looks Like
+
+**Lowe's pattern** (technical deep-dive, mixed audience): 45-min script, 6 scenes, human
+story of an associate helping a customer who drove across town on bad inventory data. Each
+scene escalates: live data → ML anomaly → semantic search → agent → observability →
+supply chain ops view. Exec bridge at each transition. Verbatim from discovery woven in
+("you mentioned ELSER before this call"). Wow moments are one crisp sentence.
+
+**Citizens Bank pattern** (champion_enablement, single contact): 30-min script, 3 scenes.
+No DM present — designed for Michael to screenshot and share with Joe Burke. Closing slide
+is "what this looks like for your leadership" not "next steps with Elastic." Uses
+"scattered everywhere" verbatim. No Bain or AWS Bedrock mention anywhere.
+
+**Migration assessment pattern** (IHG): 40-min script opens with current-state diagnostic
+view — show them their own cluster. Migration delta shown explicitly: "here's what you have
+today, here's what changes on Serverless." Gaps section prominent: "before we can show you
+the full picture, we need the diagnostic from your other three environments."
+
+**SOC/Security pattern** (DT SOC-T): ML anomaly detection as Scene 1 (they already use it
+— earn trust by showing you understand their world). ES|QL threat hunting as Scene 2.
+AI Assistant as Scene 3 (with connector caveat). Human story is an analyst finding a
+low-and-slow lateral movement pattern that rules missed. Exec bridge each time: "that
+detection just saved your team four hours of manual correlation."
