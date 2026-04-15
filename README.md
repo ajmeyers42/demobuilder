@@ -13,6 +13,8 @@ Drop a discovery note (PDF, markdown, raw text) into a prompt and say **"build t
 ```
 demobuilder-workspace/
 └── citizens-bank/
+    ├── .env                              ← cluster credentials (git-ignored)
+    ├── .env.example                      ← template, safe to commit
     ├── citizens-bank-discovery.json      ← structured customer profile
     ├── citizens-bank-confirmation.md     ← send to customer
     ├── citizens-bank-gaps.md             ← internal follow-up questions
@@ -21,7 +23,9 @@ demobuilder-workspace/
     ├── citizens-bank-demo-brief.md       ← one-page AE brief
     ├── citizens-bank-data-model.json     ← index mappings + build order
     ├── citizens-bank-ml-config.json      ← ML job configs (if applicable)
-    └── citizens-bank-demo-checklist.md   ← pre-demo checklist (timed)
+    ├── citizens-bank-demo-checklist.md   ← pre-demo checklist (timed)
+    ├── bootstrap.py                      ← generated deployment script
+    └── citizens-bank-deploy-log.md       ← what was created, doc counts
 ```
 
 ## Pipeline
@@ -36,6 +40,8 @@ demobuilder-workspace/
 | `demo-data-modeler` | Demo script + discovery JSON | `{slug}-data-model.json`, `{slug}-data-model.md`, mapping files | ✅ v1 |
 | `demo-ml-designer` | Demo script + data model | `{slug}-ml-config.json`, `{slug}-ml-setup.md` | ✅ v1 |
 | `demo-validator` | All pipeline outputs | `{slug}-demo-checklist.md`, `{slug}-risks.md` | ✅ v1 |
+| `demo-cloud-provision` | Deployment type, region, slug | `{slug}/.env`, `{slug}/.env.example`, `{slug}-provision-log.md` | ✅ v1 |
+| `demo-deploy` | `.env` + data model + ML config | `bootstrap.py`, `{slug}-deploy-log.md` | ✅ v1 |
 
 ## Key Design Principles
 
@@ -47,6 +53,8 @@ demobuilder-workspace/
 
 **Resumes intelligently.** The orchestrator inventories existing outputs before running. If you change one thing (e.g., the audience composition changes), it re-runs only the affected downstream stages and leaves everything else intact.
 
+**Credentials stay local.** Each engagement workspace has its own `.env` holding cluster credentials — never committed, never shared between customers unless you explicitly copy and update it. `INDEX_PREFIX` namespaces all resources when sharing a cluster across multiple demos.
+
 ## Validation Coverage
 
 | Skill | Validated Against |
@@ -57,6 +65,8 @@ demobuilder-workspace/
 | `demo-script-template` | Citizens Bank (champion → DM-present re-scope) |
 | `demo-data-modeler` | Citizens Bank fraud demo (8-step build order, 4 indices) |
 | `demo-validator` | Citizens Bank (timed checklist, 6 go/no-go criteria) |
+| `demo-cloud-provision` | Evals written — serverless project + shared cluster copy |
+| `demo-deploy` | Evals written — Citizens Bank full deploy + Lowe's prefix deploy |
 
 ## Repo Structure
 
@@ -86,7 +96,14 @@ demobuilder/
     ├── demo-ml-designer/
     │   ├── SKILL.md
     │   └── evals/evals.json
-    └── demo-validator/
+    ├── demo-validator/
+    │   ├── SKILL.md
+    │   └── evals/evals.json
+    ├── demo-cloud-provision/
+    │   ├── SKILL.md
+    │   └── evals/evals.json
+    └── demo-deploy/
         ├── SKILL.md
-        └── evals/evals.json
+        ├── evals/evals.json
+        └── references/env-reference.md     ← .env field docs + multi-customer workflow
 ```

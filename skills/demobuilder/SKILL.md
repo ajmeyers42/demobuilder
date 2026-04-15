@@ -155,10 +155,30 @@ For each stage that needs to run, in order:
 - Outputs: `{slug}-ml-config.json`, `{slug}-ml-setup.md`
 
 **Stage 7 — demo-validator**
-- Always run last — regenerate even if it exists
+- Always run last before deploy — regenerate even if it exists
 - Read: `../demo-validator/SKILL.md`
 - Inputs: all available `{slug}-*.json` and `{slug}-*.md` files in workspace
 - Outputs: `{slug}-demo-checklist.md`, `{slug}-risks.md`
+
+**Stage 8 — demo-cloud-provision** *(optional — new cluster path only)*
+- Skip if: `{slug}/.env` already exists and credentials are valid
+- Run if: user requests "create a new cluster", "spin up a serverless project", or no `.env`
+  exists and deployment was requested
+- Read: `../demo-cloud-provision/SKILL.md`
+- Inputs: deployment type preference, region, engagement slug
+- Outputs: `{slug}/.env`, `{slug}/.env.example`, `{slug}-provision-log.md`
+- Note: if user wants to reuse an existing cluster for a new engagement, copy the `.env`
+  from the prior workspace and update `DEMO_SLUG`, `ENGAGEMENT`, and `INDEX_PREFIX` —
+  no re-provisioning needed
+
+**Stage 9 — demo-deploy** *(optional — runs after validator if cluster target is known)*
+- Skip if: user has not requested deployment and no `.env` is present
+- Run if: `.env` exists in the workspace (from stage 8 or copied from another engagement)
+  AND user says "deploy", "build it", "set up the cluster", or "bootstrap"
+- Requires: `{slug}/.env` — stop and surface a clear message if missing
+- Read: `../demo-deploy/SKILL.md`
+- Inputs: `{slug}/.env`, `{slug}-data-model.json`, `{slug}-ml-config.json` (if present)
+- Outputs: `{workspace}/{slug}/bootstrap.py`, `{slug}-deploy-log.md`
 
 ## Step 5: Deliver the Handoff Summary
 
@@ -196,18 +216,25 @@ Readiness
   ✅  citizens-bank-demo-checklist.md   — pre-demo checklist (timed)
   ✅  citizens-bank-risks.md            — risks and fallbacks
 
+Deploy *(if cluster provisioned)*
+  ✅  citizens-bank-provision-log.md    — cluster info, connectivity verified
+  ✅  bootstrap.py                      — generated deployment script (15 steps)
+  ✅  citizens-bank-deploy-log.md       — what was created, doc counts, ML status
+  ⏭   (skipped — no cluster target provided)
+
 PLATFORM STATUS: 🟡 Amber
   Ready now:  ES|QL, Connectors, Agent Builder (serverless)
   Setup needed: ELSER endpoint (half-day), ELSER corpus load
   Not in scope: —
 
-BEFORE YOU BUILD
+BEFORE YOU BUILD  *(shown only if cluster not yet deployed)*
 ─────────────────
-  1. Deploy ELSER v2 endpoint — 15 min
-  2. Create fraud-claims-semantic index and load corpus — 2–4 hours
-  3. Import Kibana saved objects (dashboard + agent config)
-  4. Load seed data and verify demo-critical documents (see checklist)
-  5. Test all 3 agent scenarios end-to-end
+  1. Run demo-cloud-provision to create cluster, or copy an existing .env
+  2. Run demo-deploy to bootstrap all resources (≈5 min)
+     → python3 bootstrap.py --dry-run  first to verify
+  3. Test all 3 agent scenarios end-to-end
+
+  *(If already deployed, check citizens-bank-deploy-log.md instead)*
 
 SEND TO CUSTOMER
 ─────────────────
@@ -242,6 +269,21 @@ Take inventory, identify what's missing, run only the pending stages.
 Run only `demo-script-template` with the updated context, then re-run `demo-validator`.
 Leave all other artifacts unchanged.
 
+**User wants to deploy to a new cluster:**
+"Create a new serverless project for the Citizens Bank demo and deploy it."
+Run stage 8 (demo-cloud-provision) to provision and write `.env`, then stage 9 (demo-deploy)
+to generate and execute `bootstrap.py`. Stages 1–7 already complete — skip them.
+
+**User wants to deploy to an existing cluster:**
+"I already have a cluster — here are my credentials." Or they copy a `.env` from another
+engagement. Skip stage 8. Run stage 9 only. Verify the `.env` has all required fields before
+generating `bootstrap.py`.
+
+**User running the same demo for a second customer on the same cluster:**
+"Reuse the Citizens Bank cluster for IHG Club." Copy `.env`, update `DEMO_SLUG=ihg-club`,
+`ENGAGEMENT=IHG Club Vacations`, `INDEX_PREFIX=ihg-`. Then run stage 9 with the new slug.
+No re-provisioning, no data model rebuild unless the demo scope differs.
+
 ## What Good Looks Like
 
 **Full cold start:** User drops a PDF and a diagnostic ZIP. Orchestrator auto-detects
@@ -256,6 +298,16 @@ checklist. Clearly reports what was skipped and why.
 is on 8.x self-managed. Orchestrator surfaces the blocker, removes Agent Builder from
 script scope, proceeds with ES|QL + ELSER + ML, notes the removed scene in the handoff
 summary under "Scope adjustments."
+
+**End-to-end with deploy:** User provides discovery notes and says "create a serverless
+project and deploy this demo." Orchestrator runs all 9 stages: builds the full artifact
+set, provisions the cluster, generates and executes `bootstrap.py`. Delivers a deploy log
+confirming 4 indices created, seed data loaded, ELSER endpoint warmed.
+
+**Multi-customer on shared cluster:** Citizens Bank demo already deployed with
+`INDEX_PREFIX=cb-`. User says "set up IHG Club on the same cluster." Orchestrator
+copies the `.env`, updates DEMO_SLUG/ENGAGEMENT/INDEX_PREFIX, skips provisioning,
+runs stage 9 with the IHG data model. Both demos coexist on the same cluster.
 
 **Orchestrator as SE daily driver:** SE starts every engagement by dropping discovery
 notes into a prompt. Orchestrator handles the rest — they get a script, a data model,
