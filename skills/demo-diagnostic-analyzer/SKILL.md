@@ -162,7 +162,10 @@ Populate this JSON schema:
 **Resource signal thresholds** (use these to populate `resource_signals`):
 - Heap: < 60% → healthy, 60–75% → elevated, 75–85% → high, > 85% → critical
 - Disk: < 70% → healthy, 70–80% → elevated, 80–90% → high, > 90% → critical
-- Shard density: < 20 shards/GB → healthy, 20–40 → elevated, > 40 → high
+- Shard density: Check both dimensions:
+  - Shards/GB of data: < 0.1 shards/GB (>10GB avg shard) may indicate very large shards; > 20 shards/GB indicates many tiny shards (inefficient). Healthy range: 0.1–20.
+  - Shards/node vs heap: (total shards / node count) / heap_GB_per_node. < 20 → healthy, 20–40 → elevated, > 40 → high. This is the more operationally significant metric.
+- Note: disk watermarks may be set as absolute byte values on large-disk nodes — check cluster_settings.json before assuming percentage-only thresholds apply.
 
 ## Step 3: Generate Findings
 
