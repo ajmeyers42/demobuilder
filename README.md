@@ -61,12 +61,12 @@ demobuilder-workspace/
 
 | Skill | Validated Against |
 |---|---|
-| `demo-discovery-parser` | 4 sample engagements across financial services, retail, manufacturing, hospitality — 97.5% benchmark |
-| `demo-diagnostic-analyzer` | Large enterprise self-managed cluster (152 nodes, 1.18PB) |
-| `demo-platform-audit` | Enterprise self-managed cluster on 8.17.5 |
-| `demo-script-template` | Financial services engagement (champion-only → DM-present re-scope) |
-| `demo-data-modeler` | Fraud detection use case (8-step build order, 4 indices) |
-| `demo-validator` | Financial services engagement (timed checklist, 6 go/no-go criteria) |
+| `demo-discovery-parser` | Sample discovery notes from multiple customer interactions across 4 verticals — 97.5% benchmark |
+| `demo-diagnostic-analyzer` | Sample diagnostic exports from multiple customer environments (large-scale self-managed) |
+| `demo-platform-audit` | Sample diagnostics from multiple customer self-managed deployments |
+| `demo-script-template` | Sample discovery notes from multiple customer interactions (single-contact and executive-present scenarios) |
+| `demo-data-modeler` | Sample discovery notes from multiple customer interactions (fraud detection use case) |
+| `demo-validator` | Sample pipeline outputs from multiple customer interactions |
 | `demo-cloud-provision` | Evals written — serverless project + shared cluster namespace copy |
 | `demo-deploy` | Evals written — isolated cluster full deploy + shared cluster prefix deploy |
 | `demo-status` | Evals written — readiness check + ML-focused readiness check |
