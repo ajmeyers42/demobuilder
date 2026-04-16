@@ -42,6 +42,8 @@ demobuilder-workspace/
 | `demo-validator` | All pipeline outputs | `{slug}-demo-checklist.md`, `{slug}-risks.md` | ✅ v1 |
 | `demo-cloud-provision` | Deployment type, region, slug | `{slug}/.env`, `{slug}/.env.example`, `{slug}-provision-log.md` | ✅ v1 |
 | `demo-deploy` | `.env` + data model + ML config | `bootstrap.py`, `{slug}-deploy-log.md` | ✅ v1 |
+| `demo-status` | `.env` + data model + ML config | Terminal status report (✅/❌ per resource, paste-ready fix commands) | ✅ v1 |
+| `demo-teardown` | `.env` + data model | `teardown.py`, `{slug}-teardown-log.md` | ✅ v1 |
 
 ## Key Design Principles
 
@@ -67,6 +69,8 @@ demobuilder-workspace/
 | `demo-validator` | Citizens Bank (timed checklist, 6 go/no-go criteria) |
 | `demo-cloud-provision` | Evals written — serverless project + shared cluster copy |
 | `demo-deploy` | Evals written — Citizens Bank full deploy + Lowe's prefix deploy |
+| `demo-status` | Evals written — Citizens Bank readiness check + Lowe's ML-focused check |
+| `demo-teardown` | Evals written — isolated cluster teardown + shared cluster prefix teardown |
 
 ## Repo Structure
 
@@ -102,8 +106,41 @@ demobuilder/
     ├── demo-cloud-provision/
     │   ├── SKILL.md
     │   └── evals/evals.json
-    └── demo-deploy/
+    ├── demo-deploy/
+    │   ├── SKILL.md
+    │   ├── evals/evals.json
+    │   └── references/env-reference.md     ← .env field docs + multi-customer workflow
+    ├── demo-status/
+    │   ├── SKILL.md
+    │   └── evals/evals.json
+    └── demo-teardown/
         ├── SKILL.md
-        ├── evals/evals.json
-        └── references/env-reference.md     ← .env field docs + multi-customer workflow
+        └── evals/evals.json
+```
+
+## Dependencies
+
+**elastic/agent-skills** (https://github.com/elastic/agent-skills) must be installed
+alongside demobuilder for cloud provisioning and Kibana API operations. Skills used:
+
+| Skill | Purpose in demobuilder |
+|---|---|
+| `cloud/setup` | Configure EC_API_KEY (prerequisite for provisioning) |
+| `cloud/create-project` | Create serverless Elasticsearch projects |
+| `cloud/manage-project` | Connect to existing projects; delete post-demo |
+| `kibana/agent-builder` | Create Agent Builder configs during deploy |
+| `kibana/kibana-dashboards` | Generate and deploy Kibana dashboards |
+| `kibana/kibana-connectors` | Configure email/webhook connectors for Workflows |
+| `elasticsearch/elasticsearch-esql` | Spot-check queries in demo-status |
+
+Run `cloud-setup` once to configure your Elastic Cloud API key before using
+`demo-cloud-provision`. See `docs/todo.md` for the full setup checklist.
+
+## Documentation
+
+| File | Contents |
+|---|---|
+| `docs/postmortem.md` | Session post-mortem: lessons learned, friction points, design validation |
+| `docs/decisions.md` | Architecture decision log with rationale |
+| `docs/todo.md` | Open items requiring user action (installs, credentials, validations) |
 ```

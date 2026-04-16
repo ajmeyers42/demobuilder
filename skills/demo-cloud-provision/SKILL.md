@@ -43,11 +43,16 @@ Also determine:
 
 ## Step 2: Provision the Cluster
 
+> **Dependency:** All cloud operations require the `cloud-setup` skill (from
+> `elastic/agent-skills`) to have been run at least once to configure `EC_API_KEY`.
+> If `EC_API_KEY` is not set in the environment, run `cloud-setup` first and follow
+> its prompts. **Never ask the user to paste an API key into chat.**
+
 ### Serverless (Elasticsearch project type)
 
-Use the existing `cloud-create-project` skill to create the project. The project type
-must be `elasticsearch` (not `observability` or `security`) for Agent Builder and
-Workflows to be available.
+Use the `cloud-create-project` skill (from `elastic/agent-skills`) to create the project.
+The project type must be `elasticsearch` (not `observability` or `security`) for Agent
+Builder and Workflows to be available.
 
 Required inputs for the API call:
 - `name`: `demobuilder-{slug}-{date}` (e.g., `demobuilder-citizens-bank-20260415`)
@@ -59,11 +64,15 @@ Capture from the response:
 - `kibana.endpoints[0]` → `KIBANA_URL`  
 - The project API key (or create one via `POST /{project_id}/keys`) → `ES_API_KEY`
 
+To connect to an existing serverless project (reuse cluster scenario), use
+`cloud-manage-project` instead — it resolves endpoints and acquires a scoped API key
+without creating a new project.
+
 ### ECH (Elastic Cloud Hosted)
 
-Use the `cloud-setup` skill to configure org credentials, then create a deployment via
-the EC API. Reference `references/ech-config.md` for the deployment template and hardware
-profile options.
+Use the `cloud-setup` skill (from `elastic/agent-skills`) to configure org credentials,
+then create a deployment via the EC API. Reference `references/ech-config.md` for the
+deployment template and hardware profile options.
 
 Capture:
 - `resources.elasticsearch[0].info.metadata.endpoint` → `ELASTICSEARCH_URL`

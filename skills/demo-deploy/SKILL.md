@@ -247,6 +247,15 @@ with open("kibana-objects/{slug}-dashboards.ndjson", "rb") as f:
     kb("POST", "/api/saved_objects/_import?overwrite=true", f, content_type="multipart/form-data")
 ```
 
+If the `.ndjson` files don't exist yet (first-time deploy for a new demo), use the
+`kibana-dashboards` skill (from `elastic/agent-skills`) to generate dashboard definitions
+from the data model, and the `kibana-agent-builder` skill to create agent configurations.
+These skills write `.ndjson` output that bootstrap.py then imports.
+
+For demos using Workflows that send email or webhooks, configure connectors first using
+the `kibana-connectors` skill (from `elastic/agent-skills`) before importing Workflow
+definitions — connectors must exist before Workflows that reference them.
+
 **Anomaly injection (step 14)**
 Run the injection spec from `{slug}-ml-config.json`. Sleep `2 × bucket_span` after
 injection before verifying anomaly scores:

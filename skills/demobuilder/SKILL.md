@@ -24,6 +24,15 @@ You don't do the work yourself — you read each sub-skill's SKILL.md to load it
 execute that stage, then move to the next. Each stage produces files that feed into the
 next. Treat each sub-skill as a specialist you're briefing, not a function you're calling.
 
+**External dependencies:** Stages 8–9 depend on skills from `elastic/agent-skills`
+(a separate plugin). If those skills aren't installed, surface a clear message rather
+than failing silently: "To provision or deploy, install the elastic/agent-skills plugin.
+See docs/todo.md for setup instructions."
+
+**Additional post-deploy skills** available once a cluster is deployed:
+- `demo-status` — quick pre-demo readiness pulse check (connectivity, doc counts, ML state, ELSER latency)
+- `demo-teardown` — post-demo cleanup; removes all demo resources prefix-aware
+
 ## Step 1: Identify the Engagement and Workspace
 
 **Determine the slug** from the customer name in the input files or the user's prompt.
@@ -308,6 +317,17 @@ confirming 4 indices created, seed data loaded, ELSER endpoint warmed.
 `INDEX_PREFIX=cb-`. User says "set up IHG Club on the same cluster." Orchestrator
 copies the `.env`, updates DEMO_SLUG/ENGAGEMENT/INDEX_PREFIX, skips provisioning,
 runs stage 9 with the IHG data model. Both demos coexist on the same cluster.
+
+**Pre-demo morning check:** Demo was deployed yesterday. SE says "is the Citizens Bank
+demo ready?" Orchestrator reads `.env` + data model, runs `demo-status`, and returns a
+compact ✅/❌ report with paste-ready fix commands for anything off. No login to Kibana
+or Dev Tools required to know the state.
+
+**Post-demo cleanup:** Demo went well. SE says "tear down the Citizens Bank cluster."
+Orchestrator runs `demo-teardown` — stops ML jobs, removes Kibana objects, deletes indices
+and all supporting infrastructure. If INDEX_PREFIX was set (shared cluster), only prefix-
+matching resources are removed. Offers to delete the serverless project entirely if it was
+provisioned specifically for this engagement.
 
 **Orchestrator as SE daily driver:** SE starts every engagement by dropping discovery
 notes into a prompt. Orchestrator handles the rest — they get a script, a data model,
