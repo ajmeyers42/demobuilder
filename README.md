@@ -12,20 +12,20 @@ Drop a discovery note (PDF, markdown, raw text) into a prompt and say **"build t
 
 ```
 demobuilder-workspace/
-└── citizens-bank/
-    ├── .env                              ← cluster credentials (git-ignored)
-    ├── .env.example                      ← template, safe to commit
-    ├── citizens-bank-discovery.json      ← structured customer profile
-    ├── citizens-bank-confirmation.md     ← send to customer
-    ├── citizens-bank-gaps.md             ← internal follow-up questions
-    ├── citizens-bank-platform-audit.json ← feature feasibility matrix
-    ├── citizens-bank-demo-script.md      ← full SE script
-    ├── citizens-bank-demo-brief.md       ← one-page AE brief
-    ├── citizens-bank-data-model.json     ← index mappings + build order
-    ├── citizens-bank-ml-config.json      ← ML job configs (if applicable)
-    ├── citizens-bank-demo-checklist.md   ← pre-demo checklist (timed)
-    ├── bootstrap.py                      ← generated deployment script
-    └── citizens-bank-deploy-log.md       ← what was created, doc counts
+└── {customer-slug}/
+    ├── .env                                    ← cluster credentials (git-ignored)
+    ├── .env.example                            ← template, safe to commit
+    ├── {customer-slug}-discovery.json          ← structured customer profile
+    ├── {customer-slug}-confirmation.md         ← send to customer
+    ├── {customer-slug}-gaps.md                 ← internal follow-up questions
+    ├── {customer-slug}-platform-audit.json     ← feature feasibility matrix
+    ├── {customer-slug}-demo-script.md          ← full SE script
+    ├── {customer-slug}-demo-brief.md           ← one-page AE brief
+    ├── {customer-slug}-data-model.json         ← index mappings + build order
+    ├── {customer-slug}-ml-config.json          ← ML job configs (if applicable)
+    ├── {customer-slug}-demo-checklist.md       ← pre-demo checklist (timed)
+    ├── bootstrap.py                            ← generated deployment script
+    └── {customer-slug}-deploy-log.md           ← what was created, doc counts
 ```
 
 ## Pipeline
@@ -61,15 +61,15 @@ demobuilder-workspace/
 
 | Skill | Validated Against |
 |---|---|
-| `demo-discovery-parser` | Citizens Bank, IHG Club, Thermo Fisher, Lowe's — 97.5% benchmark |
-| `demo-diagnostic-analyzer` | Deutsche Telekom SOC-T (152-node, 1.18PB cluster) |
-| `demo-platform-audit` | Deutsche Telekom SOC-T (8.17.5 self-managed) |
-| `demo-script-template` | Citizens Bank (champion → DM-present re-scope) |
-| `demo-data-modeler` | Citizens Bank fraud demo (8-step build order, 4 indices) |
-| `demo-validator` | Citizens Bank (timed checklist, 6 go/no-go criteria) |
-| `demo-cloud-provision` | Evals written — serverless project + shared cluster copy |
-| `demo-deploy` | Evals written — Citizens Bank full deploy + Lowe's prefix deploy |
-| `demo-status` | Evals written — Citizens Bank readiness check + Lowe's ML-focused check |
+| `demo-discovery-parser` | 4 sample engagements across financial services, retail, manufacturing, hospitality — 97.5% benchmark |
+| `demo-diagnostic-analyzer` | Large enterprise self-managed cluster (152 nodes, 1.18PB) |
+| `demo-platform-audit` | Enterprise self-managed cluster on 8.17.5 |
+| `demo-script-template` | Financial services engagement (champion-only → DM-present re-scope) |
+| `demo-data-modeler` | Fraud detection use case (8-step build order, 4 indices) |
+| `demo-validator` | Financial services engagement (timed checklist, 6 go/no-go criteria) |
+| `demo-cloud-provision` | Evals written — serverless project + shared cluster namespace copy |
+| `demo-deploy` | Evals written — isolated cluster full deploy + shared cluster prefix deploy |
+| `demo-status` | Evals written — readiness check + ML-focused readiness check |
 | `demo-teardown` | Evals written — isolated cluster teardown + shared cluster prefix teardown |
 
 ## Repo Structure
