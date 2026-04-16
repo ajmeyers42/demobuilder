@@ -6,6 +6,90 @@ Elastic demobuilder — a reusable agent pipeline for turning customer discovery
 
 A collection of skills that take a sales engagement from raw discovery notes through to a built, deployed, and validated Elastic demo. Each skill is a discrete step in the pipeline; they're designed to be used independently or chained together by the `demobuilder` orchestrator.
 
+## Pipeline Overview
+
+```
+                    ╔══════════════════════════════════════╗
+                    ║        demobuilder orchestrator       ║
+                    ║  drop any inputs · stages auto-run   ║
+                    ║  skips completed · resumes on re-run ║
+                    ╚══════════════╤═══════════════════════╝
+                                   │
+           ┌───────────────────────┴─────────────────────┐
+           │                                             │
+    ┌──────▼───────────────┐               ┌─────────────▼──────────────┐
+    │   Discovery Notes    │               │     Diagnostic File        │
+    │   PDF · md · text    │               │   ZIP · API exports        │
+    └──────┬───────────────┘               └─────────────┬──────────────┘
+           │                                             │
+    ┌──────▼───────────────┐               ┌─────────────▼──────────────┐
+    │ demo-discovery-      │               │  demo-diagnostic-          │
+    │ parser               │               │  analyzer        optional  │
+    │                      │               │                            │
+    │ → discovery.json     │               │ → current-state.json       │
+    │ → confirmation.md    │               │ → findings.md              │
+    │ → gaps.md            │               └─────────────┬──────────────┘
+    └──────┬───────────────┘                             │
+           └───────────────────┬─────────────────────────┘
+                               │
+                    ┌──────────▼──────────┐
+                    │  demo-platform-     │
+                    │  audit              │
+                    │                     │
+                    │ → platform-audit    │
+                    │   .json / .md       │
+                    └──────────┬──────────┘
+                               │
+                    ┌──────────▼──────────┐
+                    │  demo-script-       │
+                    │  template           │
+                    │                     │
+                    │ → demo-script.md    │
+                    │ → demo-brief.md     │
+                    └──────────┬──────────┘
+                               │
+                    ┌──────────▼──────────┐
+                    │  demo-data-         │
+                    │  modeler            │
+                    │                     │
+                    │ → data-model.json   │
+                    │ → mapping files     │
+                    └──────────┬──────────┘
+                               │
+                    ┌──────────▼──────────┐
+                    │  demo-ml-           │
+                    │  designer           │  ← conditional
+                    │                     │    ML scenes only
+                    │ → ml-config.json    │
+                    └──────────┬──────────┘
+                               │
+                    ┌──────────▼──────────┐
+                    │  demo-validator     │  ← always runs last
+                    │                     │
+                    │ → demo-checklist.md │
+                    │ → risks.md          │
+                    └──────────┬──────────┘
+                               │
+           ┌───────────────────┴──────────────────────────┐
+           │              deploy phase  (optional)         │
+           │                                               │
+    ┌──────▼───────────────┐               ┌──────────────▼──────────┐
+    │  demo-cloud-         │               │  demo-deploy            │
+    │  provision           ├──────────────►│                         │
+    │                      │               │ → bootstrap.py          │
+    │  new cluster or      │               │ → deploy-log.md         │
+    │  copy existing .env  │               └──────────────┬──────────┘
+    │  → .env              │                              │
+    └──────────────────────┘                              │
+                                          ┌───────────────┴────────────┐
+                                          │                            │
+                               ┌──────────▼──────────┐  ┌─────────────▼──────┐
+                               │   demo-status       │  │   demo-teardown    │
+                               │   readiness check   │  │   post-demo        │
+                               │   any time pre-demo │  │   cleanup          │
+                               └─────────────────────┘  └────────────────────┘
+```
+
 ## Quick Start
 
 Drop a discovery note (PDF, markdown, raw text) into a prompt and say **"build the demo for [company]"**. The `demobuilder` orchestrator handles the rest — detecting available inputs, running each pipeline stage in order, and delivering a complete workspace with all demo artifacts.
