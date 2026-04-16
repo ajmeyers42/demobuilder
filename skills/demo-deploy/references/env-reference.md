@@ -16,10 +16,12 @@ ELASTICSEARCH_URL=https://abc123.es.io:443
 KIBANA_URL=https://abc123.kb.io:443
 ES_API_KEY=VuaCfGcBCdbkQm...     # base64-encoded API key or ApiKey header value
 
-# ── Kibana API Key (Serverless — may differ from ES_API_KEY) ──────────────
-# Agent Builder, Workflows, and Dashboard APIs on Serverless sometimes require
-# a Kibana-scoped key. Falls back to ES_API_KEY if not set. Set this if Kibana
-# API calls return 401 even with a valid ES_API_KEY.
+# ── Kibana API Key ────────────────────────────────────────────────────────
+# Use KIBANA_API_KEY for all Kibana asset operations: Agent Builder, Workflows,
+# Dashboards, Connectors, Saved Objects import. API key privilege requirements
+# for Kibana vs Elasticsearch are under active product change — keeping separate
+# keys is the safe default until product confirms a unified approach.
+# Set this at provisioning time alongside ES_API_KEY.
 KIBANA_API_KEY=
 
 # ── Version (informational, set by demo-cloud-provision) ──

@@ -108,6 +108,7 @@ ELASTIC_VERSION={version}       # from provisioning response or platform audit
 ELASTICSEARCH_URL={url}
 KIBANA_URL={url}
 ES_API_KEY={api_key}
+KIBANA_API_KEY={kibana_api_key}   # used for all Kibana asset operations
 
 # Index namespace (blank = no prefix, indices use default names from data model)
 # Set this if running multiple demos on the same cluster to avoid collisions
@@ -130,7 +131,8 @@ DEPLOYMENT_TYPE=<serverless|ech|self_managed|docker>
 ELASTIC_VERSION=<e.g., 9.3.1>
 ELASTICSEARCH_URL=<https://your-cluster.es.io:443>
 KIBANA_URL=<https://your-kibana.kb.io:443>
-ES_API_KEY=<your-api-key>
+ES_API_KEY=<your-es-api-key>
+KIBANA_API_KEY=<your-kibana-api-key>
 INDEX_PREFIX=<optional-e.g., cb->
 ```
 
@@ -156,34 +158,37 @@ If connectivity fails: surface the specific error, check that the API key has th
 permissions (`cluster:monitor/main`, `indices:admin/create`, `indices:data/write/*`),
 and provide a remediation step before writing the `.env`.
 
-## Step 4.5: Verify Feature Flags (Serverless only)
+## Step 4.5: Verify Feature Flags
 
-On Serverless, **Agent Builder and Kibana Workflows are not enabled by default** on new
-projects. Do not write any build code against these APIs until this check passes.
+**Agent Builder and Kibana Workflows require feature flag activation on both Serverless
+and ECH deployments** until these features reach GA. Do not write any build code against
+these APIs until this check passes.
 
-Run immediately after connectivity is confirmed:
+> Workflows is expected to reach GA with Elastic 9.4. Once confirmed GA on your
+> deployment type, this check can be skipped for that feature. Until then, always verify.
+
+Run immediately after connectivity is confirmed, for all deployment types except Docker:
 
 ```bash
 # Agent Builder — 404 means the feature is not yet enabled
 curl -s -o /dev/null -w "%{http_code}" \
-  -H "Authorization: ApiKey ${KIBANA_API_KEY:-$ES_API_KEY}" \
+  -H "Authorization: ApiKey ${KIBANA_API_KEY}" \
   "${KIBANA_URL}/api/agent_builder/agents"
 # → 200: enabled ✅   → 404: NOT enabled — activate before building ❌
 
 # Workflows — same check
 curl -s -o /dev/null -w "%{http_code}" \
-  -H "Authorization: ApiKey ${KIBANA_API_KEY:-$ES_API_KEY}" \
+  -H "Authorization: ApiKey ${KIBANA_API_KEY}" \
   "${KIBANA_URL}/api/workflows"
 # → 200: enabled ✅   → 404: NOT enabled — activate before building ❌
 ```
 
-If either returns 404, stop and activate the feature flag in the project settings
-before proceeding. Attempting to build Workflows or Agent Builder configs against a
-project where the feature is disabled causes every subsequent API call to fail and
-requires full retesting after activation.
+If either returns 404, stop and activate the feature flag before proceeding. The path
+to enable varies by deployment type — surface this to the user with the specific steps
+for their platform (Serverless: project settings UI; ECH: deployment configuration).
+Attempting to build against a disabled feature requires full retesting after activation.
 
-Record the result in the provision log. This check is skipped for ECH and Docker
-deployments (features are version-gated, not flag-gated).
+Record the feature flag state in the provision log.
 
 ## Step 5: Write the Provision Log
 

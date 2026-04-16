@@ -141,15 +141,15 @@
 
 ---
 
-## D-011: Feature flag verification immediately after Serverless provisioning
+## D-011: Feature flag verification applies to Serverless AND ECH
 
-**Decision:** `demo-cloud-provision` Step 4.5 verifies that Agent Builder and Kibana Workflows feature flags are enabled before writing the `.env` or proceeding with any build work.
+**Decision:** `demo-cloud-provision` Step 4.5 verifies that Agent Builder and Kibana Workflows feature flags are enabled on **both Serverless and ECH deployments** before any build work begins.
 
-**Rationale:** From the first-gen ("Store That Knows") postmortem: Agent Builder and Workflows are not enabled by default on new Serverless projects. Discovering this mid-build required retesting everything after flag activation. The verification takes 30 seconds; discovering the gap after building takes hours.
+**Rationale:** From the first-gen postmortem: Agent Builder and Workflows are not enabled by default on new projects. Initially documented as Serverless-only, but confirmed to apply equally to ECH until these features reach GA. Workflows is expected to GA with Elastic 9.4 — at that point the Workflows check can be relaxed for ECH, but Agent Builder may still require a flag. Always verify both.
 
-**Applied to:** `demo-cloud-provision/SKILL.md` Step 4.5. Provision log records the feature flag state.
+**Applied to:** `demo-cloud-provision/SKILL.md` Step 4.5. `references/serverless-differences.md` Feature Flags section.
 
-**Date:** 2026-04-15 | **Session:** first-gen review
+**Date:** 2026-04-15 | **Session:** first-gen review; corrected 2026-04-15
 
 ---
 
@@ -201,15 +201,15 @@
 
 ---
 
-## D-016: KIBANA_API_KEY added as optional .env field
+## D-016: KIBANA_API_KEY is a required .env field for all Kibana asset operations
 
-**Decision:** The `.env` template includes `KIBANA_API_KEY` as an optional field. `bootstrap.py` uses it for Kibana API calls and falls back to `ES_API_KEY` if not set.
+**Decision:** `KIBANA_API_KEY` is a required `.env` field used for **all** Kibana asset operations (Agent Builder, Workflows, Dashboards, Connectors, Saved Objects import) across all deployment types. It is not a fallback from `ES_API_KEY`. `bootstrap.py` uses `KB_KEY` (read from `KIBANA_API_KEY`) for all `kb()` calls.
 
-**Rationale:** Kibana API endpoints on Serverless (Agent Builder, Workflows, Dashboards) can require a Kibana-scoped API key separate from the ES key. The first-gen added this mid-build after 401 responses.
+**Rationale:** API key privilege requirements for Kibana vs. Elasticsearch are under active product change. Keeping separate keys is the safe default until product confirms a unified approach. The first-gen added this field after hitting 401 responses mid-build — it is now a provisioning-time requirement rather than a discovered fix.
 
-**Applied to:** `references/env-reference.md`. `demo-cloud-provision/SKILL.md` `.env` template.
+**Applied to:** `references/env-reference.md`. `demo-cloud-provision/SKILL.md` `.env` and `.env.example` templates. `demo-deploy/SKILL.md` bootstrap.py credential block.
 
-**Date:** 2026-04-15 | **Session:** first-gen review
+**Date:** 2026-04-15 | **Session:** first-gen review; elevated to required 2026-04-15
 
 ---
 

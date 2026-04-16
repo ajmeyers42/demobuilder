@@ -1,22 +1,25 @@
-# Elastic Cloud Serverless — Behavioral Differences
+# Elastic Deployment — Behavioral Differences and Known Gotchas
 
-Loaded by: demo-deploy, demo-ml-designer, demo-platform-audit, demo-validator  
-Condition: `DEPLOYMENT_TYPE=serverless`
+Loaded by: demo-deploy, demo-ml-designer, demo-platform-audit, demo-validator
 
 Source: Lowe's "Store That Knows" demo first-gen postmortem. Every item below caused real rework.
 
+Most sections apply to Serverless. Feature flags (first section) apply to **both Serverless and ECH** until those features reach GA.
+
 ---
 
-## Feature Flags (not enabled by default)
+## Feature Flags — Serverless AND ECH (not enabled by default)
 
-Agent Builder and Kibana Workflows are NOT enabled on new Serverless projects by default. Verify immediately after project creation:
+**Agent Builder and Kibana Workflows require feature flag activation on both Serverless and ECH deployments** — not just Serverless. Workflows is expected to reach GA with Elastic 9.4; until then, always verify.
+
+Verify immediately after project/deployment creation, before any build work:
 
 ```
 GET /api/agent_builder/agents   → 404 means not enabled, stop
 GET /api/workflows              → 404 means not enabled, stop
 ```
 
-Do not write any build code against these APIs until they return 200.
+Use `KIBANA_API_KEY` for these checks. Do not write any build code against these APIs until they return 200. How to enable depends on deployment type — surface this to the user if 404 is returned.
 
 ---
 
@@ -167,7 +170,12 @@ ILM is not supported on Serverless. Use Data Stream Lifecycle (DSL) via the `lif
 
 ## Kibana API Authentication
 
-The Kibana API (agent builder, dashboards, workflows) may require a separate `KIBANA_API_KEY` in addition to the Elasticsearch `ES_API_KEY`. Check the `.env.example` — if `KIBANA_API_KEY` is present, use it for all `/api/*` Kibana calls. If absent, try `ES_API_KEY` first (works on some Serverless configs).
+Always use `KIBANA_API_KEY` for all Kibana asset operations: Agent Builder, Workflows,
+Dashboards, Connectors, and Saved Objects import. This is a separate key from `ES_API_KEY`.
+
+API key privilege requirements for Kibana vs. Elasticsearch are under active product change.
+`KIBANA_API_KEY` remains a required field in `.env` until product confirms a unified approach.
+Do not fall back to `ES_API_KEY` for Kibana API calls — keep the keys separate.
 
 ---
 

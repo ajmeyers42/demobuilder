@@ -105,6 +105,7 @@ import urllib.request, urllib.error
 ES_URL    = os.environ.get("ELASTICSEARCH_URL", "").rstrip("/")
 KB_URL    = os.environ.get("KIBANA_URL", "").rstrip("/")
 API_KEY   = os.environ.get("ES_API_KEY", "")
+KB_KEY    = os.environ.get("KIBANA_API_KEY", "")  # used for all Kibana API calls
 DEP_TYPE  = os.environ.get("DEPLOYMENT_TYPE", "ech")
 PREFIX    = os.environ.get("INDEX_PREFIX", "")
 
@@ -116,7 +117,8 @@ def es(method, path, body=None, *, ok=(200,201)):
     ...
 
 def kb(method, path, body=None, *, ok=(200,)):
-    """Call Kibana API."""
+    """Call Kibana API. Uses KIBANA_API_KEY (KB_KEY) for all Kibana asset operations
+    (Agent Builder, Workflows, Dashboards, Connectors, Saved Objects)."""
     ...
 
 def step(n, label):
