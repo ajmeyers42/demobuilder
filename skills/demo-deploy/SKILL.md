@@ -23,6 +23,16 @@ is the deployment record — it documents exactly what was created, in what orde
 Every step is idempotent: if the script is interrupted and re-run, it picks up where it
 left off without creating duplicates or overwriting data that's already correct.
 
+**Before building Workflows or Agent Builder configs** — read these reference files first:
+- `references/serverless-differences.md` — Serverless-specific behaviors, feature flags,
+  ML field names, Liquid array syntax, ELSER service names, saved objects quirks
+- `references/workflow-patterns.md` — working Workflow YAML patterns, `| first` syntax,
+  template variables, step types, validation checklist, deploy API commands
+
+Do not iterate past 30 minutes on an undocumented Workflow or Agent Builder API without
+surfacing it as a blocker and asking for the `elastic/workflows` or
+`elastic/kibana-agent-builder-sdk` reference repos.
+
 ## Step 1: Load the Environment
 
 Read `{workspace}/{slug}/.env`. All subsequent API calls use these credentials. Never
@@ -188,22 +198,32 @@ except:
 ```
 
 **ELSER endpoint (step 8)**
+
+The ELSER deployment body differs between Serverless and ECH/self-managed:
+
 ```python
 # Check if already deployed
 try:
     es("GET", f"/_inference/sparse_embedding/{p('elser-v2-endpoint')}", ok=(200,))
     print("  ELSER endpoint: already deployed — skipping")
 except:
-    es("PUT", f"/_inference/sparse_embedding/{p('elser-v2-endpoint')}", {
-        "service": "elasticsearch",
-        "service_settings": {
-            "model_id": ".elser_model_2_linux-x86_64"
-            if DEP_TYPE != "serverless"
-            else None,  # serverless uses managed endpoint
-            "num_allocations": 1,
-            "num_threads": 1
+    if DEP_TYPE == "serverless":
+        # Serverless: managed endpoint — use "elser" service, no model_id
+        body = {
+            "service": "elser",
+            "service_settings": {"num_allocations": 1, "num_threads": 1}
         }
-    })
+    else:
+        # ECH / self-managed: deploy model explicitly
+        body = {
+            "service": "elasticsearch",
+            "service_settings": {
+                "model_id": ".elser_model_2_linux-x86_64",
+                "num_allocations": 1,
+                "num_threads": 1
+            }
+        }
+    es("PUT", f"/_inference/sparse_embedding/{p('elser-v2-endpoint')}", body)
     print("  ELSER endpoint: deploying... (allow 60-90s for model to load)")
     # Poll until allocated
     for _ in range(60):
@@ -212,6 +232,9 @@ except:
             break
         time.sleep(3)
 ```
+
+Cold ELSER inference on Serverless can take 30+ seconds on the first call. The warm-up
+step (step 15) handles this, but allow extra time on first deploy.
 
 **Seed data loading (step 10)**
 Generate realistic synthetic data from the sample data spec in the data model. Use
@@ -321,6 +344,10 @@ On completion:
  To re-run a step:     python3 bootstrap.py --step N
  To skip data reload:  python3 bootstrap.py --skip-data
  To verify:            python3 bootstrap.py --dry-run
+
+ ⚠️  Pre-demo: clear test sessions 10 min before going live:
+ POST /{slug}-sessions/_delete_by_query
+   {"query":{"range":{"@timestamp":{"lt":"now-10m"}}}}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
 

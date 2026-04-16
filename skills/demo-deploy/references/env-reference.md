@@ -16,6 +16,12 @@ ELASTICSEARCH_URL=https://abc123.es.io:443
 KIBANA_URL=https://abc123.kb.io:443
 ES_API_KEY=VuaCfGcBCdbkQm...     # base64-encoded API key or ApiKey header value
 
+# ── Kibana API Key (Serverless — may differ from ES_API_KEY) ──────────────
+# Agent Builder, Workflows, and Dashboard APIs on Serverless sometimes require
+# a Kibana-scoped key. Falls back to ES_API_KEY if not set. Set this if Kibana
+# API calls return 401 even with a valid ES_API_KEY.
+KIBANA_API_KEY=
+
 # ── Version (informational, set by demo-cloud-provision) ──
 ELASTIC_VERSION=9.3.1
 

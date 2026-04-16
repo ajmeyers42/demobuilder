@@ -145,7 +145,7 @@ After writing the `.env`, confirm the cluster is reachable and ready:
 
 ```bash
 # Test connectivity
-curl -s -u "elastic:${ES_API_KEY}" "${ELASTICSEARCH_URL}/_cluster/health?pretty" \
+curl -s -H "Authorization: ApiKey ${ES_API_KEY}" "${ELASTICSEARCH_URL}/_cluster/health?pretty" \
   | python3 -c "import sys,json; h=json.load(sys.stdin); print(f'Status: {h[\"status\"]}, Nodes: {h[\"number_of_nodes\"]}')"
 
 # Confirm Kibana is reachable
@@ -155,6 +155,35 @@ curl -s "${KIBANA_URL}/api/status" | python3 -c "import sys,json; s=json.load(sy
 If connectivity fails: surface the specific error, check that the API key has the right
 permissions (`cluster:monitor/main`, `indices:admin/create`, `indices:data/write/*`),
 and provide a remediation step before writing the `.env`.
+
+## Step 4.5: Verify Feature Flags (Serverless only)
+
+On Serverless, **Agent Builder and Kibana Workflows are not enabled by default** on new
+projects. Do not write any build code against these APIs until this check passes.
+
+Run immediately after connectivity is confirmed:
+
+```bash
+# Agent Builder — 404 means the feature is not yet enabled
+curl -s -o /dev/null -w "%{http_code}" \
+  -H "Authorization: ApiKey ${KIBANA_API_KEY:-$ES_API_KEY}" \
+  "${KIBANA_URL}/api/agent_builder/agents"
+# → 200: enabled ✅   → 404: NOT enabled — activate before building ❌
+
+# Workflows — same check
+curl -s -o /dev/null -w "%{http_code}" \
+  -H "Authorization: ApiKey ${KIBANA_API_KEY:-$ES_API_KEY}" \
+  "${KIBANA_URL}/api/workflows"
+# → 200: enabled ✅   → 404: NOT enabled — activate before building ❌
+```
+
+If either returns 404, stop and activate the feature flag in the project settings
+before proceeding. Attempting to build Workflows or Agent Builder configs against a
+project where the feature is disabled causes every subsequent API call to fail and
+requires full retesting after activation.
+
+Record the result in the provision log. This check is skipped for ECH and Docker
+deployments (features are version-gated, not flag-gated).
 
 ## Step 5: Write the Provision Log
 

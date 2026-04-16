@@ -101,6 +101,24 @@ Currently: `~/demobuilder-workspace/{slug}/`. Confirm this matches where you'll 
 
 ---
 
+### 12. Provide reference repos before any Workflow or Agent Builder build
+
+Before any demo that includes Kibana Workflows or Agent Builder, load these repos into context:
+- `https://github.com/elastic/workflows` — authoritative Workflow YAML examples
+- `https://github.com/elastic/kibana-agent-builder-sdk` — Agent Builder tool/agent API schema
+
+**How:** Either clone locally and reference by path, or provide the URL and ask Claude to fetch the README and examples before starting. Without these, Workflow builds will require multiple debugging cycles.
+
+### 13. Validate `.ml-anomalies-*` field names on first Serverless ML build
+
+On first use of ML anomaly detection on Serverless, run this before writing any query or dashboard:
+```
+GET .ml-anomalies-*/_mapping
+```
+The Serverless field names differ from documentation: use `record_score`, `timestamp`, `partition_field_value`, `by_field_value`. See `skills/demo-deploy/references/serverless-differences.md`.
+
+---
+
 ## ✅ Resolved
 
 - *(none yet — this is the initial list)*

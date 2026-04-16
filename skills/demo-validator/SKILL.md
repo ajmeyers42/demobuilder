@@ -143,6 +143,15 @@ The working document the SE takes into demo prep. Organized by timing.
 - [ ] **Screenshot fallbacks accessible** — local folder or second device, not buried in Finder
 - [ ] **Screen share tested** — confirmed sharing the correct window/display
 
+## 10 Minutes Before
+
+- [ ] **Clear test agent sessions** — testing populates session history; clean it before going live:
+  ```
+  POST /{slug}-sessions/_delete_by_query
+  { "query": { "range": { "@timestamp": { "lt": "now-10m" } } } }
+  ```
+  Verify: `GET /{slug}-sessions/_count` → only pre-seeded sessions remain (typically 2–3)
+
 ---
 
 ## Known Risks and Fallbacks

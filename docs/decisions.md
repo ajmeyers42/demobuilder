@@ -138,3 +138,99 @@
 **Rationale:** Pipeline-level knowledge was previously only in conversation history, which gets summarized and lost across context windows. These docs make it durable and accessible to any Claude session (or human) picking up the work cold.
 
 **Date:** 2026-04-15 | **Session:** post-mortem
+
+---
+
+## D-011: Feature flag verification immediately after Serverless provisioning
+
+**Decision:** `demo-cloud-provision` Step 4.5 verifies that Agent Builder and Kibana Workflows feature flags are enabled before writing the `.env` or proceeding with any build work.
+
+**Rationale:** From the first-gen ("Store That Knows") postmortem: Agent Builder and Workflows are not enabled by default on new Serverless projects. Discovering this mid-build required retesting everything after flag activation. The verification takes 30 seconds; discovering the gap after building takes hours.
+
+**Applied to:** `demo-cloud-provision/SKILL.md` Step 4.5. Provision log records the feature flag state.
+
+**Date:** 2026-04-15 | **Session:** first-gen review
+
+---
+
+## D-012: Serverless ML field names documented as hard requirement
+
+**Decision:** `demo-ml-designer` documents the Serverless `.ml-anomalies-*` field name differences and requires a `GET .ml-anomalies-*/_mapping` check before writing any query or dashboard panel.
+
+**Rationale:** From the first-gen postmortem: all four ML dashboard panels had to be corrected after deployment because `anomaly_score`/`@timestamp`/`store_id`/`sku` do not exist on Serverless — the actual fields are `record_score`/`timestamp`/`partition_field_value`/`by_field_value`. A 2-minute mapping check prevents hours of rework.
+
+**Applied to:** `demo-ml-designer/SKILL.md`. `references/serverless-differences.md`.
+
+**Date:** 2026-04-15 | **Session:** first-gen review
+
+---
+
+## D-013: Workflow YAML reference required before writing any Workflow code
+
+**Decision:** `demo-deploy` requires the `elastic/workflows` and `elastic/kibana-agent-builder-sdk` repos to be in context before any Workflow YAML or Agent Builder API call is written. 30-minute escalation rule: if progress stalls on an undocumented API, surface it as a blocker immediately.
+
+**Rationale:** From the first-gen postmortem: Workflow debugging took ~3h and Agent Builder schema took ~2h because reference material was only found after problems were encountered. The `| first` Liquid filter, `_geo_distance` sort limitation, and `pattern` vs. `index` Agent Builder field were all documentable upfront.
+
+**Applied to:** `demo-deploy/SKILL.md`. `references/workflow-patterns.md`. `references/serverless-differences.md`.
+
+**Date:** 2026-04-15 | **Session:** first-gen review
+
+---
+
+## D-014: ELSER service body differs between Serverless and ECH
+
+**Decision:** `bootstrap.py` uses `"service": "elser"` on Serverless (no `model_id`) and `"service": "elasticsearch"` with explicit `model_id` on ECH/self-managed.
+
+**Rationale:** The actual working Serverless ELSER body uses `"service": "elser"` — the prior demobuilder implementation was using the wrong service name for Serverless, which would have caused step 8 to fail on every Serverless deploy.
+
+**Applied to:** `demo-deploy/SKILL.md`. `demo-ml-designer/SKILL.md`.
+
+**Date:** 2026-04-15 | **Session:** first-gen review
+
+---
+
+## D-015: Test session cleanup at T-10min is a required checklist item
+
+**Decision:** The demo validator checklist includes a mandatory T-10min step to delete test agent sessions before going live.
+
+**Rationale:** From the first-gen postmortem: pre-demo testing populates the session history index with test conversation turns that appear during the live demo. A single `_delete_by_query` on `@timestamp < now-10m` fixes it in seconds; not doing it risks surfacing test data during the demo.
+
+**Applied to:** `demo-validator/SKILL.md`. `demo-deploy/SKILL.md` completion summary.
+
+**Date:** 2026-04-15 | **Session:** first-gen review
+
+---
+
+## D-016: KIBANA_API_KEY added as optional .env field
+
+**Decision:** The `.env` template includes `KIBANA_API_KEY` as an optional field. `bootstrap.py` uses it for Kibana API calls and falls back to `ES_API_KEY` if not set.
+
+**Rationale:** Kibana API endpoints on Serverless (Agent Builder, Workflows, Dashboards) can require a Kibana-scoped API key separate from the ES key. The first-gen added this mid-build after 401 responses.
+
+**Applied to:** `references/env-reference.md`. `demo-cloud-provision/SKILL.md` `.env` template.
+
+**Date:** 2026-04-15 | **Session:** first-gen review
+
+---
+
+## D-017: Export-first dashboard pattern; never hand-write Lens JSON
+
+**Decision:** Kibana dashboard saved objects must be exported from a working live panel. `migrationVersion` and `coreMigrationVersion` must be stripped before import or commit.
+
+**Rationale:** From the first-gen postmortem: hand-written Lens panels took ~3h due to format errors. The Serverless inline `embeddableConfig.attributes` format differs from all public examples and changes between versions. Export-first produces a valid template in minutes.
+
+**Applied to:** `demo-deploy/SKILL.md` Kibana step. `references/serverless-differences.md`.
+
+**Date:** 2026-04-15 | **Session:** first-gen review
+
+---
+
+## D-018: ML datafeed geo_point workaround via runtime_mappings
+
+**Decision:** When the datafeed source index contains a `geo_point` field, `demo-ml-designer` adds a `runtime_mappings` shadow to prevent datafeed failure.
+
+**Rationale:** ML datafeeds cannot natively consume geo_point fields. The first-gen hit this with `store_location` and fixed it with a runtime mapping that shadows the field as a keyword emitting an empty string.
+
+**Applied to:** `demo-ml-designer/SKILL.md` datafeed config section.
+
+**Date:** 2026-04-15 | **Session:** first-gen review
