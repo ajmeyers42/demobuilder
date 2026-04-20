@@ -1,0 +1,17 @@
+# Engagement workspaces — contain credentials (.env), generated scripts, and customer data
+# Never commit these to version control
+engagements/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+.env
+
+# macOS
+.DS_Store
+
+# Editor workspace files
+*.code-workspace
