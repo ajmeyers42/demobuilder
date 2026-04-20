@@ -96,8 +96,8 @@ Both skills have `evals/evals.json` written but the eval loop (run → grade →
 
 **Action:** After completing items 1–3 above, run the evals for these two skills using the skill-creator eval loop.
 
-### 11. Decide on workspace root convention
-Currently: `~/demobuilder-workspace/{slug}/`. Confirm this matches where you'll actually run demos and whether it should be configurable (e.g., an environment variable `DEMOBUILDER_WORKSPACE`).
+### ~~11. Decide on workspace root convention~~ ✅ Resolved
+Convention set: `~/demobuilder-workspace/engagements/{slug}/`. All engagement collateral lives under `engagements/`, keeping demos grouped and the workspace root clean. All skills updated to reflect this path.
 
 ---
 

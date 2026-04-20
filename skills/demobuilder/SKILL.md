@@ -38,7 +38,7 @@ See docs/todo.md for setup instructions."
 **Determine the slug** from the customer name in the input files or the user's prompt.
 Lowercase, hyphenated: "Citizens Bank" → `citizens-bank`, "Deutsche Telekom SOC-T" → `dt-soct`.
 
-**Set the workspace directory.** Default: `~/demobuilder-workspace/{slug}/`. If the user
+**Set the workspace directory.** Default: `~/demobuilder-workspace/engagements/{slug}/`. If the user
 specifies a different path, use that. Create the directory if it doesn't exist.
 
 All output files for this engagement live in the workspace. Use the slug as a prefix for

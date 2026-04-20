@@ -45,27 +45,27 @@ PROVISIONED_BY=demobuilder
 
 ```bash
 # Each demo gets its own cluster — no prefix needed
-~/demobuilder-workspace/
-├── citizens-bank/.env    → https://cluster-A.es.io  INDEX_PREFIX=
-├── thermo-fisher/.env    → https://cluster-B.es.io  INDEX_PREFIX=
-└── ihg-club/.env         → https://cluster-C.es.io  INDEX_PREFIX=
+~/demobuilder-workspace/engagements/
+├── {slug-A}/.env    → https://cluster-A.es.io  INDEX_PREFIX=
+├── {slug-B}/.env    → https://cluster-B.es.io  INDEX_PREFIX=
+└── {slug-C}/.env    → https://cluster-C.es.io  INDEX_PREFIX=
 ```
 
 ### Shared cluster (when you want to conserve cloud spend)
 
 ```bash
 # One cluster, all demos on it — prefix separates namespaces
-~/demobuilder-workspace/
-├── citizens-bank/.env    → https://shared.es.io  INDEX_PREFIX=cb-
-├── thermo-fisher/.env    → https://shared.es.io  INDEX_PREFIX=tf-
-└── ihg-club/.env         → https://shared.es.io  INDEX_PREFIX=ihg-
+~/demobuilder-workspace/engagements/
+├── {slug-A}/.env    → https://shared.es.io  INDEX_PREFIX=a-
+├── {slug-B}/.env    → https://shared.es.io  INDEX_PREFIX=b-
+└── {slug-C}/.env    → https://shared.es.io  INDEX_PREFIX=c-
 
 # Copy workflow for a new demo on the same cluster:
-cp ~/demobuilder-workspace/citizens-bank/.env ~/demobuilder-workspace/ihg-club/.env
-# Then edit ihg-club/.env:
-#   DEMO_SLUG=ihg-club
-#   ENGAGEMENT=IHG Club Vacations
-#   INDEX_PREFIX=ihg-
+cp ~/demobuilder-workspace/engagements/{slug-A}/.env ~/demobuilder-workspace/engagements/{slug-B}/.env
+# Then edit {slug-B}/.env:
+#   DEMO_SLUG={slug-B}
+#   ENGAGEMENT={Company B}
+#   INDEX_PREFIX=b-
 ```
 
 ### Prefix behavior

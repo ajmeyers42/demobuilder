@@ -91,7 +91,7 @@ Capture (from the compose file, for the .env):
 
 ## Step 3: Write the Per-Engagement .env
 
-Write `.env` to `{workspace}/{slug}/.env`. This file is the single source of truth for
+Write `.env` to `{workspace}/engagements/{slug}/.env`. This file is the single source of truth for
 all cluster credentials for this engagement. Every subsequent skill (demo-deploy,
 bootstrap.sh) sources this file.
 
@@ -202,13 +202,13 @@ Record the feature flag state in the provision log.
 **Cluster/Project:** {name}
 
 ## Credentials
-Written to: `{workspace}/{slug}/.env`
+Written to: `{workspace}/engagements/{slug}/.env`
 ES URL: {url} ✅
 Kibana URL: {url} ✅
 API Key: configured ✅
 
 ## To reuse this cluster for another demo:
-cp {workspace}/{slug}/.env {workspace}/{other-slug}/.env
+cp {workspace}/engagements/{slug}/.env {workspace}/{other-slug}/.env
 # Then update DEMO_SLUG, ENGAGEMENT, and INDEX_PREFIX in the copied file
 
 ## To teardown this cluster when the demo is complete:

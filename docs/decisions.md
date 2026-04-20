@@ -7,7 +7,7 @@
 
 ## D-001: Per-engagement `.env` file for credential isolation
 
-**Decision:** Each engagement workspace (`~/demobuilder-workspace/{slug}/`) holds its own `.env` file with cluster credentials. No global config.
+**Decision:** Each engagement workspace (`~/demobuilder-workspace/engagements/{slug}/`) holds its own `.env` file with cluster credentials. No global config.
 
 **Rationale:** An SE running demos for Citizens Bank and IHG Club simultaneously — possibly on the same cluster — needs clean separation of credentials and namespace. A global config would require constant switching and risks cross-contamination.
 
@@ -234,3 +234,15 @@
 **Applied to:** `demo-ml-designer/SKILL.md` datafeed config section.
 
 **Date:** 2026-04-15 | **Session:** first-gen review
+
+---
+
+## D-019: Engagement collateral grouped under `engagements/` subfolder
+
+**Decision:** All per-engagement workspaces live at `~/demobuilder-workspace/engagements/{slug}/` rather than directly at `~/demobuilder-workspace/{slug}/`.
+
+**Rationale:** Keeps engagement folders visually grouped and separated from workspace-level tooling, configuration, and shared assets (e.g., `elastic/agent-skills`, global config). Makes it obvious at a glance which directories are active demos vs. pipeline infrastructure.
+
+**Applied to:** `demobuilder/SKILL.md`, `demo-cloud-provision/SKILL.md`, `demo-deploy/SKILL.md`, `demo-status/SKILL.md`, `demo-teardown/SKILL.md`, `demo-deploy/references/env-reference.md`, `README.md`. `docs/todo.md` item 11 closed.
+
+**Date:** 2026-04-20 | **Session:** workspace organization

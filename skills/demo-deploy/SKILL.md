@@ -35,7 +35,7 @@ surfacing it as a blocker and asking for the `elastic/workflows` or
 
 ## Step 1: Load the Environment
 
-Read `{workspace}/{slug}/.env`. All subsequent API calls use these credentials. Never
+Read `{workspace}/engagements/{slug}/.env`. All subsequent API calls use these credentials. Never
 hardcode credentials in the script itself — always read from the `.env`.
 
 If `.env` doesn't exist: stop and tell the user to run `demo-cloud-provision` first, or
@@ -63,7 +63,7 @@ Extract the build order from the data model — this is the sequence the script 
 
 ## Step 3: Generate `bootstrap.py`
 
-Write a complete, executable Python script to `{workspace}/{slug}/bootstrap.py`.
+Write a complete, executable Python script to `{workspace}/engagements/{slug}/bootstrap.py`.
 
 The script structure:
 
@@ -307,8 +307,8 @@ print(f"  ELSER warm: {latency}ms {'✅' if latency < 2000 else '⚠️ slow —
 Source the `.env` and run:
 
 ```bash
-set -a && source {workspace}/{slug}/.env && set +a
-python3 {workspace}/{slug}/bootstrap.py
+set -a && source {workspace}/engagements/{slug}/.env && set +a
+python3 {workspace}/engagements/{slug}/bootstrap.py
 ```
 
 Stream output to the terminal so the SE can watch progress. Each step prints:
@@ -384,7 +384,7 @@ Index prefix: {PREFIX or 'none'}
 |---|---|---|
 
 ## To re-run (if something changed):
-source {workspace}/{slug}/.env && python3 {workspace}/{slug}/bootstrap.py --skip-data
+source {workspace}/engagements/{slug}/.env && python3 {workspace}/engagements/{slug}/bootstrap.py --skip-data
 ```
 
 ## Platform-Specific Adaptations

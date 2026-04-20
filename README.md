@@ -96,20 +96,21 @@ Drop a discovery note (PDF, markdown, raw text) into a prompt and say **"build t
 
 ```
 demobuilder-workspace/
-└── {customer-slug}/
-    ├── .env                                    ← cluster credentials (git-ignored)
-    ├── .env.example                            ← template, safe to commit
-    ├── {customer-slug}-discovery.json          ← structured customer profile
-    ├── {customer-slug}-confirmation.md         ← send to customer
-    ├── {customer-slug}-gaps.md                 ← internal follow-up questions
-    ├── {customer-slug}-platform-audit.json     ← feature feasibility matrix
-    ├── {customer-slug}-demo-script.md          ← full SE script
-    ├── {customer-slug}-demo-brief.md           ← one-page AE brief
-    ├── {customer-slug}-data-model.json         ← index mappings + build order
-    ├── {customer-slug}-ml-config.json          ← ML job configs (if applicable)
-    ├── {customer-slug}-demo-checklist.md       ← pre-demo checklist (timed)
-    ├── bootstrap.py                            ← generated deployment script
-    └── {customer-slug}-deploy-log.md           ← what was created, doc counts
+└── engagements/
+    └── {customer-slug}/
+        ├── .env                                    ← cluster credentials (git-ignored)
+        ├── .env.example                            ← template, safe to commit
+        ├── {customer-slug}-discovery.json          ← structured customer profile
+        ├── {customer-slug}-confirmation.md         ← send to customer
+        ├── {customer-slug}-gaps.md                 ← internal follow-up questions
+        ├── {customer-slug}-platform-audit.json     ← feature feasibility matrix
+        ├── {customer-slug}-demo-script.md          ← full SE script
+        ├── {customer-slug}-demo-brief.md           ← one-page AE brief
+        ├── {customer-slug}-data-model.json         ← index mappings + build order
+        ├── {customer-slug}-ml-config.json          ← ML job configs (if applicable)
+        ├── {customer-slug}-demo-checklist.md       ← pre-demo checklist (timed)
+        ├── bootstrap.py                            ← generated deployment script
+        └── {customer-slug}-deploy-log.md           ← what was created, doc counts
 ```
 
 ## Pipeline
