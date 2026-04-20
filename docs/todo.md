@@ -3,6 +3,9 @@
 *Generated from the post-mortem and current skill review. Updated as items are resolved.*
 *Last updated: 2026-04-15*
 
+For **agent behavior** (orchestrator path, `engagements/` outputs, deploy approvals), see
+[`AGENTS.md`](../AGENTS.md) and [`docs/runtimes/`](../docs/runtimes/).
+
 ---
 
 ## 🔴 Blocking — Pipeline Won't Work Without These

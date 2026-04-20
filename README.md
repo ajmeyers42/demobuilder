@@ -90,6 +90,17 @@ A collection of skills that take a sales engagement from raw discovery notes thr
                                └─────────────────────┘  └────────────────────┘
 ```
 
+## Agent runtimes (Cursor, Claude, others)
+
+Demobuilder is **agent-first**: one shared [`skills/`](skills/) tree and outputs under [`engagements/`](engagements/). No parallel `cursor/` vs `claude/` skill copies — only thin glue:
+
+| File | Purpose |
+|------|---------|
+| [`AGENTS.md`](AGENTS.md) | What the assistant should do (orchestrator, `engagements/`, approvals) |
+| [`.cursor/rules/demobuilder.mdc`](.cursor/rules/demobuilder.mdc) | Cursor rule pointing at the orchestrator |
+| [`docs/runtimes/cursor.md`](docs/runtimes/cursor.md) | Using this repo in Cursor |
+| [`docs/runtimes/claude.md`](docs/runtimes/claude.md) | Claude Code / Claude projects |
+
 ## Quick Start
 
 Drop a discovery note (PDF, markdown, raw text) into a prompt and say **"build the demo for [company]"**. The `demobuilder` orchestrator handles the rest — detecting available inputs, running each pipeline stage in order, and delivering a complete workspace with all demo artifacts.
@@ -161,7 +172,14 @@ demobuilder-workspace/
 
 ```
 demobuilder/
+├── AGENTS.md                 ← agent behavior (orchestrator, engagements/, approvals)
 ├── README.md
+├── .cursor/
+│   └── rules/
+│       └── demobuilder.mdc   ← Cursor: load orchestrator + engagements convention
+├── docs/
+│   └── runtimes/             ← Cursor vs Claude setup (no duplicated skills)
+├── engagements/              ← per-customer demo workspaces (git: examples only; .env ignored)
 └── skills/
     ├── demobuilder/                        ← orchestrator
     │   ├── SKILL.md
@@ -225,7 +243,9 @@ Run `cloud-setup` once to configure your Elastic Cloud API key before using
 
 | File | Contents |
 |---|---|
+| `AGENTS.md` | Agent-first behavior: skills path, `engagements/` outputs, deploy approval |
+| `docs/runtimes/cursor.md` | Running demobuilder in Cursor |
+| `docs/runtimes/claude.md` | Running demobuilder in Claude Code / Claude projects |
 | `docs/postmortem.md` | Session post-mortem: lessons learned, friction points, design validation |
 | `docs/decisions.md` | Architecture decision log with rationale |
 | `docs/todo.md` | Open items requiring user action (installs, credentials, validations) |
-```

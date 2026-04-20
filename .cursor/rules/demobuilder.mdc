@@ -1,0 +1,12 @@
+---
+description: Elastic demobuilder pipeline — orchestrator, engagements output, approval gates
+alwaysApply: true
+---
+
+# Demobuilder
+
+- **Orchestrator:** `skills/demobuilder/SKILL.md` — run pipeline stages in order, read each stage’s `SKILL.md` under `skills/`.
+- **Outputs:** Engagement artifacts go under `engagements/{slug}/` unless the user specifies another workspace path.
+- **SA experience:** Gather inputs, produce artifacts, offer to execute commands. Do not instruct the user to run scripts by hand unless they prefer local execution.
+- **Approvals:** Ask before `demo-cloud-provision` or `demo-deploy` (cluster creation, spend, `bootstrap.py`) unless the user already clearly requested deployment this session.
+- **Details:** See repo root `AGENTS.md` and `docs/runtimes/cursor.md`.

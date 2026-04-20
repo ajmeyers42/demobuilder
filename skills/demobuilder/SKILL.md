@@ -29,6 +29,15 @@ next. Treat each sub-skill as a specialist you're briefing, not a function you'r
 than failing silently: "To provision or deploy, install the elastic/agent-skills plugin.
 See docs/todo.md for setup instructions."
 
+**Agent runtimes:** Skills live under `skills/` in the demobuilder repo. Behavior for
+Cursor, Claude, and other hosts is unified — see repo root `AGENTS.md` and
+`docs/runtimes/`. Do not fork skill content per IDE; only loading paths differ.
+
+**Deploy approval:** Before running **Stage 8 (demo-cloud-provision)** or **Stage 9 (demo-deploy)**,
+confirm the SA wants to create or mutate cloud resources / run `bootstrap.py` in this
+session — unless they have already explicitly asked to provision or deploy. Planning
+stages (1–7) may proceed when the SA asks to build or refresh artifacts.
+
 **Additional post-deploy skills** available once a cluster is deployed:
 - `demo-status` — quick pre-demo readiness pulse check (connectivity, doc counts, ML state, ELSER latency)
 - `demo-teardown` — post-demo cleanup; removes all demo resources prefix-aware
@@ -79,7 +88,9 @@ Validator                🔲 Pending
 Starting from: demo-script-template
 ```
 
-Then proceed without waiting for confirmation.
+After this inventory, continue with **planning stages** (1–7) without an extra confirmation
+step unless the user asked to pause. **Do not** run provisioning or deploy (stages 8–9)
+without explicit approval — see Stage 8–9 notes below.
 
 ## Step 3: Detect Available Inputs
 
@@ -170,6 +181,8 @@ For each stage that needs to run, in order:
 - Outputs: `{slug}-demo-checklist.md`, `{slug}-risks.md`
 
 **Stage 8 — demo-cloud-provision** *(optional — new cluster path only)*
+- **Requires explicit SA approval** to spend resources / create infrastructure (unless
+  the user already clearly requested provisioning this session)
 - Skip if: `{slug}/.env` already exists and credentials are valid
 - Run if: user requests "create a new cluster", "spin up a serverless project", or no `.env`
   exists and deployment was requested
@@ -181,6 +194,8 @@ For each stage that needs to run, in order:
   no re-provisioning needed
 
 **Stage 9 — demo-deploy** *(optional — runs after validator if cluster target is known)*
+- **Requires explicit SA approval** to run generated `bootstrap.py` against the cluster
+  (unless the user already clearly requested deployment this session)
 - Skip if: user has not requested deployment and no `.env` is present
 - Run if: `.env` exists in the workspace (from stage 8 or copied from another engagement)
   AND user says "deploy", "build it", "set up the cluster", or "bootstrap"
