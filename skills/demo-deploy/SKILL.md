@@ -266,7 +266,9 @@ except:
 
 **Kibana saved objects (step 13)**
 Use the Kibana Saved Objects import API. Objects are in `.ndjson` format. Apply prefix
-to index pattern references if `INDEX_PREFIX` is set.
+to index pattern references if `INDEX_PREFIX` is set. Prefer **ES|QL** in chart/query definitions
+(Lens or Vega-Lite with ES|QL) per current Elastic guidance; avoid KQL or Query DSL in new assets
+unless ES|QL cannot express the filter for that stack version.
 ```python
 with open("kibana-objects/{slug}-dashboards.ndjson", "rb") as f:
     kb("POST", "/api/saved_objects/_import?overwrite=true", f, content_type="multipart/form-data")
