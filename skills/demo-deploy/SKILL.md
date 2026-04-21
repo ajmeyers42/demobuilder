@@ -35,7 +35,7 @@ surfacing it as a blocker and asking for the `elastic/workflows` or
 
 ## Step 1: Load the Environment
 
-Read `{workspace}/engagements/{slug}/.env`. All subsequent API calls use these credentials. Never
+Read `{workspace}/.env` (engagement directory = `{workspace}`). All subsequent API calls use these credentials. Never
 hardcode credentials in the script itself — always read from the `.env`.
 
 If `.env` doesn't exist: stop and tell the user to run `demo-cloud-provision` first, or
@@ -63,7 +63,7 @@ Extract the build order from the data model — this is the sequence the script 
 
 ## Step 3: Generate `bootstrap.py`
 
-Write a complete, executable Python script to `{workspace}/engagements/{slug}/bootstrap.py`.
+Write a complete, executable Python script to `{workspace}/bootstrap.py`.
 
 The script structure:
 
@@ -309,8 +309,8 @@ print(f"  ELSER warm: {latency}ms {'✅' if latency < 2000 else '⚠️ slow —
 Source the `.env` and run:
 
 ```bash
-set -a && source {workspace}/engagements/{slug}/.env && set +a
-python3 {workspace}/engagements/{slug}/bootstrap.py
+set -a && source {workspace}/.env && set +a
+python3 {workspace}/bootstrap.py
 ```
 
 Stream output to the terminal so the SE can watch progress. Each step prints:
@@ -386,7 +386,7 @@ Index prefix: {PREFIX or 'none'}
 |---|---|---|
 
 ## To re-run (if something changed):
-source {workspace}/engagements/{slug}/.env && python3 {workspace}/engagements/{slug}/bootstrap.py --skip-data
+source {workspace}/.env && python3 {workspace}/bootstrap.py --skip-data
 ```
 
 ## Platform-Specific Adaptations
@@ -415,10 +415,10 @@ No duplicate data, no errors on existing resources.
 bootstrap uses `INDEX_PREFIX=ihg-`. Both sets of indices coexist. Each bootstrap only
 touches its own prefixed resources.
 
-**Prefix copy workflow:** (from demobuilder repo root)
+**Prefix copy workflow:** (`$DEMOBUILDER_ENGAGEMENTS_ROOT` must be set — see `docs/engagements-path.md`)
 ```bash
-cp engagements/citizens-bank/.env engagements/ihg-club/.env
-# Edit engagements/ihg-club/.env: DEMO_SLUG=ihg-club, ENGAGEMENT="IHG Club Vacations", INDEX_PREFIX=ihg-
-set -a && source engagements/ihg-club/.env && set +a
-python3 engagements/ihg-club/bootstrap.py
+cp "$DEMOBUILDER_ENGAGEMENTS_ROOT/citizens-bank/.env" "$DEMOBUILDER_ENGAGEMENTS_ROOT/ihg-club/.env"
+# Edit ihg-club/.env: DEMO_SLUG=ihg-club, ENGAGEMENT="IHG Club Vacations", INDEX_PREFIX=ihg-
+set -a && source "$DEMOBUILDER_ENGAGEMENTS_ROOT/ihg-club/.env" && set +a
+python3 "$DEMOBUILDER_ENGAGEMENTS_ROOT/ihg-club/bootstrap.py"
 ```

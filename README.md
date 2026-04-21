@@ -92,11 +92,11 @@ A collection of skills that take a sales engagement from raw discovery notes thr
 
 ## Agent runtimes (Cursor, Claude, others)
 
-Demobuilder is **agent-first**: one shared [`skills/`](skills/) tree and outputs under [`engagements/`](engagements/). No parallel `cursor/` vs `claude/` skill copies — only thin glue:
+Demobuilder is **agent-first**: one shared [`skills/`](skills/) tree; engagement outputs live under **`$DEMOBUILDER_ENGAGEMENTS_ROOT/{slug}/`** (see [`docs/engagements-path.md`](docs/engagements-path.md)). No parallel `cursor/` vs `claude/` skill copies — only thin glue:
 
 | File | Purpose |
 |------|---------|
-| [`AGENTS.md`](AGENTS.md) | What the assistant should do (orchestrator, `engagements/`, approvals) |
+| [`AGENTS.md`](AGENTS.md) | What the assistant should do (orchestrator, engagement root env var, approvals) |
 | [`.cursor/rules/demobuilder.mdc`](.cursor/rules/demobuilder.mdc) | Cursor rule pointing at the orchestrator |
 | [`docs/runtimes/cursor.md`](docs/runtimes/cursor.md) | Using this repo in Cursor |
 | [`docs/runtimes/claude.md`](docs/runtimes/claude.md) | Claude Code / Claude projects |
@@ -105,26 +105,27 @@ Demobuilder is **agent-first**: one shared [`skills/`](skills/) tree and outputs
 
 Drop a discovery note (PDF, markdown, raw text) into a prompt and say **"build the demo for [company]"**. The `demobuilder` orchestrator handles the rest — detecting available inputs, running each pipeline stage in order, and delivering a complete workspace with all demo artifacts.
 
+Set **`DEMOBUILDER_ENGAGEMENTS_ROOT`** to an absolute path (often **Google Drive › My Drive** or local disk). Each engagement is a subfolder — not inside this git repo:
+
 ```
-demobuilder/                         ← this repository
-├── skills/ …                        ← pipeline (not engagement-specific)
-├── docs/ …
-└── engagements/
-    └── {customer-slug}/             ← one folder per engagement (demo-specific)
-        ├── .env                                    ← cluster credentials (git-ignored)
-        ├── .env.example                            ← template, safe to commit
-        ├── {customer-slug}-discovery.json          ← structured customer profile
-        ├── {customer-slug}-confirmation.md         ← send to customer
-        ├── {customer-slug}-gaps.md                 ← internal follow-up questions
-        ├── {customer-slug}-platform-audit.json     ← feature feasibility matrix
-        ├── {customer-slug}-demo-script.md          ← full SE script
-        ├── {customer-slug}-demo-brief.md           ← one-page AE brief
-        ├── {customer-slug}-data-model.json         ← index mappings + build order
-        ├── {customer-slug}-ml-config.json          ← ML job configs (if applicable)
-        ├── {customer-slug}-demo-checklist.md       ← pre-demo checklist (timed)
-        ├── bootstrap.py                            ← generated deployment script
-        └── {customer-slug}-deploy-log.md           ← what was created, doc counts
+$DEMOBUILDER_ENGAGEMENTS_ROOT/
+└── {customer-slug}/                 ← one folder per engagement (demo-specific)
+    ├── .env                                    ← cluster credentials (never commit)
+    ├── .env.example                            ← template, safe to copy
+    ├── {customer-slug}-discovery.json          ← structured customer profile
+    ├── {customer-slug}-confirmation.md         ← send to customer
+    ├── {customer-slug}-gaps.md                   ← internal follow-up questions
+    ├── {customer-slug}-platform-audit.json      ← feature feasibility matrix
+    ├── {customer-slug}-demo-script.md            ← full SE script
+    ├── {customer-slug}-demo-brief.md             ← one-page AE brief
+    ├── {customer-slug}-data-model.json           ← index mappings + build order
+    ├── {customer-slug}-ml-config.json            ← ML job configs (if applicable)
+    ├── {customer-slug}-demo-checklist.md         ← pre-demo checklist (timed)
+    ├── bootstrap.py                              ← generated deployment script
+    └── {customer-slug}-deploy-log.md             ← what was created, doc counts
 ```
+
+This repository contains [`engagements/README.md`](engagements/README.md) as a pointer only.
 
 ## Pipeline
 
@@ -159,7 +160,7 @@ demobuilder/                         ← this repository
 
 **Resumes intelligently.** The orchestrator inventories existing outputs before running. If you change one thing (e.g., the audience composition changes), it re-runs only the affected downstream stages and leaves everything else intact.
 
-**Credentials stay local.** Each engagement workspace has its own `.env` holding cluster credentials — never committed, never shared between customers unless you explicitly copy and update it. `INDEX_PREFIX` namespaces all resources when sharing a cluster across multiple demos.
+**Credentials stay local.** Each engagement workspace under `$DEMOBUILDER_ENGAGEMENTS_ROOT/{slug}/` has its own `.env` — never committed with the repo, never shared between customers unless you explicitly copy and update it. `INDEX_PREFIX` namespaces all resources when sharing a cluster across multiple demos.
 
 ## Validation Coverage
 
@@ -180,14 +181,16 @@ demobuilder/                         ← this repository
 
 ```
 demobuilder/
-├── AGENTS.md                 ← agent behavior (orchestrator, engagements/, approvals)
+├── AGENTS.md                 ← agent behavior (orchestrator, DEMOBUILDER_ENGAGEMENTS_ROOT, approvals)
 ├── README.md
 ├── .cursor/
 │   └── rules/
-│       └── demobuilder.mdc   ← Cursor: load orchestrator + engagements convention
+│       └── demobuilder.mdc   ← Cursor: load orchestrator + engagement path convention
 ├── docs/
+│   ├── engagements-path.md   ← where per-customer folders live (outside git)
 │   └── runtimes/             ← Cursor vs Claude setup (no duplicated skills)
-├── engagements/              ← per-customer demo workspaces (git: examples only; .env ignored)
+├── engagements/
+│   └── README.md             ← pointer only; real workspaces use $DEMOBUILDER_ENGAGEMENTS_ROOT
 └── skills/
     ├── demobuilder/                        ← orchestrator
     │   ├── SKILL.md
@@ -251,7 +254,8 @@ Run `cloud-setup` once to configure your Elastic Cloud API key before using
 
 | File | Contents |
 |---|---|
-| `AGENTS.md` | Agent-first behavior: skills path, `engagements/` outputs, deploy approval |
+| `AGENTS.md` | Agent-first behavior: skills path, `$DEMOBUILDER_ENGAGEMENTS_ROOT` outputs, deploy approval |
+| `docs/engagements-path.md` | Engagement root env var; Google Drive / local layout |
 | `docs/runtimes/cursor.md` | Running demobuilder in Cursor |
 | `docs/runtimes/claude.md` | Running demobuilder in Claude Code / Claude projects |
 | `docs/postmortem.md` | Session post-mortem: lessons learned, friction points, design validation |

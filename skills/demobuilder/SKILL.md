@@ -88,12 +88,13 @@ in the inputs, the agent should **ask for guidance** before finalizing storyline
 Lowercase, hyphenated: "Citizens Bank" → `citizens-bank`, "Deutsche Telekom SOC-T" → `dt-soct`.
 The slug identifies **one engagement** (everything specific to that demo).
 
-**Set the workspace directory** to that engagement’s folder. **Default:** `engagements/{slug}/`
-relative to the **demobuilder repository root** (i.e. `<repo>/engagements/{slug}/`). Only
-per-demo artifacts belong here — pipeline code, shared skills, and references live in
-`skills/`, `docs/`, and the rest of the repo outside `engagements/`. If the SA uses a
-different folder name (e.g. `2026CitizensAI`) or a path outside the repo, use that path
-when they specify it; create the directory if it doesn’t exist.
+**Set the workspace directory** to that engagement’s folder: **`$DEMOBUILDER_ENGAGEMENTS_ROOT/{slug}/`**
+(absolute path). The SA must define **`DEMOBUILDER_ENGAGEMENTS_ROOT`** in the environment
+(see `docs/engagements-path.md` in this repo — typically a folder under Google Drive “My Drive”
+or local disk). Only per-demo artifacts belong in `{slug}/`; pipeline code stays in the
+demobuilder clone (`skills/`, `docs/`). If the variable is unset, ask for the engagement root
+before writing. If the SA names a different absolute workspace, use it; create the directory
+if it doesn’t exist.
 
 All output files for this engagement live in the workspace. Use the slug as a prefix for
 every file: `{slug}-discovery.json`, `{slug}-demo-script.md`, etc.
@@ -258,7 +259,7 @@ When all stages are complete, produce a structured handoff:
  DEMOBUILDER COMPLETE — [Company]
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-📁 Workspace: engagements/citizens-bank/   (under demobuilder repo)
+📁 Workspace: $DEMOBUILDER_ENGAGEMENTS_ROOT/citizens-bank/
 
 ARTIFACT SUMMARY
 ────────────────
