@@ -87,6 +87,107 @@ default path avoids broken Google Drive symlink layouts on some hosts.
 
 ---
 
+## D-024: Kibana assets as engagement files; single `bootstrap.py` import; review before deploy
+
+**Decision:**
+
+1. **Artifacts in the workspace** — Per engagement, treat Kibana-side deliverables as **files
+   under the engagement folder**, e.g. `kibana-objects/{slug}-*.ndjson`, optional `kibana/workflows/*`,
+   `kibana/agent/*.json`, alongside declarative `elasticsearch/**` JSON if the SA keeps ES defs
+   as files (same pattern as reference demos). They are produced with **`elastic/agent-skills`**
+   and **export-first** authoring (**D-017**), then **versioned** in the workspace (or a
+   customer repo). **`bootstrap.py`** is the **only** deployment executable: it applies ES APIs,
+   bulk data, ML, then **imports** those Kibana files via Kibana APIs (`saved_objects/_import`,
+   Workflows, Agent Builder, etc.) — not a separate `deploy_kibana_*.py` beside it.
+
+2. **No cluster deploy until review** — **`demo-cloud-provision`** and **`demo-deploy`**
+   (including running `bootstrap.py` against a **live** cluster) run only after the SA has
+   **both** (a) explicitly approved provision/deploy for this session **and** (b) **reviewed**
+   the generated **`bootstrap.py`**, **`{slug}-platform-audit`**, **`{slug}-risks`**, demo
+   checklist, and any other analysis outputs they rely on. **`bootstrap.py --dry-run`** and
+   local inspection of committed assets do **not** require a cluster. Agents must not treat
+   “artifacts complete” as permission to mutate production or shared demo clusters without
+   that review step.
+
+**Rationale:** Reference engagements (e.g. BigBox-style repos) already store NDJSON and agent
+configs as files; the gap was automating import inside bootstrap. Separating **planning
+complete** from **deploy authorized** prevents half-reviewed scripts from hitting clusters.
+**`demo-kibana-builder`** (backlog) remains optional automation to **generate** NDJSON from
+the data model; committed exports remain valid without it.
+
+**Applied to:** `AGENTS.md`, `.cursor/rules/demobuilder.mdc`, `skills/demobuilder/SKILL.md`,
+`skills/demo-deploy/SKILL.md`, `README.md`, `engagements/README.md`, `docs/todo.md`.
+
+**Date:** 2026-04-16 | **Session:** artifact layout + deploy gate
+
+---
+
+## D-025: Deployable on Elastic; Elasticsearch datatypes and product conventions
+
+**Decision:** Every artifact the pipeline defines (indices, mappings, ingest, ML, Kibana saved
+objects, Agent Builder tools, Observability SLOs, Security rules, seed data shapes, ES|QL, and
+API payloads) must be **deployable** on a real Elastic stack via **documented APIs** and must
+**conform** to **Elastic datatypes and naming**, not generic or invented types.
+
+**Concrete expectations:**
+
+- **Mappings and documents:** Field types follow Elasticsearch mapping conventions (`keyword`,
+  `text`, `long`, `date`, `semantic_text`, `geo_point`, etc.); demo seed data matches those
+  mappings.
+- **Agent Builder ES|QL tools:** Parameter `type` values use **Elasticsearch field-style types**
+  accepted by the server (e.g. `keyword`, `text`, `integer`, `date`) — not abstract labels
+  like `string` unless the target stack’s API explicitly allows them. Validate with
+  `elastic/agent-skills` (`kibana/agent-builder`) and live `POST`/`PUT` when in doubt.
+- **Kibana / APIs:** Request bodies match the stack version’s OpenAPI or reference repos
+  (`elastic/workflows`, `elastic/kibana-agent-builder-sdk`); export-first for saved objects
+  (**D-017**).
+- **Platform audit:** If the customer cluster cannot support an artifact (version, license,
+  feature flag), the artifact is **not** promised — scope adjusts in the script and audit.
+
+**Rationale:** Demos fail in front of customers when types or payloads are “almost” right.
+Binding definitions to Elastic’s own contracts keeps bootstrap and skills honest.
+
+**Applied to:** `AGENTS.md`, `.cursor/rules/demobuilder.mdc`, `README.md`,
+`docs/references-observability-slo.md`, `docs/references-kibana-apis.md`, `skills/demobuilder/SKILL.md`, `skills/demo-deploy/SKILL.md`,
+`skills/demo-deploy/references/serverless-differences.md`, `demo-platform-audit` outputs,
+`demo-data-modeler` / engagement `bootstrap.py` patterns.
+
+**Date:** 2026-04-16 | **Session:** datatype and deployability contract
+
+---
+
+## D-026: Engagement tag on all tagged deploy assets
+
+**Decision:** Every API-created asset that supports **tags** (or equivalent list metadata) must
+include a **demobuilder** tag: `demobuilder:<engagement_id>`, where `<engagement_id>` is derived
+from **`INDEX_PREFIX`** (normalized: hyphens, underscores, and whitespace removed; lowercase) when
+the prefix is set, otherwise from **`DEMO_SLUG`** with the same normalization. Optional
+**`DEMO_ASSET_TAG`** in `.env` overrides the normalized value when a different label is needed.
+
+**Concrete expectations:**
+
+- **bootstrap.py** defines `demobuilder_tags()` (or equivalent) and merges the tag into SLOs,
+  alerting rules, ML jobs, Agent Builder entities, and any other payloads with a `tags` field
+  in scope — not only NDJSON import.
+- **Indices and templates** remain identified by **`p(name)`** / `INDEX_PREFIX` naming; tagging
+  applies where the product API supports it (Kibana/Observability/ML/Security surfaces), not as a
+  substitute for index naming.
+- **Saved objects:** Prefer exports that include tags, or post-import tagging when required by the
+  stack version.
+
+**Rationale:** Operators need a consistent way to filter and audit demo resources across
+solutions and to correlate assets with an engagement when cleaning up or handoff — without
+replacing prefix-based Elasticsearch scoping.
+
+**Applied to:** `AGENTS.md`, `.cursor/rules/demobuilder.mdc`, `README.md`,
+`skills/demobuilder/SKILL.md`, `skills/demo-deploy/SKILL.md`,
+`skills/demo-deploy/references/demobuilder-tagging.md`, `skills/demo-deploy/references/env-reference.md`,
+`skills/demo-teardown/SKILL.md`, `engagements/README.md`, engagement `bootstrap.py` patterns.
+
+**Date:** 2026-04-16 | **Session:** engagement tagging for discovery and cleanup
+
+---
+
 ## D-001: Per-engagement `.env` file for credential isolation
 
 **Decision:** Each engagement workspace (`${DEMOBUILDER_ENGAGEMENTS_ROOT:-$HOME/engagements}/{slug}/`) holds its own `.env` file with cluster credentials. No global config.
@@ -302,6 +403,7 @@ default path avoids broken Google Drive symlink layouts on some hosts.
 **Rationale:** From the first-gen postmortem: hand-written Lens panels took ~3h due to format errors. The Serverless inline `embeddableConfig.attributes` format differs from all public examples and changes between versions. Export-first produces a valid template in minutes.
 
 **Applied to:** `demo-deploy/SKILL.md` Kibana step. `references/serverless-differences.md`.
+Engagement layout and import path: **D-024**.
 
 **Date:** 2026-04-15 | **Session:** first-gen review
 

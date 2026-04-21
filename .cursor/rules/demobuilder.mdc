@@ -8,8 +8,12 @@ alwaysApply: true
 - **Orchestrator:** `skills/demobuilder/SKILL.md` — run pipeline stages in order, read each stage’s `SKILL.md` under `skills/`.
 - **Outputs:** Engagement artifacts under `$DEMOBUILDER_ENGAGEMENTS_ROOT/{slug}/`; default root `~/engagements` if unset (see `docs/engagements-path.md`). Repo = skills only.
 - **SA experience:** Gather inputs, produce artifacts, offer to execute commands. Do not instruct the user to run scripts by hand unless they prefer local execution.
-- **Approvals:** Ask before `demo-cloud-provision` or `demo-deploy` (cluster creation, spend, `bootstrap.py`) unless the user already clearly requested deployment this session.
+- **Approvals:** Ask before `demo-cloud-provision` or `demo-deploy` (cluster creation, spend, `bootstrap.py` **against a live cluster**) unless the user already clearly requested deployment **and** has reviewed `bootstrap.py`, platform audit, risks, and checklist (`docs/decisions.md` D-024). `bootstrap.py --dry-run` is allowed without deploy.
 - **Elastic version:** New deployment/project → default **latest GA** unless user specifies otherwise. Existing deployment → **validate version** (`GET /`, Kibana status, diagnostic) before scripts/plans. Scope ES|QL, APIs, and Kibana guidance to that version.
 - **Scope:** Inputs can include discovery notes, diagnostics, team notes, **architecture diagrams**. Prefer **enterprise-level** features aligned to customer outcomes. Primary domain can be **search**, **Observability**, **Security**, or a **cross-solution** mix — not search-by-default.
 - **Solution first:** Scripts/plans — **outcomes and key asks** before deep capability walk-through; ask the SA if goals are unclear.
+- **`elastic/agent-skills`:** Install the **full** plugin (Search, Observability, **Elastic Security**) so Security and hybrid demos have the same toolchain as search-only engagements; see `docs/todo.md`.
+- **Deployability:** Artifacts must apply on a real cluster — **Elasticsearch field types** and **Elastic API** request shapes for the target version (`docs/decisions.md` D-025); no invented param types.
+- **Tagging:** Merge **`demobuilder:<engagement_id>`** into every created asset that supports `tags` (`docs/decisions.md` D-026, `skills/demo-deploy/references/demobuilder-tagging.md`).
+- **Research order:** This repo (`skills/`, `docs/`) first; then **github.com/elastic** repos (e.g. **integration-packages-slo** for SLO/Fleet packages — see `docs/runtimes/cursor.md`); **general web or non-Elastic sources — ask the SA before relying on them** (see `AGENTS.md`).
 - **Details:** See repo root `AGENTS.md` and `docs/runtimes/cursor.md`.

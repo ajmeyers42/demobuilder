@@ -1,7 +1,7 @@
 # demobuilder — Open Items Requiring User Action
 
 *Generated from the post-mortem and current skill review. Updated as items are resolved.*
-*Last updated: 2026-04-15*
+*Last updated: 2026-04-16*
 
 For **agent behavior** (orchestrator path, `$DEMOBUILDER_ENGAGEMENTS_ROOT` outputs, deploy approvals), see
 [`AGENTS.md`](../AGENTS.md), [`docs/engagements-path.md`](../docs/engagements-path.md), and [`docs/runtimes/`](../docs/runtimes/).
@@ -13,13 +13,16 @@ For **agent behavior** (orchestrator path, `$DEMOBUILDER_ENGAGEMENTS_ROOT` outpu
 ### 1. Install elastic/agent-skills
 The demobuilder pipeline depends on skills from `https://github.com/elastic/agent-skills` for actual API integration with Elastic Cloud and Kibana. Without them, `demo-cloud-provision` has no mechanism to call the Cloud API, and `demo-deploy` can't create Agent Builder configs or Kibana dashboards.
 
-**Skills needed (install all):**
+**Install the full plugin** so **Search, Observability, and Elastic Security** skills are all available. A given engagement may only use search — but SIEM/detection demos require Security skills without a separate install.
+
+**Skills needed (install all — representative list):**
 - `cloud/setup` — configure EC_API_KEY (must run first)
 - `cloud/create-project` — create serverless projects
 - `cloud/manage-project` — connect to existing projects, delete after demo
 - `kibana/agent-builder` — create/update agents in Agent Builder
 - `kibana/kibana-dashboards` — deploy dashboards and Lens visualizations
 - `kibana/kibana-connectors` — set up email/webhook connectors for Workflows
+- **Security (SIEM / detection / cases):** e.g. `security-detection-rule-management`, `security-alert-triage`, `security-case-management`, `security-generate-security-sample-data` — required for Security-scoped or hybrid demos
 
 **How:** Clone `https://github.com/elastic/agent-skills` and install per its README, or install via the Claude Code plugin mechanism. These should be available alongside the demobuilder skills in the same session.
 
@@ -46,15 +49,18 @@ python3 "$ROOT/citizens-bank/bootstrap.py"
 ```
 Note any failures and report back — the script template in `demo-deploy/SKILL.md` may need adjustments.
 
-### 4. Generate and validate Kibana saved objects
-`bootstrap.py` imports Kibana objects from `.ndjson` files, but these files don't exist yet — they need to be created. Until `demo-kibana-builder` is built (see below), dashboards and agent configs need to be created manually in Kibana and exported.
+### 4. Kibana saved objects — files in the engagement workspace
+`bootstrap.py` imports from paths such as `kibana-objects/{slug}-*.ndjson` and optional
+`kibana/workflows/*`, `kibana/agent/*.json` (see `docs/decisions.md` **D-024**). Those files
+are **authored** using **`elastic/agent-skills`** (e.g. `kibana-dashboards`) and **export-first**
+from Kibana when needed (**D-017**), then **saved under the engagement folder** — not generated
+on the fly during deploy unless `demo-kibana-builder` exists.
 
-**Action:** For the Citizens Bank demo, manually build in Kibana:
-- "Fraud Operations" dashboard (key visualizations from the script)
-- Associate agent config (4 tools as defined in the data model)
-- Export both as `.ndjson` and save to the workspace
+**Action:** Keep dashboards/agent exports next to `bootstrap.py`; ensure `bootstrap.py`
+references them and runs **`saved_objects/_import`** (and related APIs) — not manual UI import.
 
-This is the current gap in the pipeline — see the `demo-kibana-builder` skill in the backlog.
+**Review gate:** Do **not** run `bootstrap.py` against a cluster until the SA has reviewed
+`bootstrap.py`, platform audit, risks, and checklist (**D-024**, `AGENTS.md`).
 
 ### 5. Configure email connector for Workflows demos
 The `online-order-notification` Workflow (Lowe's demo) and any demo using Kibana Workflows that send email requires a pre-configured Kibana Email connector. The `kibana-connectors` skill handles this, but the SMTP settings (or SES/Mailgun config) need to be provided.
@@ -65,12 +71,14 @@ The `online-order-notification` Workflow (Lowe's demo) and any demo using Kibana
 
 ## 🔵 Backlog — Skills to Build Next
 
-### 6. `demo-kibana-builder`
-Generates Kibana saved objects (dashboards, Lens visualizations, ES|QL panels, index patterns) from the data model JSON. Currently the missing step between "cluster bootstrapped" and "demo visually ready."
+### 6. `demo-kibana-builder` *(optional accelerator)*
+Generates baseline Kibana saved objects (dashboards, Lens, ES|QL panels) from `{slug}-data-model.json`
++ `{slug}-demo-script.md`. **Not required** if the SA commits exports under `kibana-objects/`
+as in **D-024**; this skill would automate first-time **generation** only.
 
-**Priority:** High — without this, Kibana object creation is a manual step for every new demo.
+**Priority:** Medium — improves repeatability; file-based imports remain the contract.
 **Inputs:** `{slug}-data-model.json`, `{slug}-demo-script.md`
-**Outputs:** `kibana-objects/{slug}-dashboards.ndjson`, `kibana-objects/{slug}-agent-config.ndjson`
+**Outputs:** `kibana-objects/{slug}-dashboards.ndjson`, etc.
 **Depends on:** `kibana-dashboards` skill from elastic/agent-skills
 
 ### 7. `demo-data-generator`

@@ -98,7 +98,7 @@ Demobuilder is **agent-first**: one shared [`skills/`](skills/) tree; engagement
 |------|---------|
 | [`AGENTS.md`](AGENTS.md) | What the assistant should do (orchestrator, engagement root env var, approvals) |
 | [`.cursor/rules/demobuilder.mdc`](.cursor/rules/demobuilder.mdc) | Cursor rule pointing at the orchestrator |
-| [`docs/runtimes/cursor.md`](docs/runtimes/cursor.md) | Using this repo in Cursor |
+| [`docs/runtimes/cursor.md`](docs/runtimes/cursor.md) | Using this repo in Cursor (includes **SLO / integration packages** → **[elastic/integration-packages-slo](https://github.com/elastic/integration-packages-slo)**) |
 | [`docs/runtimes/claude.md`](docs/runtimes/claude.md) | Claude Code / Claude projects |
 
 ## Quick Start
@@ -121,8 +121,12 @@ $DEMOBUILDER_ENGAGEMENTS_ROOT/   # defaults to $HOME/engagements when unset
     ├── {customer-slug}-data-model.json           ← index mappings + build order
     ├── {customer-slug}-ml-config.json            ← ML job configs (if applicable)
     ├── {customer-slug}-demo-checklist.md         ← pre-demo checklist (timed)
-    ├── bootstrap.py                              ← generated deployment script
-    └── {customer-slug}-deploy-log.md             ← what was created, doc counts
+    ├── {customer-slug}-risks.md                  ← risks and fallbacks
+    ├── bootstrap.py                              ← single deploy driver (ES + data + ML + Kibana API import)
+    ├── {customer-slug}-deploy-log.md             ← what was created, doc counts
+    ├── kibana-objects/                           ← optional: committed .ndjson (dashboards, etc.)
+    ├── kibana/                                   ← optional: workflows JSON/YAML, agent JSON (imported by bootstrap)
+    └── elasticsearch/                            ← optional: declarative ES JSON (if not inlined in bootstrap)
 ```
 
 This repository contains [`engagements/README.md`](engagements/README.md) as a pointer only.
@@ -139,6 +143,7 @@ This repository contains [`engagements/README.md`](engagements/README.md) as a p
 | `demo-data-modeler` | Demo script + discovery JSON | `{slug}-data-model.json`, `{slug}-data-model.md`, mapping files | ✅ v1 |
 | `demo-ml-designer` | Demo script + data model | `{slug}-ml-config.json`, `{slug}-ml-setup.md` | ✅ v1 |
 | `demo-validator` | All pipeline outputs | `{slug}-demo-checklist.md`, `{slug}-risks.md` | ✅ v1 |
+| `demo-kibana-agent-design` | Demo script + discovery (Agent Builder in scope) | `{slug}-agent-builder-spec.md` (optional) | ✅ v1 |
 | `demo-cloud-provision` | Deployment type, region, slug | `{slug}/.env`, `{slug}/.env.example`, `{slug}-provision-log.md` | ✅ v1 |
 | `demo-deploy` | `.env` + data model + ML config | `bootstrap.py`, `{slug}-deploy-log.md` | ✅ v1 |
 | `demo-status` | `.env` + data model + ML config | Terminal status report (✅/❌ per resource, paste-ready fix commands) | ✅ v1 |
@@ -161,6 +166,12 @@ This repository contains [`engagements/README.md`](engagements/README.md) as a p
 **Resumes intelligently.** The orchestrator inventories existing outputs before running. If you change one thing (e.g., the audience composition changes), it re-runs only the affected downstream stages and leaves everything else intact.
 
 **Credentials stay local.** Each engagement workspace under `$DEMOBUILDER_ENGAGEMENTS_ROOT/{slug}/` has its own `.env` — never committed with the repo, never shared between customers unless you explicitly copy and update it. `INDEX_PREFIX` namespaces all resources when sharing a cluster across multiple demos.
+
+**Kibana assets as files; review before deploy.** Save exported dashboards and related saved objects under `kibana-objects/` and/or `kibana/`; `bootstrap.py` imports them via Kibana APIs (see `docs/decisions.md` **D-024**, **D-017**). Do **not** run provision/deploy against a live cluster until the SA has reviewed `bootstrap.py`, platform audit, risks, and checklist — `bootstrap.py --dry-run` is fine without deploy. See `AGENTS.md`.
+
+**Elastic truthfulness.** Every defined asset must be **deployable** on Elastic using supported APIs and **conform to Elasticsearch datatypes and product conventions** (mappings, Agent Builder tool params, rules, saved objects) — see `docs/decisions.md` **D-025**. Do not specify abstract types where the stack expects `keyword`, `text`, `date`, etc.
+
+**Engagement tags.** Deployed assets that support **`tags`** carry **`demobuilder:<engagement_id>`** so operators can find or correlate demo resources — see `docs/decisions.md` **D-026** and `skills/demo-deploy/references/demobuilder-tagging.md`.
 
 ## Validation Coverage
 
@@ -217,6 +228,8 @@ demobuilder/
     ├── demo-validator/
     │   ├── SKILL.md
     │   └── evals/evals.json
+    ├── demo-kibana-agent-design/
+    │   └── SKILL.md
     ├── demo-cloud-provision/
     │   ├── SKILL.md
     │   └── evals/evals.json
@@ -235,17 +248,19 @@ demobuilder/
 ## Dependencies
 
 **elastic/agent-skills** (https://github.com/elastic/agent-skills) must be installed
-alongside demobuilder for cloud provisioning and Kibana API operations. Skills used:
+**in full** alongside demobuilder — **Search, Observability, and Elastic Security** skills
+are all part of the same plugin. Install everything so Security-heavy or hybrid demos work
+without a second setup; search-only engagements simply do not invoke Security skills.
 
-| Skill | Purpose in demobuilder |
-|---|---|
-| `cloud/setup` | Configure EC_API_KEY (prerequisite for provisioning) |
-| `cloud/create-project` | Create serverless Elasticsearch projects |
-| `cloud/manage-project` | Connect to existing projects; delete post-demo |
-| `kibana/agent-builder` | Create Agent Builder configs during deploy |
-| `kibana/kibana-dashboards` | Generate and deploy Kibana dashboards |
-| `kibana/kibana-connectors` | Configure email/webhook connectors for Workflows |
-| `elasticsearch/elasticsearch-esql` | Spot-check queries in demo-status |
+Representative skills used (non-exhaustive):
+
+| Skill area | Examples | Purpose in demobuilder |
+|---|---|---|
+| Cloud | `cloud/setup`, `cloud/create-project`, `cloud/manage-project` | EC_API_KEY, provision, teardown |
+| Kibana | `kibana/agent-builder`, `kibana/kibana-dashboards`, `kibana/kibana-connectors` | Deploy, dashboards, Workflows connectors |
+| Observability | `observability-manage-slos`, `observability-logs-search`, … | SLOs, logs analysis when in scope |
+| **Security** | `security-detection-rule-management`, `security-alert-triage`, `security-case-management`, `security-generate-security-sample-data`, … | Detection rules, triage, cases, sample data when demo is Sec or hybrid |
+| Elasticsearch | `elasticsearch/elasticsearch-esql`, … | Queries, demo-status |
 
 Run `cloud-setup` once to configure your Elastic Cloud API key before using
 `demo-cloud-provision`. See `docs/todo.md` for the full setup checklist.
@@ -261,3 +276,6 @@ Run `cloud-setup` once to configure your Elastic Cloud API key before using
 | `docs/postmortem.md` | Session post-mortem: lessons learned, friction points, design validation |
 | `docs/decisions.md` | Architecture decision log with rationale |
 | `docs/todo.md` | Open items requiring user action (installs, credentials, validations) |
+| `docs/references-observability-slo.md` | Elastic Guide + API links for programmatic SLOs and burn-rate rules |
+| `docs/references-kibana-apis.md` | Kibana Saved Objects + Alerting (rules & connectors); complements SLO reference |
+| `skills/demo-deploy/references/demobuilder-tagging.md` | `demobuilder:<id>` on all tagged deploy assets (D-026) |

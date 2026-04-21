@@ -3,9 +3,12 @@ name: demo-deploy
 description: >
   Generates a `bootstrap.py` deployment script from the demobuilder pipeline outputs and
   executes it against the target cluster specified in the engagement's .env file. Creates
-  all Elasticsearch resources, loads seed data, imports Kibana objects, configures ML jobs,
-  and injects demo anomalies. Idempotent — safe to re-run if a step fails. Per-engagement
-  .env file isolates credentials so multiple customer demos never interfere.
+  whatever Elasticsearch and Kibana-side resources the **demo script, data model, platform
+  audit, and validator** scope for that engagement — search, Observability, Security,
+  hybrid, ML, semantic search, Agent Builder, etc. Provisions Kibana and related APIs
+  via automation (no default “finish in the UI”) for every asset class that is in scope.
+  Idempotent — safe to re-run if a step fails. Per-engagement .env isolates credentials.
+  Completion via manual UI is only acceptable when the platform audit documents a hard blocker.
 
   ALWAYS use this skill when the user says "deploy the demo", "run the bootstrap",
   "set up the cluster", "load the data", "execute the deployment", or "it's ready to
@@ -23,6 +26,65 @@ is the deployment record — it documents exactly what was created, in what orde
 Every step is idempotent: if the script is interrupted and re-run, it picks up where it
 left off without creating duplicates or overwriting data that's already correct.
 
+## Automation contract (skills — not one-off scripts, not manual UI)
+
+**Single deployment surface:** `bootstrap.py` in the engagement workspace is the only
+required executable for “deploy the demo.” It must perform **every** automated provisioning
+step that **this engagement’s** script, checklist, data model, and platform audit require —
+using Elasticsearch APIs for cluster-side work and **Kibana / Kibana-adjacent APIs** for
+anything the story needs in the UI (saved objects, Observability, Security, Stack Management,
+etc.), with `KIBANA_API_KEY` where applicable (see `references/env-reference.md`). Do **not**
+hand off with a separate `deploy_*.py` beside bootstrap, “run these scripts in order,” or
+“click through Kibana to finish” unless the **platform audit** records a genuine blocker and
+the deploy log documents the exception.
+
+**Scenario-driven — not a fixed stack:** No engagement is required to use SLOs, Agent Builder,
+Security rules, or any other specific feature. **Derive** bootstrap contents from:
+
+- `{slug}-demo-script.md` and `{slug}-demo-checklist.md` — what scenes and clicks must work
+- `{slug}-platform-audit.json` — what is licensed, version-supported, and enabled
+- `{slug}-data-model.json` — indices, pipelines, seed data
+- `{slug}-ml-config.json` (if any) — ML and anomaly injection
+- Optional specs (`{slug}-*-dashboards-spec.md`, `{slug}-agent-builder-spec.md`, etc.)
+
+Skip entire subsystems when out of scope (e.g. pure Elasticsearch relevance demos may only
+need data views + saved searches + dashboards; a SIEM demo may emphasize detection rules
+and timelines; an Observability demo may emphasize SLOs and APM — **implement only what is
+scoped**).
+
+**Skill catalog (`elastic/agent-skills`) — pick what matches the scenario:**
+
+The **full** `elastic/agent-skills` install includes **Search, Observability, and Security**
+specialists. Keep them **available** for every engagement; **invoke** only what the script
+and audit require (a non-Security demo does not call Security APIs — but the skills must
+still be present so hybrid and Sec-first demos are supported without a different install).
+
+Use these specialists to **author** payloads, NDJSON, and API bodies before or while writing
+`bootstrap.py`. This table is a **menu**, not a mandatory checklist:
+
+| Typical need | Skill (plugin) | Notes |
+|--------------|----------------|--------|
+| Dashboards / Lens / saved objects | `kibana-dashboards` | Any vertical — viz as code |
+| Observability SLOs | `observability-manage-slos` | When the script calls for SLOs |
+| Alerting rules (including SLO burn rate) | `kibana-alerting-rules` | Rule types vary by use case |
+| Connectors | `kibana-connectors` | Before Workflows that notify |
+| **Security / SIEM** | `security-detection-rule-management`, `security-alert-triage`, `security-case-management`, `security-generate-security-sample-data`, other `security-*` | First-class — use when demo is Sec or hybrid; sample data for POCs |
+| Agent Builder | `elastic/kibana-agent-builder-sdk` + `{slug}-agent-builder-spec.md` | When script includes agents |
+| ES|QL / analytics | `elasticsearch-esql` | Query validation and panels |
+
+The deploying agent **implements** chosen payloads inside `bootstrap.py` (or loads JSON
+adjacent files). “Placeholder only” assets are **incomplete** unless `{slug}-demo-checklist.md`
+or validator explicitly allowed thin shells for a pilot.
+
+**Anti-pattern:** Copying a prior engagement’s `bootstrap.py` or Kibana steps wholesale.
+Each demo gets a **generated** script aligned to its artifacts.
+
+**Elastic deployability and datatypes (`docs/decisions.md` D-025):** Do not author assets that
+cannot be applied with supported APIs. Mappings and documents use **Elasticsearch field types**;
+Agent Builder ES|QL tool `params.*.type` values must match what the Kibana server validates
+(typically ES-style: `keyword`, `text`, `integer`, `date`, … — verify per stack). Security
+rules, SLOs, and saved objects follow **product** schemas for the target version.
+
 **Before building Workflows or Agent Builder configs** — read these reference files first:
 - `references/serverless-differences.md` — Serverless-specific behaviors, feature flags,
   ML field names, Liquid array syntax, ELSER service names, saved objects quirks
@@ -32,6 +94,20 @@ left off without creating duplicates or overwriting data that's already correct.
 Do not iterate past 30 minutes on an undocumented Workflow or Agent Builder API without
 surfacing it as a blocker and asking for the `elastic/workflows` or
 `elastic/kibana-agent-builder-sdk` reference repos.
+
+## Step 0: Review gate (before any live cluster changes)
+
+**Do not** execute `bootstrap.py` against a **live** cluster (or run `demo-cloud-provision`
+to create resources) until the SA has:
+
+1. **Reviewed** the generated **`bootstrap.py`** (what it will create or mutate).
+2. **Reviewed** analysis outputs the deploy relies on: **`{slug}-platform-audit`**, **`{slug}-risks`**,
+   **`{slug}-demo-checklist.md`**, and any committed **`kibana-objects/`**, **`kibana/`**, or
+   **`elasticsearch/`** files the script imports.
+3. **Explicitly approved** provision/deploy for this session (same as `AGENTS.md`).
+
+Allowed without that approval: **author** `bootstrap.py`, **`--dry-run`**, local edits to NDJSON,
+connectivity checks that do not mutate production. See **`docs/decisions.md` D-024**.
 
 ## Step 1: Load the Environment
 
@@ -51,6 +127,9 @@ Read `INDEX_PREFIX` (may be blank). If set, prepend it to every index name, temp
 and pipeline name in the deployment. Apply consistently so a prefix of `cb-` makes
 `fraud-claims` → `cb-fraud-claims` everywhere including query references.
 
+Read optional **`DEMO_ASSET_TAG`** — overrides the engagement id used in **`demobuilder:<id>`**
+tags when set (see **`references/demobuilder-tagging.md`**, **`docs/decisions.md` D-026**).
+
 ## Step 2: Read Pipeline Outputs
 
 Load all available artifacts from the workspace:
@@ -58,8 +137,20 @@ Load all available artifacts from the workspace:
 - `{slug}-ml-config.json` — optional. ML jobs, datafeeds, injection plan.
 - `{slug}-platform-audit.json` — read `deployment_type` and feature availability to
   adapt the bootstrap to the specific platform.
+- `{slug}-demo-script.md`, `{slug}-demo-checklist.md`, and any supplemental specs
+  (`{slug}-*-dashboards-spec.md`, `{slug}-agent-builder-spec.md`, Security plans, etc.) —
+  required context for **step 13** so every scene that depends on a Kibana, Security, or
+  Observability asset has a matching API step when those features are in scope.
+- Optional: `{slug}-kibana-*.json` or other sidecar JSON if earlier stages materialized
+  them; otherwise derive payloads using the **skill catalog** that matches this scenario.
 
 Extract the build order from the data model — this is the sequence the script must follow.
+
+**Kibana and ES collateral as files:** If the engagement workspace includes
+`kibana-objects/{slug}-*.ndjson`, `kibana/workflows/*`, `kibana/agent/*.json`, or declarative
+`elasticsearch/**` JSON, **`bootstrap.py` must load and apply them** via APIs (saved objects
+import, Workflows, Agent Builder, ES `PUT`s) — single script, no parallel `deploy_*.py`. Paths
+are relative to `{workspace}` (**D-024**).
 
 ## Step 3: Generate `bootstrap.py`
 
@@ -74,6 +165,9 @@ Demobuilder bootstrap — {Company} ({slug})
 Generated: {date}
 Deployment: {type} at {ELASTICSEARCH_URL}
 
+Engagement dir is `{workspace}` (default parent `~/engagements` per docs/engagements-path.md).
+After `GET /`, print cluster version and warn if `ELASTIC_VERSION` in `.env` disagrees (D-020).
+
 Usage:
   python3 bootstrap.py              # deploy everything
   python3 bootstrap.py --dry-run   # print what would be done, no API calls
@@ -81,7 +175,7 @@ Usage:
   python3 bootstrap.py --step N    # resume from step N (see step list below)
 
 Steps:
-  1.  Connectivity check
+  1.  Connectivity check (includes version validation vs ELASTIC_VERSION)
   2.  ILM / Data Stream Lifecycle policies
   3.  Enrich policies (create + execute)
   4.  Ingest pipelines
@@ -93,12 +187,13 @@ Steps:
   10. Load seed data
   11. ML anomaly detection jobs
   12. ML datafeeds (create + start)
-  13. Kibana saved objects import
+  13. Kibana & platform UI assets (all API — see “Step 13” below; implement only sub-steps
+      required by this engagement’s script, audit, and validator)
   14. Anomaly injection
   15. Warm ELSER endpoint
 """
 
-import os, sys, json, time, argparse
+import os, sys, json, time, argparse, re
 import urllib.request, urllib.error
 
 # ── Credentials (from .env) ─────────────────────────────────────────────────
@@ -108,8 +203,22 @@ API_KEY   = os.environ.get("ES_API_KEY", "")
 KB_KEY    = os.environ.get("KIBANA_API_KEY", "")  # used for all Kibana API calls
 DEP_TYPE  = os.environ.get("DEPLOYMENT_TYPE", "ech")
 PREFIX    = os.environ.get("INDEX_PREFIX", "")
+SLUG      = os.environ.get("DEMO_SLUG", "demo")
 
 def p(name): return f"{PREFIX}{name}" if PREFIX else name  # apply index prefix
+
+# ── Demobuilder engagement tag (D-026) — merge into every API payload that has "tags" ──
+def _engagement_id_for_tag() -> str:
+    override = os.environ.get("DEMO_ASSET_TAG", "").strip()
+    raw = override or (PREFIX.strip() if PREFIX.strip() else SLUG)
+    s = re.sub(r"[-_\s]+", "", raw).lower()
+    return s or "demo"
+
+def demobuilder_tags() -> list[str]:
+    return [f"demobuilder:{_engagement_id_for_tag()}"]
+
+def merge_tags(existing):
+    return sorted(set((existing or []) + demobuilder_tags()))
 
 # ── HTTP helpers ─────────────────────────────────────────────────────────────
 def es(method, path, body=None, *, ok=(200,201)):
@@ -264,24 +373,72 @@ except:
     es("PUT", f"/_ml/anomaly_detectors/{job['job_id']}", job["analysis_config_etc"])
 ```
 
-**Kibana saved objects (step 13)**
-Use the Kibana Saved Objects import API. Objects are in `.ndjson` format. Apply prefix
-to index pattern references if `INDEX_PREFIX` is set. Prefer **ES|QL** in chart/query definitions
-(Lens or Vega-Lite with ES|QL) per current Elastic guidance; avoid KQL or Query DSL in new assets
-unless ES|QL cannot express the filter for that stack version.
+**Step 13 — Kibana & platform UI assets (complete everything in scope)**
+
+**Not** “import NDJSON only.” Implement **every** Kibana API and related call that this
+engagement’s **script + audit + validator** require — **omit** sub-bullets that are out of
+scope. Honor `KIBANA_SPACE_PATH` in `.env` by prefixing paths (`/s/{space}/api/...`). Use
+`KIBANA_API_KEY` for Kibana calls.
+
+**13a — Data views** *(when the demo uses Discover, Lens, or dashboards bound to indices)*  
+`POST /api/data_views/data_view` for each index pattern the script references (count and
+names come from the data model + script — not a fixed pair). Idempotent: list existing
+titles, skip if present.
+
+**13b — Observability SLOs** *(when the script / checklist explicitly includes SLOs)*  
+`POST /api/observability/slos` per `observability-manage-slos`. Indicator types vary (KQL,
+APM, Synthetics, etc.). Treat `409` as already created.
+
+**13c — Alerting rules** *(when the script needs alerts — SLO burn, metric threshold, etc.)*  
+`POST /api/alerting/rule/{id}` with the correct `rule_type_id` for that scenario (e.g. SLO
+burn rate: `slo.rules.burnRate`, `consumer`: `slo`) — validate with `kibana-alerting-rules`
+for the target version.
+
+**SLO stack docs:** Elastic Guide (concepts, create SLO, burn-rate alerts, troubleshoot incl.
+reset) plus the API hub — see **`docs/references-observability-slo.md`** in demobuilder. Use the
+**8.x** minor from `ELASTIC_VERSION` in Guide paths; for **9.0+** stacks use the **`9.0`** Guide
+branch (or `current`) and re-check the page when the stack version changes (**D-025**).
+
+**13d — Saved objects** *(when dashboards/visualizations are in scope)*  
+`POST /api/saved_objects/_import?overwrite=true` (multipart NDJSON). Prefer definitions
+authored via `kibana-dashboards` from the data model + script. Apply `INDEX_PREFIX` to
+index titles in queries before import.
+
+**Kibana APIs (rules, connectors, saved objects):** See **`docs/references-kibana-apis.md`**
+— Kibana Guide `current` for **Saved Objects** and **Alerting** (rules and connectors). SLO
+burn-rate rules are one `rule_type_id` under Alerting; the Observability SLO reference
+**`docs/references-observability-slo.md`** stays focused on SLOs + SLO burn-rate behavior (**D-025**).
+
+**13e — Agent Builder** *(when the agent spec exists and audit allows it)*  
+`PUT/POST` under `/api/agent_builder/...` per `{slug}-agent-builder-spec.md` — not a
+manual “Create agent” handoff.
+
+**13f — Workflows** *(when in scope and supported)*  
+After connectors if needed — follow `references/workflow-patterns.md`.
+
+**13g — Security / SIEM** *(when demo is Sec or hybrid)*  
+Use `security-*` skills as appropriate: detection rules, prebuilt-rule toggles, timelines,
+cases — via documented APIs, not “configure in UI” as the default.
+
+**13h — Other** *(streams, Fleet, synthetics, etc.)*  
+If the platform audit and script call for them, add the matching API steps — do not assume
+this list is exhaustive.
+
+**13i — Engagement tagging (`demobuilder:<id>`)** *(D-026 — whenever a create payload has `tags`)*  
+Merge **`demobuilder_tags()`** from **`references/demobuilder-tagging.md`** into SLOs, alerting
+rules, ML job bodies, Agent Builder agents/tools, Security rules (if tagged), and any other
+scoped creates. Indices remain distinguished by **`p(name)`**; saved objects should carry the tag
+in export or follow-up tagging when the stack supports it.
+
+**Example — saved objects import (multipart for NDJSON):**
 ```python
 with open("kibana-objects/{slug}-dashboards.ndjson", "rb") as f:
     kb("POST", "/api/saved_objects/_import?overwrite=true", f, content_type="multipart/form-data")
 ```
 
-If the `.ndjson` files don't exist yet (first-time deploy for a new demo), use the
-`kibana-dashboards` skill (from `elastic/agent-skills`) to generate dashboard definitions
-from the data model, and the `kibana-agent-builder` skill to create agent configurations.
-These skills write `.ndjson` output that bootstrap.py then imports.
-
-For demos using Workflows that send email or webhooks, configure connectors first using
-the `kibana-connectors` skill (from `elastic/agent-skills`) before importing Workflow
-definitions — connectors must exist before Workflows that reference them.
+If a required artifact type is missing for **this** engagement, **stop** and run the
+corresponding skills to generate it; **do not** complete `demo-deploy` with “TODO: add in
+Kibana” for an in-scope asset.
 
 **Anomaly injection (step 14)**
 Run the injection spec from `{slug}-ml-config.json`. Sleep `2 × bucket_span` after
@@ -403,23 +560,25 @@ The script auto-adapts based on `DEPLOYMENT_TYPE` in the `.env`:
 
 ## What Good Looks Like
 
-**Clean first run:** All 15 steps succeed. No existing resources — everything created
-fresh. ELSER warms in < 2s. ML anomaly visible within 2 bucket spans of injection.
-Bootstrap completes in 4–8 minutes for a typical demo data model.
+**Clean first run:** All 15 steps succeed (step 13 covers every **in-scope** Kibana/Security/
+Observability API the story needs — no manual UI follow-up for those). No existing resources
+— everything created fresh. ELSER warms in < 2s when semantic search is in scope. ML anomaly
+visible within 2 bucket spans when ML is in scope. Duration varies by scenario (simple search
+demo vs. full hybrid Sec + Obs + agents).
 
 **Idempotent re-run:** Bootstrap run again after a partial failure. Steps 1–7 skip
 (resources exist), step 8 picks up (ELSER wasn't deployed). Remaining steps complete.
 No duplicate data, no errors on existing resources.
 
-**Multi-customer, same cluster:** Citizens Bank bootstrap used `INDEX_PREFIX=cb-`. IHG
-bootstrap uses `INDEX_PREFIX=ihg-`. Both sets of indices coexist. Each bootstrap only
-touches its own prefixed resources.
+**Multi-customer, same cluster:** Engagement A uses `INDEX_PREFIX=cb-`; engagement B uses
+`INDEX_PREFIX=acme-`. Both sets of indices coexist. Each bootstrap only touches its own
+prefixed resources.
 
 **Prefix copy workflow:** (see `docs/engagements-path.md` — default root `~/engagements`)
 ```bash
 ROOT="${DEMOBUILDER_ENGAGEMENTS_ROOT:-$HOME/engagements}"
-cp "$ROOT/citizens-bank/.env" "$ROOT/ihg-club/.env"
-# Edit ihg-club/.env: DEMO_SLUG=ihg-club, ENGAGEMENT="IHG Club Vacations", INDEX_PREFIX=ihg-
-set -a && source "$ROOT/ihg-club/.env" && set +a
-python3 "$ROOT/ihg-club/bootstrap.py"
+cp "$ROOT/engagement-a/.env" "$ROOT/engagement-b/.env"
+# Edit engagement-b/.env: DEMO_SLUG, ENGAGEMENT, INDEX_PREFIX for the new customer
+set -a && source "$ROOT/engagement-b/.env" && set +a
+python3 "$ROOT/engagement-b/bootstrap.py"
 ```

@@ -23,6 +23,20 @@ Use `KIBANA_API_KEY` for these checks. Do not write any build code against these
 
 ---
 
+## Agent Builder — ES|QL tool parameter types
+
+**Decision reference:** `docs/decisions.md` **D-025**.
+
+`POST` / `PUT` `/api/agent_builder/tools` validates `configuration.params.<name>.type` against
+**Elasticsearch field-style types** for the stack version (e.g. `keyword`, `text`, `long`,
+`integer`, `double`, `float`, `boolean`, `date`, `object`, `nested`). Values such as a
+generic **`string`** may be **rejected** — use `keyword` or `text` as appropriate.
+
+**PUT updates:** Send only `description`, `configuration`, and optional `tags` — **not** `id`
+or `type` (immutable). See `elastic/agent-skills` **kibana/agent-builder** SKILL.md.
+
+---
+
 ## ML Anomaly Detection — Field Names
 
 `.ml-anomalies-*` on Serverless uses different field names than self-managed documentation:
@@ -176,6 +190,18 @@ Dashboards, Connectors, and Saved Objects import. This is a separate key from `E
 API key privilege requirements for Kibana vs. Elasticsearch are under active product change.
 `KIBANA_API_KEY` remains a required field in `.env` until product confirms a unified approach.
 Do not fall back to `ES_API_KEY` for Kibana API calls — keep the keys separate.
+
+---
+
+## Observability SLOs — Guide vs OpenAPI
+
+**Decision reference:** `docs/decisions.md` **D-025**.
+
+Use the **Elastic Guide** for behavior (what the UI does, burn-rate alert concepts, reset /
+troubleshooting) and **Kibana OpenAPI** for exact JSON on `POST /api/observability/slos` and
+`POST /api/alerting/rule/{id}` (`slo.rules.burnRate`). Demobuilder collects versioned links in
+**`docs/references-observability-slo.md`** — for **8.x** use the stack minor in the path; for
+**9.0+** use the **`9.0`** Observability Guide branch (or **`current`**) and re-read when upgrading.
 
 ---
 

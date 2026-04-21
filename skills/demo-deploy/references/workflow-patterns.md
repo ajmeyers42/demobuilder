@@ -1,6 +1,8 @@
 # Kibana Workflow Patterns — Practical Reference (9.3)
 
-Patterns derived from the Lowe's "Store That Knows" demo. Every snippet here
+**Upstream library (Elastic org):** **[elastic/workflows](https://github.com/elastic/workflows)** — official **Elastic Workflow Library** (sample YAML under `workflows/`, docs under `docs/`). Use that repo for step types, Liquid patterns, and copy-paste examples; use *this* file for demobuilder-specific API wiring (Agent Builder `workflow_id`, `GET /api/workflows`, feature flags).
+
+Patterns below are also derived from the Lowe's "Store That Knows" demo. Every snippet here
 was validated against a live Serverless cluster. Use this as a lookup, not a
 tutorial.
 

@@ -33,6 +33,11 @@ ELASTIC_VERSION=9.3.1
 # Example: INDEX_PREFIX=cb-  →  fraud-claims becomes cb-fraud-claims
 INDEX_PREFIX=
 
+# ── Demobuilder tagging (D-026) ────────────────────────────
+# Optional. Overrides the engagement id used in demobuilder:<id> tags on SLOs, rules, ML jobs,
+# Agent Builder, etc. If unset, the id is derived from INDEX_PREFIX (normalized) or DEMO_SLUG.
+# DEMO_ASSET_TAG=
+
 # ── Cluster Metadata (informational) ──────────────────────
 CLUSTER_NAME=demobuilder-citizens-bank-20260415
 REGION=us-east-1
@@ -100,6 +105,7 @@ KIBANA_URL=<https://your-kibana.kb.io:443>
 ES_API_KEY=<your-api-key>
 
 INDEX_PREFIX=<optional-e.g.-cb->
+# DEMO_ASSET_TAG=<optional-override-for-demobuilder:-tags>
 
 CLUSTER_NAME=<demobuilder-slug-YYYYMMDD>
 REGION=<e.g.-us-east-1>

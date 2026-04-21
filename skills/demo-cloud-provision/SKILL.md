@@ -127,6 +127,9 @@ KIBANA_API_KEY={kibana_api_key}   # used for all Kibana asset operations
 # Set this if running multiple demos on the same cluster to avoid collisions
 INDEX_PREFIX=
 
+# Optional: override demobuilder:<id> tag suffix (D-026); see demo-deploy/references/demobuilder-tagging.md
+# DEMO_ASSET_TAG=
+
 # Cluster metadata (informational)
 CLUSTER_NAME={name}
 REGION={region}
@@ -147,6 +150,7 @@ KIBANA_URL=<https://your-kibana.kb.io:443>
 ES_API_KEY=<your-es-api-key>
 KIBANA_API_KEY=<your-kibana-api-key>
 INDEX_PREFIX=<optional-e.g., cb->
+# DEMO_ASSET_TAG=<optional-override-for-demobuilder-tags>
 ```
 
 **To reuse a cluster for a new engagement:** Copy the `.env` from an existing workspace

@@ -26,19 +26,38 @@ You don't do the work yourself — you read each sub-skill's SKILL.md to load it
 execute that stage, then move to the next. Each stage produces files that feed into the
 next. Treat each sub-skill as a specialist you're briefing, not a function you're calling.
 
-**External dependencies:** Stages 8–9 depend on skills from `elastic/agent-skills`
-(a separate plugin). If those skills aren't installed, surface a clear message rather
-than failing silently: "To provision or deploy, install the elastic/agent-skills plugin.
-See docs/todo.md for setup instructions."
+**External dependencies — `elastic/agent-skills` (Search, Observability, and Security):**
+The pipeline is designed to use specialists from `elastic/agent-skills` (separate plugin)
+across **all** major Elastic solution areas — not only search and Observability. Install the
+**full** plugin so these are **available** in every session, even when a particular
+engagement does not use them (e.g. a pure search demo still benefits from a consistent
+install; the orchestrator simply does not invoke Security skills for that scenario).
+
+| Area | Examples (non-exhaustive) |
+|------|-------------------------|
+| **Elasticsearch / search / analytics** | `elasticsearch-esql`, `elasticsearch-file-ingest`, `elasticsearch-authn`, … |
+| **Observability** | `observability-manage-slos`, `observability-service-health`, `observability-logs-search`, … |
+| **Elastic Security / SIEM** | `security-detection-rule-management`, `security-alert-triage`, `security-case-management`, `security-generate-security-sample-data`, … |
+| **Kibana / platform** | `kibana-dashboards`, `kibana-alerting-rules`, `kibana-connectors`, `kibana-vega`, … |
+| **Cloud** | `cloud/setup`, `cloud/create-project`, `cloud/manage-project`, … |
+
+Stages **8–9** (provision, deploy) rely on Cloud + Kibana skills; stages **1–7** still call
+Security or Observability skills whenever the **discovery, script, or audit** scope requires
+them (e.g. SIEM detection demos, hybrid Sec + Obs storylines).
+
+If `elastic/agent-skills` is not installed, surface a clear message rather than failing
+silently: install the plugin per `docs/todo.md` — **include Security skills**, not a subset.
 
 **Agent runtimes:** Skills live under `skills/` in the demobuilder repo. Behavior for
 Cursor, Claude, and other hosts is unified — see repo root `AGENTS.md` and
 `docs/runtimes/`. Do not fork skill content per IDE; only loading paths differ.
 
-**Deploy approval:** Before running **Stage 8 (demo-cloud-provision)** or **Stage 9 (demo-deploy)**,
-confirm the SA wants to create or mutate cloud resources / run `bootstrap.py` in this
-session — unless they have already explicitly asked to provision or deploy. Planning
-stages (1–7) may proceed when the SA asks to build or refresh artifacts.
+**Deploy approval:** Before running **Stage 8 (demo-cloud-provision)** or **Stage 9 (demo-deploy)**
+against a **live** cluster, confirm the SA wants to provision or deploy **and** has **reviewed**
+`bootstrap.py`, `{slug}-platform-audit`, `{slug}-risks`, `{slug}-demo-checklist.md`, and any
+Kibana/ES files the script will apply — unless they state review is complete. **`bootstrap.py --dry-run`**
+does not require this gate. See `docs/decisions.md` **D-024** and `AGENTS.md`. Planning stages
+(1–7) may proceed when the SA asks to build or refresh artifacts.
 
 **Elastic version scope:**
 - **New deployment or Serverless project** — Assume the **latest generally available**
@@ -53,6 +72,18 @@ stages (1–7) may proceed when the SA asks to build or refresh artifacts.
   API shapes, Kibana features, ML APIs, and Agent Builder / Workflows availability all
   depend on version and deployment type. When in doubt, cite the version the guidance
   applies to.
+
+**Deployability on Elastic (`docs/decisions.md` D-025):** Data models, bootstrap payloads,
+Agent Builder tools, ML configs, and Kibana imports must be **deployable** on a real cluster
+and use **Elastic datatypes and API conventions** — not hand-wavy JSON. When skills or
+OpenAPI disagree with a first guess, trust the stack and **`elastic/agent-skills`**
+reference behavior.
+
+**Engagement tagging (`docs/decisions.md` D-026):** Generated **`bootstrap.py`** and API payloads
+must merge **`demobuilder:<engagement_id>`** into every resource that supports **`tags`**
+(SLOs, alerting rules, ML jobs, Agent Builder entities, etc.). Derive `<engagement_id>` per
+**`skills/demo-deploy/references/demobuilder-tagging.md`** (`INDEX_PREFIX` normalized, else
+`DEMO_SLUG`; optional **`DEMO_ASSET_TAG`** override).
 
 **Demo scope — enterprise capabilities and solution areas:**
 - **Assume enterprise-appropriate features** when shaping the demo: prefer capabilities that
@@ -77,6 +108,20 @@ should lead with **business value and the customer’s key asks** from discovery
 detail **supporting Elastic capabilities** (how to get there). If primary goals are unclear
 in the inputs, the agent should **ask for guidance** before finalizing storyline — see
 `demo-script-template`.
+
+**Scenario adaptability (any demo, not one template):** The pipeline is **analytic**, not
+prescriptive. Each engagement may emphasize different Elastic surfaces — relevance and
+semantic search, log analytics, APM, Synthetics, Security detection and SIEM, Observability
+SLOs, ML anomalies, Agent Builder, cross-cluster search, etc. **Nothing** in the stage
+list assumes a particular vertical (financial services, retail, public sector, etc.) or a
+fixed feature bundle. **demo-platform-audit** and **demo-script-template** narrow what is
+feasible and what the story needs; **demo-data-modeler** and **demo-deploy** materialize
+only that. Do not retrofit every engagement into a “standard” shape that happened to work
+for a prior customer; **read the inputs** and produce artifacts that match **this** demo.
+
+**Additional skills (planning / Kibana / Security):**
+- `demo-kibana-agent-design` — when the demo script includes **Elastic Agent Builder** (custom agent, tools, workflows), produce `{slug}-agent-builder-spec.md` per `skills/demo-kibana-agent-design/SKILL.md`.
+- **Elastic Security** — when the story includes detection, alerts, cases, or sample security data, read and follow the relevant `security-*` skills from `elastic/agent-skills` (same install as Search/Obs); **platform-audit** must reflect Sec license/tier and feature availability.
 
 **Additional post-deploy skills** available once a cluster is deployed:
 - `demo-status` — quick pre-demo readiness pulse check (connectivity, doc counts, ML state, ELSER latency)
@@ -121,9 +166,9 @@ Report the inventory to the user before executing:
 
 Stage                    Status
 ─────────────────────────────────────────
-Discovery parser         ✅ Complete  (citizens-bank-discovery.json)
+Discovery parser         ✅ Complete  ({slug}-discovery.json)
 Diagnostic analyzer      ⏭  Skipped  (no diagnostic provided)
-Platform audit           ✅ Complete  (citizens-bank-platform-audit.json)
+Platform audit           ✅ Complete  ({slug}-platform-audit.json)
 Script template          🔲 Pending
 Data modeler             🔲 Pending
 ML designer              🔲 Pending  (will check for ML scenes in script)
@@ -161,7 +206,7 @@ For each stage that needs to run, in order:
    This loads the specialist's instructions. Follow them exactly.
 3. **Execute the stage** using the loaded instructions and available inputs.
 4. **Write outputs** to the workspace directory with the slug prefix.
-5. **Announce completion:** `✅ demo-discovery-parser complete → citizens-bank-discovery.json`
+5. **Announce completion:** `✅ demo-discovery-parser complete → {slug}-discovery.json`
 6. **Surface any blockers:** If a stage produces a RED platform audit or critical gaps, pause
    and report before continuing:
    ```
@@ -238,15 +283,25 @@ For each stage that needs to run, in order:
   no re-provisioning needed
 
 **Stage 9 — demo-deploy** *(optional — runs after validator if cluster target is known)*
-- **Requires explicit SA approval** to run generated `bootstrap.py` against the cluster
-  (unless the user already clearly requested deployment this session)
+- **Requires explicit SA approval** to run generated `bootstrap.py` against a **live**
+  cluster **and** **human review** of `bootstrap.py`, `{slug}-platform-audit`, `{slug}-risks`,
+  `{slug}-demo-checklist.md`, and any committed `kibana-objects/` / `kibana/` imports the
+  script will execute — unless the user has clearly stated they already reviewed them.
+  **`bootstrap.py --dry-run`** and generating the script **do not** count as deploy.
+  See `docs/decisions.md` **D-024** and `AGENTS.md`.
 - Skip if: user has not requested deployment and no `.env` is present
 - Run if: `.env` exists in the workspace (from stage 8 or copied from another engagement)
-  AND user says "deploy", "build it", "set up the cluster", or "bootstrap"
+  AND user says "deploy", "build it", "set up the cluster", or "bootstrap" **after** review
 - Requires: `{workspace}/.env` — stop and surface a clear message if missing
-- Read: `../demo-deploy/SKILL.md`
-- Inputs: `{workspace}/.env`, `{slug}-data-model.json`, `{slug}-ml-config.json` (if present)
-- Outputs: `{workspace}/bootstrap.py`, `{slug}-deploy-log.md`
+- Read: `../demo-deploy/SKILL.md` (including the **Automation contract** — every **in-scope**
+  Kibana / Security / Observability asset must be created via APIs inside `bootstrap.py`,
+  with definitions sourced from `elastic/agent-skills` where applicable — not left as
+  manual UI steps)
+- Inputs: `{workspace}/.env`, `{slug}-data-model.json`, `{slug}-ml-config.json` (if present),
+  `{slug}-demo-script.md` / checklist / any supplemental specs (dashboards, agents, Sec, etc.)
+- Outputs: `{workspace}/bootstrap.py`, `{slug}-deploy-log.md` — deploy log must list **all**
+  resource classes created for **this** engagement (indices, ML, Kibana objects, rules,
+  agents, etc.) and must not claim “done” while required assets are still manual
 
 ## Step 5: Deliver the Handoff Summary
 
@@ -257,62 +312,60 @@ When all stages are complete, produce a structured handoff:
  DEMOBUILDER COMPLETE — [Company]
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-📁 Workspace: ~/engagements/citizens-bank/   (or $DEMOBUILDER_ENGAGEMENTS_ROOT/citizens-bank/ if set)
+📁 Workspace: $DEMOBUILDER_ENGAGEMENTS_ROOT/{slug}/  (default: ~/engagements/{slug}/)
 
 ARTIFACT SUMMARY
 ────────────────
 Discovery & Context
-  ✅  citizens-bank-discovery.json      — structured customer profile
-  ✅  citizens-bank-confirmation.md     — send to customer before demo
-  ✅  citizens-bank-gaps.md             — internal follow-up questions
+  ✅  {slug}-discovery.json            — structured customer profile
+  ✅  {slug}-confirmation.md           — send to customer before demo
+  ✅  {slug}-gaps.md                   — internal follow-up questions
 
 Platform & Feasibility
-  ⏭   (no diagnostic provided)
-  ✅  citizens-bank-platform-audit.json — feature feasibility matrix
-  ✅  citizens-bank-platform-audit.md   — SE briefing
+  ⏭   or ✅  {slug}-current-state.json  — diagnostic (optional)
+  ✅  {slug}-platform-audit.json       — feature feasibility matrix
+  ✅  {slug}-platform-audit.md        — SE briefing
 
 Demo Script
-  ✅  citizens-bank-demo-script.md      — full SE script with scenes and queries
-  ✅  citizens-bank-demo-brief.md       — one-page AE brief
+  ✅  {slug}-demo-script.md            — full SE script with scenes and queries
+  ✅  {slug}-demo-brief.md             — one-page AE brief
 
 Build Artifacts
-  ✅  citizens-bank-data-model.json     — index mappings, build order, seed data spec
-  ✅  citizens-bank-data-model.md       — human-readable build overview
-  ⏭   citizens-bank-ml-config.json     — skipped (no ML scenes in script)
+  ✅  {slug}-data-model.json           — index mappings, build order, seed data spec
+  ✅  {slug}-data-model.md             — human-readable build overview
+  ⏭   {slug}-ml-config.json           — skipped if no ML scenes in script
 
 Readiness
-  ✅  citizens-bank-demo-checklist.md   — pre-demo checklist (timed)
-  ✅  citizens-bank-risks.md            — risks and fallbacks
+  ✅  {slug}-demo-checklist.md         — pre-demo checklist (timed)
+  ✅  {slug}-risks.md                  — risks and fallbacks
 
 Deploy *(if cluster provisioned)*
-  ✅  citizens-bank-provision-log.md    — cluster info, connectivity verified
-  ✅  bootstrap.py                      — generated deployment script (15 steps)
-  ✅  citizens-bank-deploy-log.md       — what was created, doc counts, ML status
+  ✅  {slug}-provision-log.md          — cluster info (if provisioned)
+  ✅  bootstrap.py                     — generated deployment (15 steps; step 13 = scoped Kibana/platform APIs)
+  ✅  {slug}-deploy-log.md             — what was created for this engagement
   ⏭   (skipped — no cluster target provided)
 
-PLATFORM STATUS: 🟡 Amber
-  Ready now:  ES|QL, Connectors, Agent Builder (serverless)
-  Setup needed: ELSER endpoint (half-day), ELSER corpus load
-  Not in scope: —
+PLATFORM STATUS: [Green / Amber / Red from platform audit]
+  Ready now:     [list features verified]
+  Setup needed:  [gaps from audit]
+  Not in scope:  [explicitly out of story]
 
 BEFORE YOU BUILD  *(shown only if cluster not yet deployed)*
 ─────────────────
-  1. Run demo-cloud-provision to create cluster, or copy an existing .env
-  2. Run demo-deploy to bootstrap all resources (≈5 min)
-     → python3 bootstrap.py --dry-run  first to verify
-  3. Test all 3 agent scenarios end-to-end
+  1. Run demo-cloud-provision or copy an existing .env
+  2. Run demo-deploy → python3 bootstrap.py --dry-run first
+  3. Run end-to-end checks from {slug}-demo-checklist.md (scenes vary by demo)
 
-  *(If already deployed, check citizens-bank-deploy-log.md instead)*
+  *(If already deployed, check {slug}-deploy-log.md)*
 
 SEND TO CUSTOMER
 ─────────────────
-  citizens-bank-confirmation.md  (after review — remove any internal notes)
+  {slug}-confirmation.md  (after review — remove internal notes)
 
 DEMO DAY
 ─────────
-  Follow citizens-bank-demo-checklist.md
-  Keep citizens-bank-demo-brief.md open for Jim (AE)
-  Go / No-Go decision: AJ by [date]
+  Follow {slug}-demo-checklist.md and {slug}-demo-brief.md
+  Go / No-Go per {slug}-risks.md
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
 
@@ -329,16 +382,16 @@ Run stage 2 only. Output the current-state and findings. Tell the user: "Run
 Run all stages in order. Full audit with both inputs.
 
 **Resuming a partial build:**
-User says "continue the Citizens Bank demo build" or "pick up where we left off."
+User says "continue the [customer] demo build" or "pick up where we left off."
 Take inventory, identify what's missing, run only the pending stages.
 
 **User wants to regenerate one stage:**
-"Rewrite the Citizens Bank demo script — they added a supply chain exec to the meeting."
+"Rewrite the demo script — new stakeholder joined the meeting."
 Run only `demo-script-template` with the updated context, then re-run `demo-validator`.
-Leave all other artifacts unchanged.
+Leave all other artifacts unchanged unless downstream stages must react.
 
 **User wants to deploy to a new cluster:**
-"Create a new serverless project for the Citizens Bank demo and deploy it."
+"Create a new serverless project for this demo and deploy it."
 Run stage 8 (demo-cloud-provision) to provision and write `.env`, then stage 9 (demo-deploy)
 to generate and execute `bootstrap.py`. Stages 1–7 already complete — skip them.
 
@@ -347,10 +400,10 @@ to generate and execute `bootstrap.py`. Stages 1–7 already complete — skip t
 engagement. Skip stage 8. Run stage 9 only. Verify the `.env` has all required fields before
 generating `bootstrap.py`.
 
-**User running the same demo for a second customer on the same cluster:**
-"Reuse the Citizens Bank cluster for IHG Club." Copy `.env`, update `DEMO_SLUG=ihg-club`,
-`ENGAGEMENT=IHG Club Vacations`, `INDEX_PREFIX=ihg-`. Then run stage 9 with the new slug.
-No re-provisioning, no data model rebuild unless the demo scope differs.
+**User running a second engagement on the same cluster:**
+"Reuse this cluster for another customer." Copy `.env`, update `DEMO_SLUG`, `ENGAGEMENT`,
+and `INDEX_PREFIX` (e.g. `cb-` → `acme-`). Run stage 9 with the new slug’s artifacts.
+No re-provisioning unless credentials or endpoint change; rebuild data model only if scope differs.
 
 ## What Good Looks Like
 
@@ -358,31 +411,30 @@ No re-provisioning, no data model rebuild unless the demo scope differs.
 both, runs all 7 stages in order, delivers a complete workspace with 12+ files and a
 clear handoff summary. Total time to run: the time it takes to execute each stage.
 
-**Resume from discovery JSON:** User already has `thermo-fisher-discovery.json` from a
-prior session. Orchestrator skips stage 1, runs stages 3–7, outputs script + data model +
+**Resume from discovery JSON:** User already has `{slug}-discovery.json` from a prior
+session. Orchestrator skips stage 1, runs stages 3–7, outputs script + data model +
 checklist. Clearly reports what was skipped and why.
 
-**RED platform audit — auto-adjust:** Lowe's demo scoped for Agent Builder but customer
-is on 8.x self-managed. Orchestrator surfaces the blocker, removes Agent Builder from
-script scope, proceeds with ES|QL + ELSER + ML, notes the removed scene in the handoff
-summary under "Scope adjustments."
+**RED platform audit — auto-adjust:** Demo scoped for Agent Builder but customer cluster is
+on 8.x self-managed. Orchestrator surfaces the blocker, removes Agent Builder from script
+scope, proceeds with what the platform supports, notes the removed scene in the handoff
+under "Scope adjustments."
 
 **End-to-end with deploy:** User provides discovery notes and says "create a serverless
 project and deploy this demo." Orchestrator runs all 9 stages: builds the full artifact
 set, provisions the cluster, generates and executes `bootstrap.py`. Delivers a deploy log
 confirming 4 indices created, seed data loaded, ELSER endpoint warmed.
 
-**Multi-customer on shared cluster:** Citizens Bank demo already deployed with
-`INDEX_PREFIX=cb-`. User says "set up IHG Club on the same cluster." Orchestrator
-copies the `.env`, updates DEMO_SLUG/ENGAGEMENT/INDEX_PREFIX, skips provisioning,
-runs stage 9 with the IHG data model. Both demos coexist on the same cluster.
+**Multi-customer on shared cluster:** First engagement deployed with `INDEX_PREFIX=cb-`.
+User adds a second engagement with `INDEX_PREFIX=acme-`. Orchestrator copies `.env`,
+updates slug fields, skips provisioning, runs stage 9 for the new artifacts. Both demos
+coexist on the same cluster.
 
-**Pre-demo morning check:** Demo was deployed yesterday. SE says "is the Citizens Bank
-demo ready?" Orchestrator reads `.env` + data model, runs `demo-status`, and returns a
-compact ✅/❌ report with paste-ready fix commands for anything off. No login to Kibana
-or Dev Tools required to know the state.
+**Pre-demo morning check:** Demo was deployed yesterday. SE asks "is this engagement ready?"
+Orchestrator reads `.env` + data model, runs `demo-status`, and returns a compact ✅/❌
+report with paste-ready fix commands for anything off.
 
-**Post-demo cleanup:** Demo went well. SE says "tear down the Citizens Bank cluster."
+**Post-demo cleanup:** Demo went well. SE asks to tear down this engagement’s resources.
 Orchestrator runs `demo-teardown` — stops ML jobs, removes Kibana objects, deletes indices
 and all supporting infrastructure. If INDEX_PREFIX was set (shared cluster), only prefix-
 matching resources are removed. Offers to delete the serverless project entirely if it was

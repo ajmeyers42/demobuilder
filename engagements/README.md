@@ -22,4 +22,14 @@ export DEMOBUILDER_ENGAGEMENTS_ROOT="/path/to/your/engagements-parent"
 
 Each engagement is: `$DEMOBUILDER_ENGAGEMENTS_ROOT/{slug}/`
 
+**Artifacts:** Pipeline outputs (discovery JSON, demo script, data model, platform audit,
+risks, checklist, etc.) and deploy collateral (`bootstrap.py`, optional `kibana-objects/*.ndjson`,
+`kibana/**`, `elasticsearch/**`) live in that folder. **`bootstrap.py`** is the single script
+that applies them to a cluster; see **`docs/decisions.md` D-024**. Tagged Kibana/Observability
+resources should include **`demobuilder:<engagement_id>`** — see **`docs/decisions.md` D-026**.
+
+**Deploy:** Do **not** run provision/deploy or execute `bootstrap.py` against a live cluster
+until the SA has **reviewed** `bootstrap.py` and the analysis docs (audit, risks, checklist).
+`bootstrap.py --dry-run` does not require deploy approval. See **`AGENTS.md`**.
+
 See **[`docs/engagements-path.md`](../docs/engagements-path.md)** for full detail.
