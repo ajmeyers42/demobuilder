@@ -2,9 +2,11 @@
 name: demobuilder
 description: >
   Top-level orchestrator for the Elastic demobuilder pipeline. Accepts any combination of
-  discovery notes, diagnostic files, and existing pipeline outputs, determines which stages
-  need to run, executes them in dependency order, and delivers a complete set of demo-ready
-  artifacts with a final handoff summary.
+  discovery notes, diagnostic files, architecture diagrams, supplemental notes from the
+  discovery team, and existing pipeline outputs; determines which stages need to run,
+  executes them in dependency order, and delivers demo-ready artifacts. Demos may emphasize
+  search, Observability, Security, or a deliberate mix — scoped to customer needs and
+  enterprise-level Elastic capabilities.
 
   ALWAYS use this skill when the user says "build the demo for X", "run demobuilder",
   "take this from discovery to demo", "full pipeline for [company]", "we have notes and
@@ -38,6 +40,44 @@ confirm the SA wants to create or mutate cloud resources / run `bootstrap.py` in
 session — unless they have already explicitly asked to provision or deploy. Planning
 stages (1–7) may proceed when the SA asks to build or refresh artifacts.
 
+**Elastic version scope:**
+- **New deployment or Serverless project** — Assume the **latest generally available**
+  stack version for that offering **unless the SA specifies otherwise**. Record the
+  actual version in `.env` (`ELASTIC_VERSION`) and in any provision log after create.
+- **Existing deployment / project / cluster** — **Do not** assume latest. Obtain
+  `version` from `GET /` (Elasticsearch) and Kibana `/api/status` (or from diagnostic /
+  `demo-diagnostic-analyzer` output) **before** writing demo scripts, data models, or
+  execution plans, and thread that version into **demo-platform-audit** and downstream
+  artifacts.
+- **All scripts, plans, and guidance** — Must match the target stack: ES|QL syntax,
+  API shapes, Kibana features, ML APIs, and Agent Builder / Workflows availability all
+  depend on version and deployment type. When in doubt, cite the version the guidance
+  applies to.
+
+**Demo scope — enterprise capabilities and solution areas:**
+- **Assume enterprise-appropriate features** when shaping the demo: prefer capabilities that
+  match the **customer outcomes** and pain points in the inputs (discovery, diagnostic,
+  supplemental notes), subject to **demo-platform-audit** and license/version reality.
+  Do not default to “minimal” or core-search-only unless the customer story is search-only.
+- **Inputs** may include: discovery notes, **Elastic diagnostic** exports, **additional
+  notes** from the AE/SE/discovery team, and **architecture diagrams** (current-state
+  systems, data flows). Treat diagrams as first-class context — extract what they imply
+  for integrations, data paths, and operational pain.
+- **Use case domains:** Demos apply equally to **Elasticsearch (search / analytics)**,
+  **Observability**, and **Elastic Security** — pick the primary domain from the artifacts.
+  Past examples often emphasized search; **do not** force search framing when the
+  discovery points to logs, APM, SIEM, or detection workflows.
+- **Cross-solution demos:** When the customer’s needs span domains, it is **acceptable and
+  often desirable** to combine capabilities across **search, Observability, and Security**
+  in one storyline (e.g. unified data platform, correlated investigation, shared ES|QL).
+  Call this out in the script and platform audit so scope stays honest.
+
+**Narrative — solution first:** Unless the SA says otherwise, demo **scripts and plans**
+should lead with **business value and the customer’s key asks** from discovery, then
+detail **supporting Elastic capabilities** (how to get there). If primary goals are unclear
+in the inputs, the agent should **ask for guidance** before finalizing storyline — see
+`demo-script-template`.
+
 **Additional post-deploy skills** available once a cluster is deployed:
 - `demo-status` — quick pre-demo readiness pulse check (connectivity, doc counts, ML state, ELSER latency)
 - `demo-teardown` — post-demo cleanup; removes all demo resources prefix-aware
@@ -46,9 +86,14 @@ stages (1–7) may proceed when the SA asks to build or refresh artifacts.
 
 **Determine the slug** from the customer name in the input files or the user's prompt.
 Lowercase, hyphenated: "Citizens Bank" → `citizens-bank`, "Deutsche Telekom SOC-T" → `dt-soct`.
+The slug identifies **one engagement** (everything specific to that demo).
 
-**Set the workspace directory.** Default: `~/demobuilder-workspace/engagements/{slug}/`. If the user
-specifies a different path, use that. Create the directory if it doesn't exist.
+**Set the workspace directory** to that engagement’s folder. **Default:** `engagements/{slug}/`
+relative to the **demobuilder repository root** (i.e. `<repo>/engagements/{slug}/`). Only
+per-demo artifacts belong here — pipeline code, shared skills, and references live in
+`skills/`, `docs/`, and the rest of the repo outside `engagements/`. If the SA uses a
+different folder name (e.g. `2026CitizensAI`) or a path outside the repo, use that path
+when they specify it; create the directory if it doesn’t exist.
 
 All output files for this engagement live in the workspace. Use the slug as a prefix for
 every file: `{slug}-discovery.json`, `{slug}-demo-script.md`, etc.
@@ -183,12 +228,12 @@ For each stage that needs to run, in order:
 **Stage 8 — demo-cloud-provision** *(optional — new cluster path only)*
 - **Requires explicit SA approval** to spend resources / create infrastructure (unless
   the user already clearly requested provisioning this session)
-- Skip if: `{slug}/.env` already exists and credentials are valid
+- Skip if: `{workspace}/.env` already exists and credentials are valid
 - Run if: user requests "create a new cluster", "spin up a serverless project", or no `.env`
   exists and deployment was requested
 - Read: `../demo-cloud-provision/SKILL.md`
 - Inputs: deployment type preference, region, engagement slug
-- Outputs: `{slug}/.env`, `{slug}/.env.example`, `{slug}-provision-log.md`
+- Outputs: `{workspace}/.env`, `{workspace}/.env.example`, `{slug}-provision-log.md`
 - Note: if user wants to reuse an existing cluster for a new engagement, copy the `.env`
   from the prior workspace and update `DEMO_SLUG`, `ENGAGEMENT`, and `INDEX_PREFIX` —
   no re-provisioning needed
@@ -199,10 +244,10 @@ For each stage that needs to run, in order:
 - Skip if: user has not requested deployment and no `.env` is present
 - Run if: `.env` exists in the workspace (from stage 8 or copied from another engagement)
   AND user says "deploy", "build it", "set up the cluster", or "bootstrap"
-- Requires: `{slug}/.env` — stop and surface a clear message if missing
+- Requires: `{workspace}/.env` — stop and surface a clear message if missing
 - Read: `../demo-deploy/SKILL.md`
-- Inputs: `{slug}/.env`, `{slug}-data-model.json`, `{slug}-ml-config.json` (if present)
-- Outputs: `{workspace}/{slug}/bootstrap.py`, `{slug}-deploy-log.md`
+- Inputs: `{workspace}/.env`, `{slug}-data-model.json`, `{slug}-ml-config.json` (if present)
+- Outputs: `{workspace}/bootstrap.py`, `{slug}-deploy-log.md`
 
 ## Step 5: Deliver the Handoff Summary
 
@@ -213,7 +258,7 @@ When all stages are complete, produce a structured handoff:
  DEMOBUILDER COMPLETE — [Company]
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-📁 Workspace: ~/demobuilder-workspace/citizens-bank/
+📁 Workspace: engagements/citizens-bank/   (under demobuilder repo)
 
 ARTIFACT SUMMARY
 ────────────────

@@ -3,9 +3,10 @@ name: demo-discovery-parser
 description: >
   Parses sales discovery notes — in any format or quality level (polished post-call reports,
   raw live meeting notes with typos and abbreviations, mixed prep+live notes, or technical spec
-  dumps) — into three structured outputs: (1) a JSON file capturing all extractable customer
-  context for downstream demo-builder pipeline skills, (2) a professional customer-facing
-  confirmation document in markdown, and (3) an internal gap report.
+  dumps) — plus optional supplemental team notes and architecture diagrams, into three structured
+  outputs: (1) a JSON file capturing all extractable customer context for downstream demo-builder
+  pipeline skills, (2) a professional customer-facing confirmation document in markdown, and
+  (3) an internal gap report. Search, Observability, and Security use cases are all in scope.
 
   ALWAYS use this skill when the user provides discovery notes or meeting notes and asks to
   parse, structure, summarize, or generate a confirmation document from them. Also trigger when
@@ -27,6 +28,16 @@ that isn't there.
 
 Read all provided files. If given a PDF, use the Read tool. If given markdown or plain text,
 read it directly. Accept multiple files for the same customer — reconcile them into one output.
+
+**Input types** (any combination):
+- **Discovery notes** — call reports, live notes, prep notes, qualification threads.
+- **Supplemental notes** — follow-ups from the AE, SE, or discovery team (email threads,
+  Slack exports, addendum bullets). Merge into the same customer profile; note source and date
+  when they conflict with older notes.
+- **Architecture or current-state diagrams** — images (PNG/SVG/PDF), Mermaid, or Visio exports.
+  Use the Read tool on images. Extract components, data flows, bottlenecks, and vendor tools
+  shown; map them to Elastic-relevant opportunities (ingest, correlation, security use cases,
+  observability signals). If text is unreadable in an image, say so in `gaps` rather than guessing.
 
 Note the notes style before extracting anything. This affects how aggressively you clean and
 how much you flag as ambiguous:

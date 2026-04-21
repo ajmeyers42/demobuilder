@@ -6,8 +6,8 @@
       "prompt": "Is the Citizens Bank demo ready to run? Check everything.",
       "expected_output": "Status report covering connectivity, all 4 indices with doc counts vs expected, demo_critical_docs spot-check (VND-0412), ML job state and last bucket age, ELSER endpoint allocation and warm latency, Kibana dashboard reachability. Overall status GREEN or AMBER with specific fix commands for anything failing.",
       "files": [
-        "~/demobuilder-workspace/citizens-bank/.env",
-        "~/demobuilder-workspace/citizens-bank/citizens-bank-data-model.json"
+        "engagements/citizens-bank/.env",
+        "engagements/citizens-bank/citizens-bank-data-model.json"
       ],
       "assertions": [
         "Status report printed with ✅/❌/⚠️ per resource category",
@@ -25,9 +25,9 @@
       "prompt": "Quick check — did the Lowe's deploy work? The ML job is the thing I'm most worried about.",
       "expected_output": "Status report with ML section prominently surfaced. inventory-shrink-monitor job state, datafeed running, last bucket timestamp, anomaly score on store 1842 SKUs 174239/182041/196723 reported. Other checks also run. If ML not yet trained (no bucket results), clear explanation of what to do next.",
       "files": [
-        "~/demobuilder-workspace/lowes/.env",
-        "~/demobuilder-workspace/lowes/lowes-data-model.json",
-        "~/demobuilder-workspace/lowes/lowes-ml-config.json"
+        "engagements/lowes/.env",
+        "engagements/lowes/lowes-data-model.json",
+        "engagements/lowes/lowes-ml-config.json"
       ],
       "assertions": [
         "ML section shows job state (open/closed) and datafeed state (started/stopped)",

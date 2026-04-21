@@ -9,4 +9,7 @@ alwaysApply: true
 - **Outputs:** Engagement artifacts go under `engagements/{slug}/` unless the user specifies another workspace path.
 - **SA experience:** Gather inputs, produce artifacts, offer to execute commands. Do not instruct the user to run scripts by hand unless they prefer local execution.
 - **Approvals:** Ask before `demo-cloud-provision` or `demo-deploy` (cluster creation, spend, `bootstrap.py`) unless the user already clearly requested deployment this session.
+- **Elastic version:** New deployment/project → default **latest GA** unless user specifies otherwise. Existing deployment → **validate version** (`GET /`, Kibana status, diagnostic) before scripts/plans. Scope ES|QL, APIs, and Kibana guidance to that version.
+- **Scope:** Inputs can include discovery notes, diagnostics, team notes, **architecture diagrams**. Prefer **enterprise-level** features aligned to customer outcomes. Primary domain can be **search**, **Observability**, **Security**, or a **cross-solution** mix — not search-by-default.
+- **Solution first:** Scripts/plans — **outcomes and key asks** before deep capability walk-through; ask the SA if goals are unclear.
 - **Details:** See repo root `AGENTS.md` and `docs/runtimes/cursor.md`.

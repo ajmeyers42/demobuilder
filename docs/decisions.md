@@ -5,9 +5,70 @@
 
 ---
 
+## D-020: Default to latest GA for new stacks; validate version for existing
+
+**Decision:** When **creating** a new Elastic Cloud deployment or Serverless project for a
+demo, use the **latest generally available** stack version for that product **unless** the
+SA requests a specific version. When **using an existing** deployment, project, or cluster,
+**resolve and record** Elasticsearch and Kibana versions (e.g. `GET /`, `/api/status`, or
+diagnostic output) **before** producing scripts, data models, or plans. All guidance and
+automation must be **scoped to that version** and deployment type.
+
+**Rationale:** ES|QL, APIs, ML, Kibana embeddables, Agent Builder, and Workflows all vary
+by version; assuming “latest” on a customer’s 8.x cluster causes failed demos.
+
+**Applied to:** `skills/demobuilder/SKILL.md`, `skills/demo-cloud-provision/SKILL.md`,
+`skills/demo-platform-audit/SKILL.md`, `skills/demo-script-template/SKILL.md`, `AGENTS.md`,
+`.cursor/rules/demobuilder.mdc`, `README.md`.
+
+**Date:** 2026-04-20 | **Session:** version policy
+
+---
+
+## D-021: Enterprise showcase; multi-input; search / Observability / Security / cross-solution
+
+**Decision:** Demos should **assume enterprise-level Elastic features** are in play when they
+address customer outcomes in the inputs — subject to platform audit, license, and version.
+**Inputs** may include discovery notes, diagnostic files, supplemental notes from the
+discovery team, and **architecture diagrams** illustrating current-state environments.
+The primary use case may be **search / analytics**, **Observability**, **Elastic Security**,
+or a **deliberate combination**; the pipeline must not default to “core search only” when
+artifacts point elsewhere. **Cross-solution** demos (e.g. unified data, correlated
+investigation) are acceptable when they match stated needs.
+
+**Rationale:** Pre-sales stories follow the customer’s domain; many engagements are
+Observability- or Security-led. Diagrams and team addenda are common and should be
+first-class context.
+
+**Applied to:** `skills/demobuilder/SKILL.md`, `skills/demo-discovery-parser/SKILL.md`,
+`skills/demo-script-template/SKILL.md`, `AGENTS.md`, `.cursor/rules/demobuilder.mdc`, `README.md`.
+
+**Date:** 2026-04-20 | **Session:** solution scope and inputs
+
+---
+
+## D-022: Solution-first narrative in scripts and plans
+
+**Decision:** Unless the SA specifies otherwise, demo **scripts** and **plans** should
+structure the storyline **solution first**: lead with **outcomes and business value**
+linked to the customer’s **key asks** from discovery inputs, then describe **supporting
+Elastic capabilities** (data, queries, ML, Security/Observability apps, agents, etc.) that
+realize those outcomes. If primary goals or asks are **not clear** from artifacts, the agent
+should **ask the SA for guidance** rather than guessing the headline narrative.
+
+**Rationale:** Executives and business sponsors need the “why” before the “how”; technical
+depth still follows, but order matters for retention and credibility.
+
+**Applied to:** `skills/demo-script-template/SKILL.md`, `skills/demobuilder/SKILL.md`,
+`skills/demo-validator/SKILL.md`, `AGENTS.md`, `.cursor/rules/demobuilder.mdc`, `README.md`.
+
+**Date:** 2026-04-20 | **Session:** narrative arc
+
+---
+
 ## D-001: Per-engagement `.env` file for credential isolation
 
-**Decision:** Each engagement workspace (`~/demobuilder-workspace/engagements/{slug}/`) holds its own `.env` file with cluster credentials. No global config.
+**Decision:** Each engagement workspace (`engagements/{slug}/` under the demobuilder repo) holds its own `.env` file with cluster credentials. No global config.
 
 **Rationale:** An SE running demos for Citizens Bank and IHG Club simultaneously — possibly on the same cluster — needs clean separation of credentials and namespace. A global config would require constant switching and risks cross-contamination.
 
@@ -239,10 +300,10 @@
 
 ## D-019: Engagement collateral grouped under `engagements/` subfolder
 
-**Decision:** All per-engagement workspaces live at `~/demobuilder-workspace/engagements/{slug}/` rather than directly at `~/demobuilder-workspace/{slug}/`.
+**Decision:** All per-engagement workspaces live under `engagements/{slug}/` relative to the **demobuilder repository root**, not under a separate home-directory tree such as `~/demobuilder-workspace/`.
 
-**Rationale:** Keeps engagement folders visually grouped and separated from workspace-level tooling, configuration, and shared assets (e.g., `elastic/agent-skills`, global config). Makes it obvious at a glance which directories are active demos vs. pipeline infrastructure.
+**Rationale:** `{slug}` is always one engagement (demo-specific). Everything else belongs to the demobuilder codebase (`skills/`, `docs/`, scripts) or shared references — not mixed into engagement folders. Repo-local `engagements/` keeps the SA working in one clone; `.gitignore` can still omit credentials from VCS.
 
 **Applied to:** `demobuilder/SKILL.md`, `demo-cloud-provision/SKILL.md`, `demo-deploy/SKILL.md`, `demo-status/SKILL.md`, `demo-teardown/SKILL.md`, `demo-deploy/references/env-reference.md`, `README.md`. `docs/todo.md` item 11 closed.
 
-**Date:** 2026-04-20 | **Session:** workspace organization
+**Date:** 2026-04-20 | **Session:** workspace organization | **Updated:** 2026-04-20 — default path repo-local

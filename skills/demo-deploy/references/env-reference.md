@@ -44,8 +44,8 @@ PROVISIONED_BY=demobuilder
 ### New cluster per demo (recommended for isolation)
 
 ```bash
-# Each demo gets its own cluster — no prefix needed
-~/demobuilder-workspace/engagements/
+# Each demo gets its own cluster — no prefix needed (paths under demobuilder repo)
+engagements/
 ├── {slug-A}/.env    → https://cluster-A.es.io  INDEX_PREFIX=
 ├── {slug-B}/.env    → https://cluster-B.es.io  INDEX_PREFIX=
 └── {slug-C}/.env    → https://cluster-C.es.io  INDEX_PREFIX=
@@ -55,13 +55,13 @@ PROVISIONED_BY=demobuilder
 
 ```bash
 # One cluster, all demos on it — prefix separates namespaces
-~/demobuilder-workspace/engagements/
+engagements/
 ├── {slug-A}/.env    → https://shared.es.io  INDEX_PREFIX=a-
 ├── {slug-B}/.env    → https://shared.es.io  INDEX_PREFIX=b-
 └── {slug-C}/.env    → https://shared.es.io  INDEX_PREFIX=c-
 
 # Copy workflow for a new demo on the same cluster:
-cp ~/demobuilder-workspace/engagements/{slug-A}/.env ~/demobuilder-workspace/engagements/{slug-B}/.env
+cp engagements/{slug-A}/.env engagements/{slug-B}/.env
 # Then edit {slug-B}/.env:
 #   DEMO_SLUG={slug-B}
 #   ENGAGEMENT={Company B}
