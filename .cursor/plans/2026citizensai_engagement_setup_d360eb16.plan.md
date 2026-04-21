@@ -45,7 +45,7 @@ isProject: false
 
 ## Orchestrator note
 
-[skills/demobuilder/SKILL.md](skills/demobuilder/SKILL.md) defaults to `~/demobuilder-workspace/{slug}/`; for repo-local engagements, explicitly **set workspace** to `…/demobuilder/engagements/2026CitizensAI` whenever you run the orchestrator so inventory and outputs land in the right folder.
+[skills/demobuilder/SKILL.md](skills/demobuilder/SKILL.md) defaults to **`engagements/{slug}/` under the demobuilder repo** — for this engagement use workspace `engagements/2026CitizensAI/` so inventory and outputs land in the right folder.
 
 ## Scope not included unless you ask
 
