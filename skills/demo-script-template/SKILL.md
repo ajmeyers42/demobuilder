@@ -5,7 +5,8 @@ description: >
   audit. Produces two files: a full SE-facing script with scenes, timing, talking points,
   on-screen steps, and wow moments; and a one-page audience brief the AE can use to follow
   along. The script is personalized to the customer's language, industry, and pain points —
-  not a generic feature showcase.
+  not a generic feature showcase. Default narrative: **solution first** (key asks and outcomes,
+  then supporting capabilities); ask the SA if goals are unclear.
 
   ALWAYS use this skill when the user asks to "write the demo script", "build the script",
   "create the demo outline", "what should we show them", or provides a discovery JSON and
@@ -24,6 +25,14 @@ said, every feature serves a pain point, and no scene exists just to show off a 
 The script is not a slide deck outline. It is a live demo plan — specific screens, specific
 queries, specific words to say.
 
+**Narrative arc — solution first (default):** Unless the SA specifies otherwise, structure
+the demo so the **customer’s desired outcome** lands **before** deep dives into Elastic
+**capabilities**. Open with the **solution story** (business value, what “good” looks like
+for them) tied to **key asks** from discovery — then walk through the supporting
+capabilities, data, and screens that get there. Execs stay engaged; technical contacts still
+get their proof in later scenes. If the **key asks** are ambiguous in the inputs, **ask the
+SA for guidance** before locking scene order — do not invent primary goals.
+
 ## Step 1: Read the Inputs
 
 Read all available files in this order:
@@ -32,6 +41,17 @@ Read all available files in this order:
   Any feature marked `upgrade_required` or `blocked` must not appear as a live scene.
   Features marked `setup_required` can appear but must include a setup note.
 - `{slug}-current-state.json` — optional context for migration or existing-customer demos.
+
+**Stack version:** If the audit or current-state includes `cluster.version` (or equivalent),
+the script must **name the target Elasticsearch/Kibana versions** in an upfront “Environment”
+or “Assumptions” note so SEs do not run ES|QL or UI steps on the wrong stack. If the demo
+targets a **new** cluster not yet provisioned, state that scenes assume **latest GA** at
+provision time unless the SA specified a version.
+
+**Primary solution domain:** Take from discovery and audit — **search / analytics**, **Observability**,
+**Elastic Security**, or **mixed / cross-solution**. Do not default to a generic search narrative
+when the customer’s pain is operational, APM, logs, SIEM, or detection; blended storylines are
+appropriate when the audit supports combined capabilities.
 
 If only raw discovery notes are provided (no parsed JSON), read them directly and extract
 what you need to proceed.
@@ -80,6 +100,11 @@ customer's "do you have this in stock?" question. Ground the story in what they 
 - Always leave 10–15 min for Q&A and next steps — build this into the total.
 
 ## Step 3: Design the Scenes
+
+**Order:** Early scenes should establish **outcome and value** (what Elastic delivers for
+their asks); middle and later scenes expose **how** (queries, indices, ML, agents, rules,
+integrations). Avoid opening with infrastructure unless the audience is purely technical and
+the SA asked for that shape.
 
 Each scene must answer three questions before you write it:
 1. **What pain point does this address?** (from `pain_points` in the discovery JSON)

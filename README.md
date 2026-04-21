@@ -106,9 +106,11 @@ Demobuilder is **agent-first**: one shared [`skills/`](skills/) tree and outputs
 Drop a discovery note (PDF, markdown, raw text) into a prompt and say **"build the demo for [company]"**. The `demobuilder` orchestrator handles the rest — detecting available inputs, running each pipeline stage in order, and delivering a complete workspace with all demo artifacts.
 
 ```
-demobuilder-workspace/
+demobuilder/                         ← this repository
+├── skills/ …                        ← pipeline (not engagement-specific)
+├── docs/ …
 └── engagements/
-    └── {customer-slug}/
+    └── {customer-slug}/             ← one folder per engagement (demo-specific)
         ├── .env                                    ← cluster credentials (git-ignored)
         ├── .env.example                            ← template, safe to commit
         ├── {customer-slug}-discovery.json          ← structured customer profile
@@ -148,6 +150,12 @@ demobuilder-workspace/
 **Outputs feed inputs.** Every skill's JSON output is designed as a machine-readable input to the next skill. The discovery JSON drives the platform audit; the platform audit constrains the script; the script shapes the data model.
 
 **Nothing is hallucinated.** Confirmation docs use only the customer's own language. Platform audits only clear features that are actually supported on the customer's platform. Scripts are grounded in specific pain points from discovery — not generic feature showcases.
+
+**Stack version is explicit.** New cloud resources default to **latest GA** unless specified. Existing clusters require a **validated** version (diagnostic or `GET /`) before scripting and build artifacts; ES|QL and APIs are scoped accordingly. See `docs/decisions.md` D-020.
+
+**Solution scope matches the customer.** Inputs include discovery notes, diagnostics, supplemental team notes, and sometimes **architecture diagrams**. Demos showcase **enterprise-appropriate** Elastic capabilities for the outcomes described — **search**, **Observability**, **Security**, or a **combined** storyline when that fits. See `docs/decisions.md` D-021.
+
+**Solution first.** Scripts and plans lead with **business value** and the customer’s **key asks**, then the **capabilities** that deliver them — unless the SA directs otherwise. See `docs/decisions.md` D-022.
 
 **Resumes intelligently.** The orchestrator inventories existing outputs before running. If you change one thing (e.g., the audience composition changes), it re-runs only the affected downstream stages and leaves everything else intact.
 

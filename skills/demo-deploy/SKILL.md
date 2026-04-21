@@ -415,10 +415,10 @@ No duplicate data, no errors on existing resources.
 bootstrap uses `INDEX_PREFIX=ihg-`. Both sets of indices coexist. Each bootstrap only
 touches its own prefixed resources.
 
-**Prefix copy workflow:**
+**Prefix copy workflow:** (from demobuilder repo root)
 ```bash
-cp ~/demobuilder-workspace/citizens-bank/.env ~/demobuilder-workspace/ihg-club/.env
-# Edit ihg-club/.env: DEMO_SLUG=ihg-club, ENGAGEMENT="IHG Club Vacations", INDEX_PREFIX=ihg-
-source ~/demobuilder-workspace/ihg-club/.env
-python3 ~/demobuilder-workspace/ihg-club/bootstrap.py
+cp engagements/citizens-bank/.env engagements/ihg-club/.env
+# Edit engagements/ihg-club/.env: DEMO_SLUG=ihg-club, ENGAGEMENT="IHG Club Vacations", INDEX_PREFIX=ihg-
+set -a && source engagements/ihg-club/.env && set +a
+python3 engagements/ihg-club/bootstrap.py
 ```

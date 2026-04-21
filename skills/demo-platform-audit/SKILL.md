@@ -41,6 +41,13 @@ Read all available files:
 
 If neither file exists, ask the user to run `demo-discovery-parser` first.
 
+**Version anchoring:** When the target is an **existing** cluster (diagnostic present or
+the SA supplied endpoints/credentials), the audit **must** use the **observed**
+Elasticsearch/Kibana versions from `{slug}-current-state.json` or from `GET /` and
+Kibana `/api/status` — never assume “latest” for an existing deployment. If only
+discovery is available, flag version as **unverified** until a diagnostic or live
+version check is performed.
+
 ## Step 2: Build the Feature Compatibility Matrix
 
 For each feature in the planned demo scope, evaluate it against the platform requirements

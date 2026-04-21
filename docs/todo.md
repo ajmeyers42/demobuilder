@@ -35,12 +35,13 @@ Before `demo-cloud-provision` can create any serverless project, the `cloud-setu
 ### 3. Validate bootstrap.py against a real cluster
 `demo-deploy` generates `bootstrap.py` from the data model, but it has not yet been executed against a real cluster. The generated script follows the correct patterns, but edge cases (network timeouts, ELSER model load time, Kibana ndjson import formatting) may surface only on a live run.
 
-**Action:** Pick one demo (Citizens Bank is the best-validated) and run:
+**Action:** Pick one demo (Citizens Bank is the best-validated) and run from the **demobuilder repo root**:
 ```bash
-set -a && source ~/demobuilder-workspace/citizens-bank/.env && set +a
-python3 ~/demobuilder-workspace/citizens-bank/bootstrap.py --dry-run
+cd /path/to/demobuilder
+set -a && source engagements/citizens-bank/.env && set +a
+python3 engagements/citizens-bank/bootstrap.py --dry-run
 # Review output, then:
-python3 ~/demobuilder-workspace/citizens-bank/bootstrap.py
+python3 engagements/citizens-bank/bootstrap.py
 ```
 Note any failures and report back — the script template in `demo-deploy/SKILL.md` may need adjustments.
 
@@ -100,7 +101,7 @@ Both skills have `evals/evals.json` written but the eval loop (run → grade →
 **Action:** After completing items 1–3 above, run the evals for these two skills using the skill-creator eval loop.
 
 ### ~~11. Decide on workspace root convention~~ ✅ Resolved
-Convention set: `~/demobuilder-workspace/engagements/{slug}/`. All engagement collateral lives under `engagements/`, keeping demos grouped and the workspace root clean. All skills updated to reflect this path.
+Default engagement path: **`engagements/{slug}/` under the demobuilder repository** (see `docs/decisions.md` D-019). Per-demo assets only; pipeline code stays in `skills/`, `docs/`, etc.
 
 ---
 

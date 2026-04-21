@@ -82,6 +82,12 @@ For each index/data stream in the data model:
 - Is screen sharing tested and working?
 - Are screenshot fallbacks ready for every major screen?
 
+### Script narrative checks (when `{slug}-demo-script.md` exists)
+- Does the script **lead with outcomes** (business value, customer **key asks** from discovery)
+  **before** deep capability or infrastructure scenes — **solution first** (see `docs/decisions.md`
+  D-022)? If it opens capability-first without a clear outcome hook, flag as a **delivery risk**
+  for exec or mixed audiences unless the SA intended that ordering.
+
 ## Step 3: Assess Overall Readiness
 
 **Go:** All critical checks pass. Setup-required items from the platform audit are complete.

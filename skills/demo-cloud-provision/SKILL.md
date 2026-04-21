@@ -41,6 +41,18 @@ Also determine:
   short prefix to namespace the indices (e.g., `cb-` for Citizens Bank makes
   `fraud-claims` → `cb-fraud-claims`). Leave blank for isolated clusters.
 
+**Version (critical):**
+- **Creating a new deployment or Serverless project** — Use the **latest generally
+  available** stack for that product line **unless the SA names a specific version**.
+  Serverless tracks current GA; ECH deployments should select the **newest supported GA**
+  stack version in the create API/UI. Record the resolved version in `.env` as
+  `ELASTIC_VERSION` and in the provision log.
+- **Connecting to an existing deployment or project** (reuse — `cloud-manage-project`,
+  copied `.env`, or customer URLs) — **Do not assume latest.** Read `version.number`
+  from `GET /` against `ELASTICSEARCH_URL` and Kibana’s version from `/api/status` after
+  credentials work, and persist both in the engagement context before downstream skills
+  build scripts or plans.
+
 ## Step 2: Provision the Cluster
 
 > **Dependency:** All cloud operations require the `cloud-setup` skill (from
@@ -91,9 +103,10 @@ Capture (from the compose file, for the .env):
 
 ## Step 3: Write the Per-Engagement .env
 
-Write `.env` to `{workspace}/engagements/{slug}/.env`. This file is the single source of truth for
-all cluster credentials for this engagement. Every subsequent skill (demo-deploy,
-bootstrap.sh) sources this file.
+Write `.env` to `{workspace}/.env` (the engagement directory is `{workspace}`, e.g.
+`engagements/{slug}/`). This file is the single source of truth for all cluster
+credentials for this engagement. Every subsequent skill (demo-deploy, `bootstrap.py`)
+sources this file.
 
 ```bash
 # Demo environment — {company}
@@ -202,13 +215,14 @@ Record the feature flag state in the provision log.
 **Cluster/Project:** {name}
 
 ## Credentials
-Written to: `{workspace}/engagements/{slug}/.env`
+Written to: `{workspace}/.env` (engagement directory = `{workspace}`, e.g. `engagements/{slug}/`)
 ES URL: {url} ✅
 Kibana URL: {url} ✅
 API Key: configured ✅
+**ELASTIC_VERSION:** {version} (from API — new deploys: latest GA unless pinned)
 
 ## To reuse this cluster for another demo:
-cp {workspace}/engagements/{slug}/.env {workspace}/{other-slug}/.env
+cp engagements/{slug}/.env engagements/{other-slug}/.env
 # Then update DEMO_SLUG, ENGAGEMENT, and INDEX_PREFIX in the copied file
 
 ## To teardown this cluster when the demo is complete:
