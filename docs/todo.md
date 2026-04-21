@@ -3,8 +3,8 @@
 *Generated from the post-mortem and current skill review. Updated as items are resolved.*
 *Last updated: 2026-04-15*
 
-For **agent behavior** (orchestrator path, `engagements/` outputs, deploy approvals), see
-[`AGENTS.md`](../AGENTS.md) and [`docs/runtimes/`](../docs/runtimes/).
+For **agent behavior** (orchestrator path, `$DEMOBUILDER_ENGAGEMENTS_ROOT` outputs, deploy approvals), see
+[`AGENTS.md`](../AGENTS.md), [`docs/engagements-path.md`](../docs/engagements-path.md), and [`docs/runtimes/`](../docs/runtimes/).
 
 ---
 
@@ -35,13 +35,13 @@ Before `demo-cloud-provision` can create any serverless project, the `cloud-setu
 ### 3. Validate bootstrap.py against a real cluster
 `demo-deploy` generates `bootstrap.py` from the data model, but it has not yet been executed against a real cluster. The generated script follows the correct patterns, but edge cases (network timeouts, ELSER model load time, Kibana ndjson import formatting) may surface only on a live run.
 
-**Action:** Pick one demo (Citizens Bank is the best-validated) and run from the **demobuilder repo root**:
+**Action:** Pick one demo (Citizens Bank is the best-validated). With **`DEMOBUILDER_ENGAGEMENTS_ROOT`** set (see [`docs/engagements-path.md`](../docs/engagements-path.md)):
 ```bash
 cd /path/to/demobuilder
-set -a && source engagements/citizens-bank/.env && set +a
-python3 engagements/citizens-bank/bootstrap.py --dry-run
+set -a && source "$DEMOBUILDER_ENGAGEMENTS_ROOT/citizens-bank/.env" && set +a
+python3 "$DEMOBUILDER_ENGAGEMENTS_ROOT/citizens-bank/bootstrap.py" --dry-run
 # Review output, then:
-python3 engagements/citizens-bank/bootstrap.py
+python3 "$DEMOBUILDER_ENGAGEMENTS_ROOT/citizens-bank/bootstrap.py"
 ```
 Note any failures and report back — the script template in `demo-deploy/SKILL.md` may need adjustments.
 
@@ -101,7 +101,7 @@ Both skills have `evals/evals.json` written but the eval loop (run → grade →
 **Action:** After completing items 1–3 above, run the evals for these two skills using the skill-creator eval loop.
 
 ### ~~11. Decide on workspace root convention~~ ✅ Resolved
-Default engagement path: **`engagements/{slug}/` under the demobuilder repository** (see `docs/decisions.md` D-019). Per-demo assets only; pipeline code stays in `skills/`, `docs/`, etc.
+Engagement workspaces live under **`$DEMOBUILDER_ENGAGEMENTS_ROOT/{slug}/`** outside the repo (see `docs/decisions.md` D-019, D-023 and [`docs/engagements-path.md`](../docs/engagements-path.md)).
 
 ---
 

@@ -7,18 +7,18 @@
 
 ## How Cursor picks up instructions
 
-- **Rules:** [`.cursor/rules/demobuilder.mdc`](../../.cursor/rules/demobuilder.mdc) is set to always apply and points the agent at the orchestrator and `engagements/` outputs.
+- **Rules:** [`.cursor/rules/demobuilder.mdc`](../../.cursor/rules/demobuilder.mdc) is set to always apply and points the agent at the orchestrator and `$DEMOBUILDER_ENGAGEMENTS_ROOT` outputs.
 - **AGENTS.md:** Cursor reads [`AGENTS.md`](../../AGENTS.md) at the repo root when present — same content as the practical “what the agent should do” manifest.
 
 ## Prompting
 
 Examples:
 
-- “Run demobuilder for discovery notes in `engagements/acme/discovery/`”
+- “Run demobuilder for discovery notes in `$DEMOBUILDER_ENGAGEMENTS_ROOT/acme/discovery/`”
 - “Refresh the demo script from `acme-discovery.json` only”
-- “Deploy the demo to the cluster in `engagements/acme/.env`” (after approval)
+- “Deploy the demo to the cluster in `$DEMOBUILDER_ENGAGEMENTS_ROOT/acme/.env`” (after approval)
 
-Outputs should land under `engagements/{slug}/` unless you name another directory.
+Outputs should land under `$DEMOBUILDER_ENGAGEMENTS_ROOT/{slug}/` (see [`docs/engagements-path.md`](../engagements-path.md)).
 
 ## Skills location
 

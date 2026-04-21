@@ -1,6 +1,5 @@
-# Engagement workspaces — contain credentials (.env), generated scripts, and customer data
-# Never commit these to version control
-engagements/
+# Engagement workspaces live under $DEMOBUILDER_ENGAGEMENTS_ROOT (see docs/engagements-path.md).
+# This folder only holds a pointer README — do not add customer data here.
 
 # Python
 __pycache__/

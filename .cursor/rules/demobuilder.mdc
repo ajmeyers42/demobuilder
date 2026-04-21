@@ -1,12 +1,12 @@
 ---
-description: Elastic demobuilder pipeline — orchestrator, engagements output, approval gates
+description: Elastic demobuilder pipeline — orchestrator, DEMOBUILDER_ENGAGEMENTS_ROOT outputs, approval gates
 alwaysApply: true
 ---
 
 # Demobuilder
 
 - **Orchestrator:** `skills/demobuilder/SKILL.md` — run pipeline stages in order, read each stage’s `SKILL.md` under `skills/`.
-- **Outputs:** Engagement artifacts go under `engagements/{slug}/` unless the user specifies another workspace path.
+- **Outputs:** Engagement artifacts go under `$DEMOBUILDER_ENGAGEMENTS_ROOT/{slug}/` (see `docs/engagements-path.md`). Repo contains skills only, not customer folders.
 - **SA experience:** Gather inputs, produce artifacts, offer to execute commands. Do not instruct the user to run scripts by hand unless they prefer local execution.
 - **Approvals:** Ask before `demo-cloud-provision` or `demo-deploy` (cluster creation, spend, `bootstrap.py`) unless the user already clearly requested deployment this session.
 - **Elastic version:** New deployment/project → default **latest GA** unless user specifies otherwise. Existing deployment → **validate version** (`GET /`, Kibana status, diagnostic) before scripts/plans. Scope ES|QL, APIs, and Kibana guidance to that version.

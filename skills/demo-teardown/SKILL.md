@@ -30,7 +30,7 @@ the prefix requirement.
 
 ## Step 1: Load the Environment
 
-Read `{workspace}/engagements/{slug}/.env`. Verify all required fields are present:
+Read `{workspace}/.env`. Verify all required fields are present:
 - `ELASTICSEARCH_URL` — non-empty, starts with `https://` or `http://`
 - `KIBANA_URL` — non-empty
 - `ES_API_KEY` — non-empty
@@ -115,7 +115,7 @@ es("PUT", f"/_snapshot/{SNAPSHOT_REPO}/{slug}-pre-teardown-{date}?wait_for_compl
 Note in the teardown log how to restore:
 ```bash
 # To restore from snapshot:
-source {workspace}/engagements/{slug}/.env
+source {workspace}/.env
 curl -X POST "${ELASTICSEARCH_URL}/_snapshot/{SNAPSHOT_REPO}/{slug}-pre-teardown-{date}/_restore" \
   -H "Authorization: ApiKey ${ES_API_KEY}" \
   -H "Content-Type: application/json" \
@@ -124,7 +124,7 @@ curl -X POST "${ELASTICSEARCH_URL}/_snapshot/{SNAPSHOT_REPO}/{slug}-pre-teardown
 
 ## Step 4: Generate `teardown.py`
 
-Write a complete, executable Python script to `{workspace}/engagements/{slug}/teardown.py`.
+Write a complete, executable Python script to `{workspace}/teardown.py`.
 
 The script structure:
 
@@ -566,13 +566,13 @@ Note in the teardown log that data was retained and which indices still exist.
 Source the `.env` and run with the appropriate flags:
 
 ```bash
-set -a && source {workspace}/engagements/{slug}/.env && set +a
-python3 {workspace}/engagements/{slug}/teardown.py
+set -a && source {workspace}/.env && set +a
+python3 {workspace}/teardown.py
 ```
 
 For dry-run first:
 ```bash
-python3 {workspace}/engagements/{slug}/teardown.py --dry-run
+python3 {workspace}/teardown.py --dry-run
 ```
 
 Stream output to the terminal so the SE can watch progress. Each step prints:
@@ -686,7 +686,7 @@ is harmless; an accidentally deleted cluster may have other users or be needed f
 
 ## Step 7: Write the Teardown Log
 
-Write `{workspace}/engagements/{slug}/{slug}-teardown-log.md`:
+Write `{workspace}/{slug}-teardown-log.md`:
 
 ```
 # Teardown Log — {Company}

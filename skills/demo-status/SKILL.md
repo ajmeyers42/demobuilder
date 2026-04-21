@@ -26,11 +26,11 @@ a specific remediation for any failure.
 
 ## Step 1: Load the Environment
 
-Read `{workspace}/engagements/{slug}/.env`. All API calls use these credentials. Never hardcode.
+Read `{workspace}/.env`. All API calls use these credentials. Never hardcode.
 
 If `.env` doesn't exist, stop immediately:
 ```
-ERROR: No .env found at {workspace}/engagements/{slug}/.env
+ERROR: No .env found at {workspace}/.env
 Run demo-cloud-provision first, or create .env from the template.
 ```
 
@@ -418,9 +418,9 @@ into their terminal to attempt remediation:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
  FIX COMMANDS — paste to resolve failures
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-set -a && source {workspace}/engagements/{slug}/.env && set +a
-python3 {workspace}/engagements/{slug}/bootstrap.py --step 8
-python3 {workspace}/engagements/{slug}/bootstrap.py --step 10
+set -a && source {workspace}/.env && set +a
+python3 {workspace}/bootstrap.py --step 8
+python3 {workspace}/bootstrap.py --step 10
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
 
@@ -430,8 +430,8 @@ If everything passes, output the ELSER warm-up command as a proactive step:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
  RECOMMENDED — run before the demo
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-set -a && source {workspace}/engagements/{slug}/.env && set +a
-python3 {workspace}/engagements/{slug}/bootstrap.py --step 15   # ELSER warm-up
+set -a && source {workspace}/.env && set +a
+python3 {workspace}/bootstrap.py --step 15   # ELSER warm-up
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
 

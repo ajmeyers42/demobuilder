@@ -104,7 +104,7 @@ Capture (from the compose file, for the .env):
 ## Step 3: Write the Per-Engagement .env
 
 Write `.env` to `{workspace}/.env` (the engagement directory is `{workspace}`, e.g.
-`engagements/{slug}/`). This file is the single source of truth for all cluster
+`$DEMOBUILDER_ENGAGEMENTS_ROOT/{slug}/`). This file is the single source of truth for all cluster
 credentials for this engagement. Every subsequent skill (demo-deploy, `bootstrap.py`)
 sources this file.
 
@@ -215,14 +215,14 @@ Record the feature flag state in the provision log.
 **Cluster/Project:** {name}
 
 ## Credentials
-Written to: `{workspace}/.env` (engagement directory = `{workspace}`, e.g. `engagements/{slug}/`)
+Written to: `{workspace}/.env` (engagement directory = `{workspace}`, e.g. `$DEMOBUILDER_ENGAGEMENTS_ROOT/{slug}/`)
 ES URL: {url} ✅
 Kibana URL: {url} ✅
 API Key: configured ✅
 **ELASTIC_VERSION:** {version} (from API — new deploys: latest GA unless pinned)
 
 ## To reuse this cluster for another demo:
-cp engagements/{slug}/.env engagements/{other-slug}/.env
+cp "$DEMOBUILDER_ENGAGEMENTS_ROOT/{slug}/.env" "$DEMOBUILDER_ENGAGEMENTS_ROOT/{other-slug}/.env"
 # Then update DEMO_SLUG, ENGAGEMENT, and INDEX_PREFIX in the copied file
 
 ## To teardown this cluster when the demo is complete:
