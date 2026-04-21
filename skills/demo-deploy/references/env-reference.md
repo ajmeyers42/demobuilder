@@ -61,7 +61,8 @@ $DEMOBUILDER_ENGAGEMENTS_ROOT/
 └── {slug-C}/.env    → https://shared.es.io  INDEX_PREFIX=c-
 
 # Copy workflow for a new demo on the same cluster:
-cp "$DEMOBUILDER_ENGAGEMENTS_ROOT/{slug-A}/.env" "$DEMOBUILDER_ENGAGEMENTS_ROOT/{slug-B}/.env"
+ROOT="${DEMOBUILDER_ENGAGEMENTS_ROOT:-$HOME/engagements}"
+cp "$ROOT/{slug-A}/.env" "$ROOT/{slug-B}/.env"
 # Then edit {slug-B}/.env:
 #   DEMO_SLUG={slug-B}
 #   ENGAGEMENT={Company B}

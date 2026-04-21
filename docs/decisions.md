@@ -68,15 +68,14 @@ depth still follows, but order matters for retention and credibility.
 
 ## D-023: `DEMOBUILDER_ENGAGEMENTS_ROOT` — engagements outside the repo
 
-**Decision:** Per-customer engagement directories live under an absolute path **`DEMOBUILDER_ENGAGEMENTS_ROOT`**
-(environment variable), with each engagement at **`$DEMOBUILDER_ENGAGEMENTS_ROOT/{slug}/`**. The
-demobuilder git repository contains **no** customer workspaces under `engagements/` (only a
-tracked pointer [`engagements/README.md`](../engagements/README.md)). Typical placement is
-**local disk or synced cloud folder** (e.g. Google Drive “My Drive”) so the repo stays portable
-and shareable without credentials or customer data.
+**Decision:** Per-customer engagement directories live under **`$DEMOBUILDER_ENGAGEMENTS_ROOT/{slug}/`**.
+When **`DEMOBUILDER_ENGAGEMENTS_ROOT`** is unset, agents treat it as **`$HOME/engagements`**
+(a normal directory under the user profile — not cloud symlinks by default). The demobuilder git
+repository contains **no** customer workspaces under `engagements/` (only a tracked pointer
+[`engagements/README.md`](../engagements/README.md)).
 
-**Rationale:** Separates pipeline code from confidential demo assets; clones and PRs do not
-carry engagement folders; each teammate can point the variable at their own path.
+**Rationale:** Separates pipeline code from confidential demo assets; clones stay portable; the
+default path avoids broken Google Drive symlink layouts on some hosts.
 
 **Applied to:** `AGENTS.md`, `.cursor/rules/demobuilder.mdc`, `README.md`, `docs/engagements-path.md`,
 `docs/todo.md`, `docs/runtimes/cursor.md`, `docs/runtimes/claude.md`, `skills/demobuilder/SKILL.md`,
@@ -84,13 +83,13 @@ carry engagement folders; each teammate can point the variable at their own path
 `skills/demo-status/SKILL.md`, `skills/demo-teardown/SKILL.md`, skill evals `files` paths, `.gitignore`,
 `.cursor/plans/2026citizensai_engagement_setup_d360eb16.plan.md`.
 
-**Date:** 2026-04-21 | **Session:** portable engagements root
+**Date:** 2026-04-21 | **Session:** portable engagements root | **Updated:** 2026-04-21 — default `$HOME/engagements`
 
 ---
 
 ## D-001: Per-engagement `.env` file for credential isolation
 
-**Decision:** Each engagement workspace (`$DEMOBUILDER_ENGAGEMENTS_ROOT/{slug}/`) holds its own `.env` file with cluster credentials. No global config.
+**Decision:** Each engagement workspace (`${DEMOBUILDER_ENGAGEMENTS_ROOT:-$HOME/engagements}/{slug}/`) holds its own `.env` file with cluster credentials. No global config.
 
 **Rationale:** An SE running demos for Citizens Bank and IHG Club simultaneously — possibly on the same cluster — needs clean separation of credentials and namespace. A global config would require constant switching and risks cross-contamination.
 

@@ -35,13 +35,14 @@ Before `demo-cloud-provision` can create any serverless project, the `cloud-setu
 ### 3. Validate bootstrap.py against a real cluster
 `demo-deploy` generates `bootstrap.py` from the data model, but it has not yet been executed against a real cluster. The generated script follows the correct patterns, but edge cases (network timeouts, ELSER model load time, Kibana ndjson import formatting) may surface only on a live run.
 
-**Action:** Pick one demo (Citizens Bank is the best-validated). With **`DEMOBUILDER_ENGAGEMENTS_ROOT`** set (see [`docs/engagements-path.md`](../docs/engagements-path.md)):
+**Action:** Pick one demo (Citizens Bank is the best-validated). Engagement root defaults to **`~/engagements`** (see [`docs/engagements-path.md`](../docs/engagements-path.md)):
 ```bash
 cd /path/to/demobuilder
-set -a && source "$DEMOBUILDER_ENGAGEMENTS_ROOT/citizens-bank/.env" && set +a
-python3 "$DEMOBUILDER_ENGAGEMENTS_ROOT/citizens-bank/bootstrap.py" --dry-run
+ROOT="${DEMOBUILDER_ENGAGEMENTS_ROOT:-$HOME/engagements}"
+set -a && source "$ROOT/citizens-bank/.env" && set +a
+python3 "$ROOT/citizens-bank/bootstrap.py" --dry-run
 # Review output, then:
-python3 "$DEMOBUILDER_ENGAGEMENTS_ROOT/citizens-bank/bootstrap.py"
+python3 "$ROOT/citizens-bank/bootstrap.py"
 ```
 Note any failures and report back — the script template in `demo-deploy/SKILL.md` may need adjustments.
 
@@ -101,7 +102,7 @@ Both skills have `evals/evals.json` written but the eval loop (run → grade →
 **Action:** After completing items 1–3 above, run the evals for these two skills using the skill-creator eval loop.
 
 ### ~~11. Decide on workspace root convention~~ ✅ Resolved
-Engagement workspaces live under **`$DEMOBUILDER_ENGAGEMENTS_ROOT/{slug}/`** outside the repo (see `docs/decisions.md` D-019, D-023 and [`docs/engagements-path.md`](../docs/engagements-path.md)).
+Engagement workspaces live under **`~/engagements/{slug}/`** by default (or **`$DEMOBUILDER_ENGAGEMENTS_ROOT/{slug}/`** if set) outside the repo (see `docs/decisions.md` D-019, D-023 and [`docs/engagements-path.md`](../docs/engagements-path.md)).
 
 ---
 

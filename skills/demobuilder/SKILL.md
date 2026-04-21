@@ -89,12 +89,10 @@ Lowercase, hyphenated: "Citizens Bank" → `citizens-bank`, "Deutsche Telekom SO
 The slug identifies **one engagement** (everything specific to that demo).
 
 **Set the workspace directory** to that engagement’s folder: **`$DEMOBUILDER_ENGAGEMENTS_ROOT/{slug}/`**
-(absolute path). The SA must define **`DEMOBUILDER_ENGAGEMENTS_ROOT`** in the environment
-(see `docs/engagements-path.md` in this repo — typically a folder under Google Drive “My Drive”
-or local disk). Only per-demo artifacts belong in `{slug}/`; pipeline code stays in the
-demobuilder clone (`skills/`, `docs/`). If the variable is unset, ask for the engagement root
-before writing. If the SA names a different absolute workspace, use it; create the directory
-if it doesn’t exist.
+where **`DEMOBUILDER_ENGAGEMENTS_ROOT`** defaults to **`$HOME/engagements`** when unset (see
+`docs/engagements-path.md`). Only per-demo artifacts belong in `{slug}/`; pipeline code stays in the
+demobuilder clone (`skills/`, `docs/`). If the SA sets a different root or absolute workspace, use it;
+create the directory if it doesn’t exist.
 
 All output files for this engagement live in the workspace. Use the slug as a prefix for
 every file: `{slug}-discovery.json`, `{slug}-demo-script.md`, etc.
@@ -259,7 +257,7 @@ When all stages are complete, produce a structured handoff:
  DEMOBUILDER COMPLETE — [Company]
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-📁 Workspace: $DEMOBUILDER_ENGAGEMENTS_ROOT/citizens-bank/
+📁 Workspace: ~/engagements/citizens-bank/   (or $DEMOBUILDER_ENGAGEMENTS_ROOT/citizens-bank/ if set)
 
 ARTIFACT SUMMARY
 ────────────────

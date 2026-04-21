@@ -14,11 +14,11 @@
 
 Examples:
 
-- “Run demobuilder for discovery notes in `$DEMOBUILDER_ENGAGEMENTS_ROOT/acme/discovery/`”
+- “Run demobuilder for discovery notes in `~/engagements/acme/discovery/`”
 - “Refresh the demo script from `acme-discovery.json` only”
-- “Deploy the demo to the cluster in `$DEMOBUILDER_ENGAGEMENTS_ROOT/acme/.env`” (after approval)
+- “Deploy the demo to the cluster in `~/engagements/acme/.env`” (after approval)
 
-Outputs should land under `$DEMOBUILDER_ENGAGEMENTS_ROOT/{slug}/` (see [`docs/engagements-path.md`](../engagements-path.md)).
+Outputs should land under `$DEMOBUILDER_ENGAGEMENTS_ROOT/{slug}/` — default **`~/engagements/{slug}/`** when the env var is unset (see [`docs/engagements-path.md`](../engagements-path.md)).
 
 ## Skills location
 

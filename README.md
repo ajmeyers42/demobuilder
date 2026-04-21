@@ -92,7 +92,7 @@ A collection of skills that take a sales engagement from raw discovery notes thr
 
 ## Agent runtimes (Cursor, Claude, others)
 
-Demobuilder is **agent-first**: one shared [`skills/`](skills/) tree; engagement outputs live under **`$DEMOBUILDER_ENGAGEMENTS_ROOT/{slug}/`** (see [`docs/engagements-path.md`](docs/engagements-path.md)). No parallel `cursor/` vs `claude/` skill copies — only thin glue:
+Demobuilder is **agent-first**: one shared [`skills/`](skills/) tree; engagement outputs live under **`~/engagements/{slug}/`** by default (or **`$DEMOBUILDER_ENGAGEMENTS_ROOT/{slug}/`** if you override the root — see [`docs/engagements-path.md`](docs/engagements-path.md)). No parallel `cursor/` vs `claude/` skill copies — only thin glue:
 
 | File | Purpose |
 |------|---------|
@@ -105,10 +105,10 @@ Demobuilder is **agent-first**: one shared [`skills/`](skills/) tree; engagement
 
 Drop a discovery note (PDF, markdown, raw text) into a prompt and say **"build the demo for [company]"**. The `demobuilder` orchestrator handles the rest — detecting available inputs, running each pipeline stage in order, and delivering a complete workspace with all demo artifacts.
 
-Set **`DEMOBUILDER_ENGAGEMENTS_ROOT`** to an absolute path (often **Google Drive › My Drive** or local disk). Each engagement is a subfolder — not inside this git repo:
+**Default:** engagement data lives under **`~/engagements/`** (i.e. **`$HOME/engagements`**). Set **`DEMOBUILDER_ENGAGEMENTS_ROOT`** only if you want a different parent directory. Each engagement is a subfolder — not inside this git repo:
 
 ```
-$DEMOBUILDER_ENGAGEMENTS_ROOT/
+$DEMOBUILDER_ENGAGEMENTS_ROOT/   # defaults to $HOME/engagements when unset
 └── {customer-slug}/                 ← one folder per engagement (demo-specific)
     ├── .env                                    ← cluster credentials (never commit)
     ├── .env.example                            ← template, safe to copy
@@ -255,7 +255,7 @@ Run `cloud-setup` once to configure your Elastic Cloud API key before using
 | File | Contents |
 |---|---|
 | `AGENTS.md` | Agent-first behavior: skills path, `$DEMOBUILDER_ENGAGEMENTS_ROOT` outputs, deploy approval |
-| `docs/engagements-path.md` | Engagement root env var; Google Drive / local layout |
+| `docs/engagements-path.md` | Engagement root (`~/engagements` default) |
 | `docs/runtimes/cursor.md` | Running demobuilder in Cursor |
 | `docs/runtimes/claude.md` | Running demobuilder in Claude Code / Claude projects |
 | `docs/postmortem.md` | Session post-mortem: lessons learned, friction points, design validation |

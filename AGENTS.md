@@ -5,7 +5,7 @@ This repository is meant to be driven by an **assistant** (Cursor, Claude Code, 
 ## Canonical behavior
 
 1. **Orchestrator:** Read and follow [`skills/demobuilder/SKILL.md`](skills/demobuilder/SKILL.md). Sub-skills live alongside it under [`skills/`](skills/).
-2. **Outputs:** Write all engagement artifacts under **`$DEMOBUILDER_ENGAGEMENTS_ROOT/{slug}/`** (`{slug}` = one engagement). Set **`DEMOBUILDER_ENGAGEMENTS_ROOT`** in the environment to an absolute path (often Google Drive “My Drive” or local disk — see [`docs/engagements-path.md`](docs/engagements-path.md)). The git repo holds pipeline code only (`skills/`, `docs/`), not customer workspaces. If the variable is unset, ask the SA for the engagement root before writing files.
+2. **Outputs:** Write all engagement artifacts under **`$DEMOBUILDER_ENGAGEMENTS_ROOT/{slug}/`** (`{slug}` = one engagement). If **`DEMOBUILDER_ENGAGEMENTS_ROOT`** is unset, default to **`$HOME/engagements`** (see [`docs/engagements-path.md`](docs/engagements-path.md)). The git repo holds pipeline code only (`skills/`, `docs/`), not customer workspaces. Only ask the SA for a different root if they need a non-default path.
 3. **Execution:** Run terminal commands, API calls, and skill workflows **on behalf of the SA** when they agree — scripts in this repo are **backends**, not the SA’s homework.
 4. **Approvals:** Do **not** run `demo-cloud-provision` or `demo-deploy` (create/spend cloud resources, mutate clusters, run `bootstrap.py`) until the SA has **explicitly** asked to provision or deploy in this session, or confirmed after you ask. Artifact stages (discovery → validator) can run when the SA asks to build or refresh the demo plan.
 

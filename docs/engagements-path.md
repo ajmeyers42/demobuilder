@@ -2,8 +2,8 @@
 
 ## Why
 
-- **Portable repo:** The demobuilder git tree holds **pipeline skills** (`skills/`, `docs/`) only. Customer-specific files stay **out of version control** and can live on **local disk or cloud sync** (e.g. Google Drive “My Drive”).
-- **Sharable:** You can push the repo without engagement data; teammates set their own root.
+- **Portable repo:** The demobuilder git tree holds **pipeline skills** (`skills/`, `docs/`) only. Customer-specific files stay **out of version control** on **local disk** under your user profile.
+- **Sharable:** You can push the repo without engagement data; each machine uses the same default layout.
 
 ## Convention
 
@@ -11,30 +11,41 @@
 |----------|---------|
 | `DEMOBUILDER_ENGAGEMENTS_ROOT` | Absolute path to a directory that **contains** one folder per engagement |
 
+**Default (when unset):** **`$HOME/engagements`** — a normal folder in your home directory (not a cloud symlink). Agents and scripts should resolve engagement paths as:
+
+`"${DEMOBUILDER_ENGAGEMENTS_ROOT:-$HOME/engagements}/{slug}/"`
+
+Override only if you want engagements somewhere else:
+
+```bash
+export DEMOBUILDER_ENGAGEMENTS_ROOT="/custom/path"
+```
+
 Engagement workspace for slug `{slug}`:
 
 `$DEMOBUILDER_ENGAGEMENTS_ROOT/{slug}/`
 
-Example: `$DEMOBUILDER_ENGAGEMENTS_ROOT/2026CitizensAI/`
+Example: `~/engagements/2026CitizensAI/`
 
 ## Setup
 
-1. Create the root directory (e.g. `demobuilder-engagements` under Google Drive **My Drive**).
-2. Export the variable in your shell profile:
+1. Create the default root once (optional — tools can create it when needed):
 
 ```bash
-export DEMOBUILDER_ENGAGEMENTS_ROOT="$HOME/Google Drive/demobuilder-engagements"
+mkdir -p "$HOME/engagements"
 ```
 
-**This machine (example):** the Citizens AI engagement was moved to  
-`~/Library/CloudStorage/GoogleDrive-andrew.meyers@elastic.co/My Drive/demobuilder-engagements`  
-(same as `$HOME/Google Drive/demobuilder-engagements` if the Drive symlink is present).
+2. Optionally pin the variable in `~/.zshrc` / `~/.bashrc` (same default as above, explicit):
+
+```bash
+export DEMOBUILDER_ENGAGEMENTS_ROOT="$HOME/engagements"
+```
 
 3. Point the agent at **`$DEMOBUILDER_ENGAGEMENTS_ROOT/{slug}`** when running the orchestrator or a single skill.
 
 ## Agents
 
-Skills and [`AGENTS.md`](../AGENTS.md) assume this variable is set when writing or reading engagement artifacts. If it is unset, resolve the path with the user before creating files.
+Skills and [`AGENTS.md`](../AGENTS.md): if `DEMOBUILDER_ENGAGEMENTS_ROOT` is unset, use **`$HOME/engagements`** before asking the SA.
 
 ## Decision record
 

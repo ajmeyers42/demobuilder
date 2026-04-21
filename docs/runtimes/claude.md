@@ -20,7 +20,7 @@ Point the session at [`skills/demobuilder/SKILL.md`](../../skills/demobuilder/SK
 
 ## Outputs
 
-Write artifacts to **`$DEMOBUILDER_ENGAGEMENTS_ROOT/{slug}/`** (see [`docs/engagements-path.md`](../engagements-path.md)), or the absolute workspace path the user specifies. Same layout as in [`README.md`](../../README.md).
+Write artifacts to **`$DEMOBUILDER_ENGAGEMENTS_ROOT/{slug}/`** — default **`~/engagements/{slug}/`** when unset (see [`docs/engagements-path.md`](../engagements-path.md)), or the absolute workspace path the user specifies. Same layout as in [`README.md`](../../README.md).
 
 ## Human vs agent execution
 

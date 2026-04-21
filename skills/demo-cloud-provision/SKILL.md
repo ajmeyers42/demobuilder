@@ -222,7 +222,8 @@ API Key: configured ✅
 **ELASTIC_VERSION:** {version} (from API — new deploys: latest GA unless pinned)
 
 ## To reuse this cluster for another demo:
-cp "$DEMOBUILDER_ENGAGEMENTS_ROOT/{slug}/.env" "$DEMOBUILDER_ENGAGEMENTS_ROOT/{other-slug}/.env"
+ROOT="${DEMOBUILDER_ENGAGEMENTS_ROOT:-$HOME/engagements}"
+cp "$ROOT/{slug}/.env" "$ROOT/{other-slug}/.env"
 # Then update DEMO_SLUG, ENGAGEMENT, and INDEX_PREFIX in the copied file
 
 ## To teardown this cluster when the demo is complete:

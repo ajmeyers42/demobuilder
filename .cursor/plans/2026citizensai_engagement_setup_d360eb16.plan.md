@@ -1,15 +1,15 @@
 ---
 name: 2026CitizensAI engagement setup
-overview: Engagement folder `2026CitizensAI/` lives under `$DEMOBUILDER_ENGAGEMENTS_ROOT` (e.g. Google Drive My Drive `demobuilder-engagements/`), not in the git repo — see [docs/engagements-path.md](../../docs/engagements-path.md). Raw discovery, pipeline outputs, and `.env` stay there; the repo holds skills only.
+overview: Engagement folder `2026CitizensAI/` lives under `$DEMOBUILDER_ENGAGEMENTS_ROOT` (default `$HOME/engagements`), not in the git repo — see [docs/engagements-path.md](../../docs/engagements-path.md).
 todos:
   - id: mkdir-layout
-    content: Ensure $DEMOBUILDER_ENGAGEMENTS_ROOT/2026CitizensAI/ and discovery/ exist
+    content: Ensure $HOME/engagements/2026CitizensAI/ and discovery/ exist
     status: pending
   - id: readme-engagement
-    content: README in engagement folder — slug, paths, DEMOBUILDER_ENGAGEMENTS_ROOT
+    content: README in engagement folder — slug, paths, default ~/engagements
     status: pending
   - id: gitignore-policy
-    content: Engagement data outside git — no .gitignore needed for discovery in repo
+    content: Engagement data outside git — no repo .gitignore for discovery
     status: pending
 isProject: false
 ---
@@ -18,28 +18,19 @@ isProject: false
 
 ## Decisions locked in
 
-- **Engagement root:** `$DEMOBUILDER_ENGAGEMENTS_ROOT/2026CitizensAI/` (absolute path; example — Google Drive **My Drive** › `demobuilder-engagements/2026CitizensAI/`).
+- **Engagement root:** `$DEMOBUILDER_ENGAGEMENTS_ROOT/2026CitizensAI/` — default **`~/engagements/2026CitizensAI/`** when the env var is unset.
 - **Repo:** Demobuilder clone contains only [`engagements/README.md`](../../engagements/README.md) as a pointer — not customer files.
-- **Pipeline slug:** Use lowercase hyphenated slug **`2026citizens-ai`** for generated artifacts (`2026citizens-ai-discovery.json`, etc.). The folder name can stay `2026CitizensAI`.
+- **Pipeline slug:** **`2026citizens-ai`** for generated artifacts. Folder name can stay `2026CitizensAI`.
 
-## Layout (on execution)
+## Layout
 
-1. **Directory layout** under `$DEMOBUILDER_ENGAGEMENTS_ROOT/2026CitizensAI/`
-   - Engagement root — point the agent here as workspace.
-   - `discovery/` — raw discovery (PDF, `.md`, `.txt`).
+1. **`~/engagements/2026CitizensAI/`** — workspace; `discovery/` for raw notes.
 
-2. **Engagement README** — slug `2026citizens-ai`, `export DEMOBUILDER_ENGAGEMENTS_ROOT=...`, run instructions.
-
-3. **Confidentiality** — data is outside git; sync is via Google Drive (or chosen path).
-
-## Loading discovery
-
-- Copy discovery into `$DEMOBUILDER_ENGAGEMENTS_ROOT/2026CitizensAI/discovery/` or pass absolute paths.
-- Parser writes `2026citizens-ai-*.json` / `.md` at the engagement root.
+2. **Engagement README** — slug `2026citizens-ai`, default path note.
 
 ## Orchestrator note
 
-Set **`DEMOBUILDER_ENGAGEMENTS_ROOT`** then use workspace **`$DEMOBUILDER_ENGAGEMENTS_ROOT/2026CitizensAI`**. See [skills/demobuilder/SKILL.md](../../skills/demobuilder/SKILL.md).
+Workspace = **`${DEMOBUILDER_ENGAGEMENTS_ROOT:-$HOME/engagements}/2026CitizensAI`**. See [skills/demobuilder/SKILL.md](../../skills/demobuilder/SKILL.md).
 
 ## Scope not included unless you ask
 

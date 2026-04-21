@@ -1,29 +1,25 @@
 # Engagement workspaces (outside this repository)
 
-Per-customer demo folders — credentials (`.env`), generated scripts, discovery notes, and pipeline outputs — **do not live under this git clone**. They sit on a path you choose (for example **Google Drive › My Drive** so demos sync and stay off shared git remotes).
+Per-customer demo folders — credentials (`.env`), generated scripts, discovery notes, and pipeline outputs — **do not live under this git clone**. They live under your **user profile** by default.
 
-## Configure once per machine
+## Default location
 
-Set an absolute path:
+**`~/engagements/`** — one subfolder per engagement (e.g. `~/engagements/2026CitizensAI/`).
 
-```bash
-export DEMOBUILDER_ENGAGEMENTS_ROOT="/path/to/your/demobuilder-engagements"
-```
-
-**Example (Google Drive on macOS, “My Drive”):**
+The environment variable **`DEMOBUILDER_ENGAGEMENTS_ROOT`** points at that parent directory. If it is **unset**, agents and docs assume:
 
 ```bash
-export DEMOBUILDER_ENGAGEMENTS_ROOT="$HOME/Library/CloudStorage/GoogleDrive-YOUR_ACCOUNT/My Drive/demobuilder-engagements"
+export DEMOBUILDER_ENGAGEMENTS_ROOT="$HOME/engagements"
 ```
 
-If you use the Finder “Google Drive” shortcut:
+Add that line to `~/.zshrc` or `~/.bashrc` if you want it explicit in every shell.
+
+To use a different root:
 
 ```bash
-export DEMOBUILDER_ENGAGEMENTS_ROOT="$HOME/Google Drive/demobuilder-engagements"
+export DEMOBUILDER_ENGAGEMENTS_ROOT="/path/to/your/engagements-parent"
 ```
 
-Add the same line to `~/.zshrc` or `~/.bashrc` so agents and terminals resolve engagement paths consistently.
+Each engagement is: `$DEMOBUILDER_ENGAGEMENTS_ROOT/{slug}/`
 
-Each engagement is a subfolder: `$DEMOBUILDER_ENGAGEMENTS_ROOT/{slug}/` (e.g. `2026CitizensAI/`).
-
-See **[`docs/engagements-path.md`](../docs/engagements-path.md)** for rationale and agent behavior.
+See **[`docs/engagements-path.md`](../docs/engagements-path.md)** for full detail.

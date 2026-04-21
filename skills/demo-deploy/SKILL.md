@@ -415,10 +415,11 @@ No duplicate data, no errors on existing resources.
 bootstrap uses `INDEX_PREFIX=ihg-`. Both sets of indices coexist. Each bootstrap only
 touches its own prefixed resources.
 
-**Prefix copy workflow:** (`$DEMOBUILDER_ENGAGEMENTS_ROOT` must be set — see `docs/engagements-path.md`)
+**Prefix copy workflow:** (see `docs/engagements-path.md` — default root `~/engagements`)
 ```bash
-cp "$DEMOBUILDER_ENGAGEMENTS_ROOT/citizens-bank/.env" "$DEMOBUILDER_ENGAGEMENTS_ROOT/ihg-club/.env"
+ROOT="${DEMOBUILDER_ENGAGEMENTS_ROOT:-$HOME/engagements}"
+cp "$ROOT/citizens-bank/.env" "$ROOT/ihg-club/.env"
 # Edit ihg-club/.env: DEMO_SLUG=ihg-club, ENGAGEMENT="IHG Club Vacations", INDEX_PREFIX=ihg-
-set -a && source "$DEMOBUILDER_ENGAGEMENTS_ROOT/ihg-club/.env" && set +a
-python3 "$DEMOBUILDER_ENGAGEMENTS_ROOT/ihg-club/bootstrap.py"
+set -a && source "$ROOT/ihg-club/.env" && set +a
+python3 "$ROOT/ihg-club/bootstrap.py"
 ```
