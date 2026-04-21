@@ -2,9 +2,11 @@
 name: demobuilder
 description: >
   Top-level orchestrator for the Elastic demobuilder pipeline. Accepts any combination of
-  discovery notes, diagnostic files, and existing pipeline outputs, determines which stages
-  need to run, executes them in dependency order, and delivers a complete set of demo-ready
-  artifacts with a final handoff summary.
+  discovery notes, diagnostic files, architecture diagrams, supplemental notes from the
+  discovery team, and existing pipeline outputs; determines which stages need to run,
+  executes them in dependency order, and delivers demo-ready artifacts. Demos may emphasize
+  search, Observability, Security, or a deliberate mix — scoped to customer needs and
+  enterprise-level Elastic capabilities.
 
   ALWAYS use this skill when the user says "build the demo for X", "run demobuilder",
   "take this from discovery to demo", "full pipeline for [company]", "we have notes and
@@ -24,13 +26,75 @@ You don't do the work yourself — you read each sub-skill's SKILL.md to load it
 execute that stage, then move to the next. Each stage produces files that feed into the
 next. Treat each sub-skill as a specialist you're briefing, not a function you're calling.
 
+**External dependencies:** Stages 8–9 depend on skills from `elastic/agent-skills`
+(a separate plugin). If those skills aren't installed, surface a clear message rather
+than failing silently: "To provision or deploy, install the elastic/agent-skills plugin.
+See docs/todo.md for setup instructions."
+
+**Agent runtimes:** Skills live under `skills/` in the demobuilder repo. Behavior for
+Cursor, Claude, and other hosts is unified — see repo root `AGENTS.md` and
+`docs/runtimes/`. Do not fork skill content per IDE; only loading paths differ.
+
+**Deploy approval:** Before running **Stage 8 (demo-cloud-provision)** or **Stage 9 (demo-deploy)**,
+confirm the SA wants to create or mutate cloud resources / run `bootstrap.py` in this
+session — unless they have already explicitly asked to provision or deploy. Planning
+stages (1–7) may proceed when the SA asks to build or refresh artifacts.
+
+**Elastic version scope:**
+- **New deployment or Serverless project** — Assume the **latest generally available**
+  stack version for that offering **unless the SA specifies otherwise**. Record the
+  actual version in `.env` (`ELASTIC_VERSION`) and in any provision log after create.
+- **Existing deployment / project / cluster** — **Do not** assume latest. Obtain
+  `version` from `GET /` (Elasticsearch) and Kibana `/api/status` (or from diagnostic /
+  `demo-diagnostic-analyzer` output) **before** writing demo scripts, data models, or
+  execution plans, and thread that version into **demo-platform-audit** and downstream
+  artifacts.
+- **All scripts, plans, and guidance** — Must match the target stack: ES|QL syntax,
+  API shapes, Kibana features, ML APIs, and Agent Builder / Workflows availability all
+  depend on version and deployment type. When in doubt, cite the version the guidance
+  applies to.
+
+**Demo scope — enterprise capabilities and solution areas:**
+- **Assume enterprise-appropriate features** when shaping the demo: prefer capabilities that
+  match the **customer outcomes** and pain points in the inputs (discovery, diagnostic,
+  supplemental notes), subject to **demo-platform-audit** and license/version reality.
+  Do not default to “minimal” or core-search-only unless the customer story is search-only.
+- **Inputs** may include: discovery notes, **Elastic diagnostic** exports, **additional
+  notes** from the AE/SE/discovery team, and **architecture diagrams** (current-state
+  systems, data flows). Treat diagrams as first-class context — extract what they imply
+  for integrations, data paths, and operational pain.
+- **Use case domains:** Demos apply equally to **Elasticsearch (search / analytics)**,
+  **Observability**, and **Elastic Security** — pick the primary domain from the artifacts.
+  Past examples often emphasized search; **do not** force search framing when the
+  discovery points to logs, APM, SIEM, or detection workflows.
+- **Cross-solution demos:** When the customer’s needs span domains, it is **acceptable and
+  often desirable** to combine capabilities across **search, Observability, and Security**
+  in one storyline (e.g. unified data platform, correlated investigation, shared ES|QL).
+  Call this out in the script and platform audit so scope stays honest.
+
+**Narrative — solution first:** Unless the SA says otherwise, demo **scripts and plans**
+should lead with **business value and the customer’s key asks** from discovery, then
+detail **supporting Elastic capabilities** (how to get there). If primary goals are unclear
+in the inputs, the agent should **ask for guidance** before finalizing storyline — see
+`demo-script-template`.
+
+**Additional post-deploy skills** available once a cluster is deployed:
+- `demo-status` — quick pre-demo readiness pulse check (connectivity, doc counts, ML state, ELSER latency)
+- `demo-teardown` — post-demo cleanup; removes all demo resources prefix-aware
+
 ## Step 1: Identify the Engagement and Workspace
 
 **Determine the slug** from the customer name in the input files or the user's prompt.
 Lowercase, hyphenated: "Citizens Bank" → `citizens-bank`, "Deutsche Telekom SOC-T" → `dt-soct`.
+The slug identifies **one engagement** (everything specific to that demo).
 
-**Set the workspace directory.** Default: `~/demobuilder-workspace/{slug}/`. If the user
-specifies a different path, use that. Create the directory if it doesn't exist.
+**Set the workspace directory** to that engagement’s folder: **`$DEMOBUILDER_ENGAGEMENTS_ROOT/{slug}/`**
+(absolute path). The SA must define **`DEMOBUILDER_ENGAGEMENTS_ROOT`** in the environment
+(see `docs/engagements-path.md` in this repo — typically a folder under Google Drive “My Drive”
+or local disk). Only per-demo artifacts belong in `{slug}/`; pipeline code stays in the
+demobuilder clone (`skills/`, `docs/`). If the variable is unset, ask for the engagement root
+before writing. If the SA names a different absolute workspace, use it; create the directory
+if it doesn’t exist.
 
 All output files for this engagement live in the workspace. Use the slug as a prefix for
 every file: `{slug}-discovery.json`, `{slug}-demo-script.md`, etc.
@@ -70,7 +134,9 @@ Validator                🔲 Pending
 Starting from: demo-script-template
 ```
 
-Then proceed without waiting for confirmation.
+After this inventory, continue with **planning stages** (1–7) without an extra confirmation
+step unless the user asked to pause. **Do not** run provisioning or deploy (stages 8–9)
+without explicit approval — see Stage 8–9 notes below.
 
 ## Step 3: Detect Available Inputs
 
@@ -161,24 +227,28 @@ For each stage that needs to run, in order:
 - Outputs: `{slug}-demo-checklist.md`, `{slug}-risks.md`
 
 **Stage 8 — demo-cloud-provision** *(optional — new cluster path only)*
-- Skip if: `{slug}/.env` already exists and credentials are valid
+- **Requires explicit SA approval** to spend resources / create infrastructure (unless
+  the user already clearly requested provisioning this session)
+- Skip if: `{workspace}/.env` already exists and credentials are valid
 - Run if: user requests "create a new cluster", "spin up a serverless project", or no `.env`
   exists and deployment was requested
 - Read: `../demo-cloud-provision/SKILL.md`
 - Inputs: deployment type preference, region, engagement slug
-- Outputs: `{slug}/.env`, `{slug}/.env.example`, `{slug}-provision-log.md`
+- Outputs: `{workspace}/.env`, `{workspace}/.env.example`, `{slug}-provision-log.md`
 - Note: if user wants to reuse an existing cluster for a new engagement, copy the `.env`
   from the prior workspace and update `DEMO_SLUG`, `ENGAGEMENT`, and `INDEX_PREFIX` —
   no re-provisioning needed
 
 **Stage 9 — demo-deploy** *(optional — runs after validator if cluster target is known)*
+- **Requires explicit SA approval** to run generated `bootstrap.py` against the cluster
+  (unless the user already clearly requested deployment this session)
 - Skip if: user has not requested deployment and no `.env` is present
 - Run if: `.env` exists in the workspace (from stage 8 or copied from another engagement)
   AND user says "deploy", "build it", "set up the cluster", or "bootstrap"
-- Requires: `{slug}/.env` — stop and surface a clear message if missing
+- Requires: `{workspace}/.env` — stop and surface a clear message if missing
 - Read: `../demo-deploy/SKILL.md`
-- Inputs: `{slug}/.env`, `{slug}-data-model.json`, `{slug}-ml-config.json` (if present)
-- Outputs: `{workspace}/{slug}/bootstrap.py`, `{slug}-deploy-log.md`
+- Inputs: `{workspace}/.env`, `{slug}-data-model.json`, `{slug}-ml-config.json` (if present)
+- Outputs: `{workspace}/bootstrap.py`, `{slug}-deploy-log.md`
 
 ## Step 5: Deliver the Handoff Summary
 
@@ -189,7 +259,7 @@ When all stages are complete, produce a structured handoff:
  DEMOBUILDER COMPLETE — [Company]
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-📁 Workspace: ~/demobuilder-workspace/citizens-bank/
+📁 Workspace: $DEMOBUILDER_ENGAGEMENTS_ROOT/citizens-bank/
 
 ARTIFACT SUMMARY
 ────────────────
@@ -308,6 +378,17 @@ confirming 4 indices created, seed data loaded, ELSER endpoint warmed.
 `INDEX_PREFIX=cb-`. User says "set up IHG Club on the same cluster." Orchestrator
 copies the `.env`, updates DEMO_SLUG/ENGAGEMENT/INDEX_PREFIX, skips provisioning,
 runs stage 9 with the IHG data model. Both demos coexist on the same cluster.
+
+**Pre-demo morning check:** Demo was deployed yesterday. SE says "is the Citizens Bank
+demo ready?" Orchestrator reads `.env` + data model, runs `demo-status`, and returns a
+compact ✅/❌ report with paste-ready fix commands for anything off. No login to Kibana
+or Dev Tools required to know the state.
+
+**Post-demo cleanup:** Demo went well. SE says "tear down the Citizens Bank cluster."
+Orchestrator runs `demo-teardown` — stops ML jobs, removes Kibana objects, deletes indices
+and all supporting infrastructure. If INDEX_PREFIX was set (shared cluster), only prefix-
+matching resources are removed. Offers to delete the serverless project entirely if it was
+provisioned specifically for this engagement.
 
 **Orchestrator as SE daily driver:** SE starts every engagement by dropping discovery
 notes into a prompt. Orchestrator handles the rest — they get a script, a data model,

@@ -16,6 +16,14 @@ ELASTICSEARCH_URL=https://abc123.es.io:443
 KIBANA_URL=https://abc123.kb.io:443
 ES_API_KEY=VuaCfGcBCdbkQm...     # base64-encoded API key or ApiKey header value
 
+# ── Kibana API Key ────────────────────────────────────────────────────────
+# Use KIBANA_API_KEY for all Kibana asset operations: Agent Builder, Workflows,
+# Dashboards, Connectors, Saved Objects import. API key privilege requirements
+# for Kibana vs Elasticsearch are under active product change — keeping separate
+# keys is the safe default until product confirms a unified approach.
+# Set this at provisioning time alongside ES_API_KEY.
+KIBANA_API_KEY=
+
 # ── Version (informational, set by demo-cloud-provision) ──
 ELASTIC_VERSION=9.3.1
 
@@ -36,28 +44,28 @@ PROVISIONED_BY=demobuilder
 ### New cluster per demo (recommended for isolation)
 
 ```bash
-# Each demo gets its own cluster — no prefix needed
-~/demobuilder-workspace/
-├── citizens-bank/.env    → https://cluster-A.es.io  INDEX_PREFIX=
-├── thermo-fisher/.env    → https://cluster-B.es.io  INDEX_PREFIX=
-└── ihg-club/.env         → https://cluster-C.es.io  INDEX_PREFIX=
+# Each demo gets its own cluster — no prefix needed ($DEMOBUILDER_ENGAGEMENTS_ROOT set)
+$DEMOBUILDER_ENGAGEMENTS_ROOT/
+├── {slug-A}/.env    → https://cluster-A.es.io  INDEX_PREFIX=
+├── {slug-B}/.env    → https://cluster-B.es.io  INDEX_PREFIX=
+└── {slug-C}/.env    → https://cluster-C.es.io  INDEX_PREFIX=
 ```
 
 ### Shared cluster (when you want to conserve cloud spend)
 
 ```bash
 # One cluster, all demos on it — prefix separates namespaces
-~/demobuilder-workspace/
-├── citizens-bank/.env    → https://shared.es.io  INDEX_PREFIX=cb-
-├── thermo-fisher/.env    → https://shared.es.io  INDEX_PREFIX=tf-
-└── ihg-club/.env         → https://shared.es.io  INDEX_PREFIX=ihg-
+$DEMOBUILDER_ENGAGEMENTS_ROOT/
+├── {slug-A}/.env    → https://shared.es.io  INDEX_PREFIX=a-
+├── {slug-B}/.env    → https://shared.es.io  INDEX_PREFIX=b-
+└── {slug-C}/.env    → https://shared.es.io  INDEX_PREFIX=c-
 
 # Copy workflow for a new demo on the same cluster:
-cp ~/demobuilder-workspace/citizens-bank/.env ~/demobuilder-workspace/ihg-club/.env
-# Then edit ihg-club/.env:
-#   DEMO_SLUG=ihg-club
-#   ENGAGEMENT=IHG Club Vacations
-#   INDEX_PREFIX=ihg-
+cp "$DEMOBUILDER_ENGAGEMENTS_ROOT/{slug-A}/.env" "$DEMOBUILDER_ENGAGEMENTS_ROOT/{slug-B}/.env"
+# Then edit {slug-B}/.env:
+#   DEMO_SLUG={slug-B}
+#   ENGAGEMENT={Company B}
+#   INDEX_PREFIX=b-
 ```
 
 ### Prefix behavior

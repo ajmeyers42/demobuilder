@@ -23,9 +23,19 @@ is the deployment record — it documents exactly what was created, in what orde
 Every step is idempotent: if the script is interrupted and re-run, it picks up where it
 left off without creating duplicates or overwriting data that's already correct.
 
+**Before building Workflows or Agent Builder configs** — read these reference files first:
+- `references/serverless-differences.md` — Serverless-specific behaviors, feature flags,
+  ML field names, Liquid array syntax, ELSER service names, saved objects quirks
+- `references/workflow-patterns.md` — working Workflow YAML patterns, `| first` syntax,
+  template variables, step types, validation checklist, deploy API commands
+
+Do not iterate past 30 minutes on an undocumented Workflow or Agent Builder API without
+surfacing it as a blocker and asking for the `elastic/workflows` or
+`elastic/kibana-agent-builder-sdk` reference repos.
+
 ## Step 1: Load the Environment
 
-Read `{workspace}/{slug}/.env`. All subsequent API calls use these credentials. Never
+Read `{workspace}/.env` (engagement directory = `{workspace}`). All subsequent API calls use these credentials. Never
 hardcode credentials in the script itself — always read from the `.env`.
 
 If `.env` doesn't exist: stop and tell the user to run `demo-cloud-provision` first, or
@@ -53,7 +63,7 @@ Extract the build order from the data model — this is the sequence the script 
 
 ## Step 3: Generate `bootstrap.py`
 
-Write a complete, executable Python script to `{workspace}/{slug}/bootstrap.py`.
+Write a complete, executable Python script to `{workspace}/bootstrap.py`.
 
 The script structure:
 
@@ -95,6 +105,7 @@ import urllib.request, urllib.error
 ES_URL    = os.environ.get("ELASTICSEARCH_URL", "").rstrip("/")
 KB_URL    = os.environ.get("KIBANA_URL", "").rstrip("/")
 API_KEY   = os.environ.get("ES_API_KEY", "")
+KB_KEY    = os.environ.get("KIBANA_API_KEY", "")  # used for all Kibana API calls
 DEP_TYPE  = os.environ.get("DEPLOYMENT_TYPE", "ech")
 PREFIX    = os.environ.get("INDEX_PREFIX", "")
 
@@ -106,7 +117,8 @@ def es(method, path, body=None, *, ok=(200,201)):
     ...
 
 def kb(method, path, body=None, *, ok=(200,)):
-    """Call Kibana API."""
+    """Call Kibana API. Uses KIBANA_API_KEY (KB_KEY) for all Kibana asset operations
+    (Agent Builder, Workflows, Dashboards, Connectors, Saved Objects)."""
     ...
 
 def step(n, label):
@@ -188,22 +200,32 @@ except:
 ```
 
 **ELSER endpoint (step 8)**
+
+The ELSER deployment body differs between Serverless and ECH/self-managed:
+
 ```python
 # Check if already deployed
 try:
     es("GET", f"/_inference/sparse_embedding/{p('elser-v2-endpoint')}", ok=(200,))
     print("  ELSER endpoint: already deployed — skipping")
 except:
-    es("PUT", f"/_inference/sparse_embedding/{p('elser-v2-endpoint')}", {
-        "service": "elasticsearch",
-        "service_settings": {
-            "model_id": ".elser_model_2_linux-x86_64"
-            if DEP_TYPE != "serverless"
-            else None,  # serverless uses managed endpoint
-            "num_allocations": 1,
-            "num_threads": 1
+    if DEP_TYPE == "serverless":
+        # Serverless: managed endpoint — use "elser" service, no model_id
+        body = {
+            "service": "elser",
+            "service_settings": {"num_allocations": 1, "num_threads": 1}
         }
-    })
+    else:
+        # ECH / self-managed: deploy model explicitly
+        body = {
+            "service": "elasticsearch",
+            "service_settings": {
+                "model_id": ".elser_model_2_linux-x86_64",
+                "num_allocations": 1,
+                "num_threads": 1
+            }
+        }
+    es("PUT", f"/_inference/sparse_embedding/{p('elser-v2-endpoint')}", body)
     print("  ELSER endpoint: deploying... (allow 60-90s for model to load)")
     # Poll until allocated
     for _ in range(60):
@@ -212,6 +234,9 @@ except:
             break
         time.sleep(3)
 ```
+
+Cold ELSER inference on Serverless can take 30+ seconds on the first call. The warm-up
+step (step 15) handles this, but allow extra time on first deploy.
 
 **Seed data loading (step 10)**
 Generate realistic synthetic data from the sample data spec in the data model. Use
@@ -241,11 +266,22 @@ except:
 
 **Kibana saved objects (step 13)**
 Use the Kibana Saved Objects import API. Objects are in `.ndjson` format. Apply prefix
-to index pattern references if `INDEX_PREFIX` is set.
+to index pattern references if `INDEX_PREFIX` is set. Prefer **ES|QL** in chart/query definitions
+(Lens or Vega-Lite with ES|QL) per current Elastic guidance; avoid KQL or Query DSL in new assets
+unless ES|QL cannot express the filter for that stack version.
 ```python
 with open("kibana-objects/{slug}-dashboards.ndjson", "rb") as f:
     kb("POST", "/api/saved_objects/_import?overwrite=true", f, content_type="multipart/form-data")
 ```
+
+If the `.ndjson` files don't exist yet (first-time deploy for a new demo), use the
+`kibana-dashboards` skill (from `elastic/agent-skills`) to generate dashboard definitions
+from the data model, and the `kibana-agent-builder` skill to create agent configurations.
+These skills write `.ndjson` output that bootstrap.py then imports.
+
+For demos using Workflows that send email or webhooks, configure connectors first using
+the `kibana-connectors` skill (from `elastic/agent-skills`) before importing Workflow
+definitions — connectors must exist before Workflows that reference them.
 
 **Anomaly injection (step 14)**
 Run the injection spec from `{slug}-ml-config.json`. Sleep `2 × bucket_span` after
@@ -273,8 +309,8 @@ print(f"  ELSER warm: {latency}ms {'✅' if latency < 2000 else '⚠️ slow —
 Source the `.env` and run:
 
 ```bash
-set -a && source {workspace}/{slug}/.env && set +a
-python3 {workspace}/{slug}/bootstrap.py
+set -a && source {workspace}/.env && set +a
+python3 {workspace}/bootstrap.py
 ```
 
 Stream output to the terminal so the SE can watch progress. Each step prints:
@@ -312,6 +348,10 @@ On completion:
  To re-run a step:     python3 bootstrap.py --step N
  To skip data reload:  python3 bootstrap.py --skip-data
  To verify:            python3 bootstrap.py --dry-run
+
+ ⚠️  Pre-demo: clear test sessions 10 min before going live:
+ POST /{slug}-sessions/_delete_by_query
+   {"query":{"range":{"@timestamp":{"lt":"now-10m"}}}}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
 
@@ -346,7 +386,7 @@ Index prefix: {PREFIX or 'none'}
 |---|---|---|
 
 ## To re-run (if something changed):
-source {workspace}/{slug}/.env && python3 {workspace}/{slug}/bootstrap.py --skip-data
+source {workspace}/.env && python3 {workspace}/bootstrap.py --skip-data
 ```
 
 ## Platform-Specific Adaptations
@@ -375,10 +415,10 @@ No duplicate data, no errors on existing resources.
 bootstrap uses `INDEX_PREFIX=ihg-`. Both sets of indices coexist. Each bootstrap only
 touches its own prefixed resources.
 
-**Prefix copy workflow:**
+**Prefix copy workflow:** (`$DEMOBUILDER_ENGAGEMENTS_ROOT` must be set — see `docs/engagements-path.md`)
 ```bash
-cp ~/demobuilder-workspace/citizens-bank/.env ~/demobuilder-workspace/ihg-club/.env
+cp "$DEMOBUILDER_ENGAGEMENTS_ROOT/citizens-bank/.env" "$DEMOBUILDER_ENGAGEMENTS_ROOT/ihg-club/.env"
 # Edit ihg-club/.env: DEMO_SLUG=ihg-club, ENGAGEMENT="IHG Club Vacations", INDEX_PREFIX=ihg-
-source ~/demobuilder-workspace/ihg-club/.env
-python3 ~/demobuilder-workspace/ihg-club/bootstrap.py
+set -a && source "$DEMOBUILDER_ENGAGEMENTS_ROOT/ihg-club/.env" && set +a
+python3 "$DEMOBUILDER_ENGAGEMENTS_ROOT/ihg-club/bootstrap.py"
 ```

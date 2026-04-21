@@ -41,13 +41,30 @@ Also determine:
   short prefix to namespace the indices (e.g., `cb-` for Citizens Bank makes
   `fraud-claims` → `cb-fraud-claims`). Leave blank for isolated clusters.
 
+**Version (critical):**
+- **Creating a new deployment or Serverless project** — Use the **latest generally
+  available** stack for that product line **unless the SA names a specific version**.
+  Serverless tracks current GA; ECH deployments should select the **newest supported GA**
+  stack version in the create API/UI. Record the resolved version in `.env` as
+  `ELASTIC_VERSION` and in the provision log.
+- **Connecting to an existing deployment or project** (reuse — `cloud-manage-project`,
+  copied `.env`, or customer URLs) — **Do not assume latest.** Read `version.number`
+  from `GET /` against `ELASTICSEARCH_URL` and Kibana’s version from `/api/status` after
+  credentials work, and persist both in the engagement context before downstream skills
+  build scripts or plans.
+
 ## Step 2: Provision the Cluster
+
+> **Dependency:** All cloud operations require the `cloud-setup` skill (from
+> `elastic/agent-skills`) to have been run at least once to configure `EC_API_KEY`.
+> If `EC_API_KEY` is not set in the environment, run `cloud-setup` first and follow
+> its prompts. **Never ask the user to paste an API key into chat.**
 
 ### Serverless (Elasticsearch project type)
 
-Use the existing `cloud-create-project` skill to create the project. The project type
-must be `elasticsearch` (not `observability` or `security`) for Agent Builder and
-Workflows to be available.
+Use the `cloud-create-project` skill (from `elastic/agent-skills`) to create the project.
+The project type must be `elasticsearch` (not `observability` or `security`) for Agent
+Builder and Workflows to be available.
 
 Required inputs for the API call:
 - `name`: `demobuilder-{slug}-{date}` (e.g., `demobuilder-citizens-bank-20260415`)
@@ -59,11 +76,15 @@ Capture from the response:
 - `kibana.endpoints[0]` → `KIBANA_URL`  
 - The project API key (or create one via `POST /{project_id}/keys`) → `ES_API_KEY`
 
+To connect to an existing serverless project (reuse cluster scenario), use
+`cloud-manage-project` instead — it resolves endpoints and acquires a scoped API key
+without creating a new project.
+
 ### ECH (Elastic Cloud Hosted)
 
-Use the `cloud-setup` skill to configure org credentials, then create a deployment via
-the EC API. Reference `references/ech-config.md` for the deployment template and hardware
-profile options.
+Use the `cloud-setup` skill (from `elastic/agent-skills`) to configure org credentials,
+then create a deployment via the EC API. Reference `references/ech-config.md` for the
+deployment template and hardware profile options.
 
 Capture:
 - `resources.elasticsearch[0].info.metadata.endpoint` → `ELASTICSEARCH_URL`
@@ -82,9 +103,10 @@ Capture (from the compose file, for the .env):
 
 ## Step 3: Write the Per-Engagement .env
 
-Write `.env` to `{workspace}/{slug}/.env`. This file is the single source of truth for
-all cluster credentials for this engagement. Every subsequent skill (demo-deploy,
-bootstrap.sh) sources this file.
+Write `.env` to `{workspace}/.env` (the engagement directory is `{workspace}`, e.g.
+`$DEMOBUILDER_ENGAGEMENTS_ROOT/{slug}/`). This file is the single source of truth for all cluster
+credentials for this engagement. Every subsequent skill (demo-deploy, `bootstrap.py`)
+sources this file.
 
 ```bash
 # Demo environment — {company}
@@ -99,6 +121,7 @@ ELASTIC_VERSION={version}       # from provisioning response or platform audit
 ELASTICSEARCH_URL={url}
 KIBANA_URL={url}
 ES_API_KEY={api_key}
+KIBANA_API_KEY={kibana_api_key}   # used for all Kibana asset operations
 
 # Index namespace (blank = no prefix, indices use default names from data model)
 # Set this if running multiple demos on the same cluster to avoid collisions
@@ -121,7 +144,8 @@ DEPLOYMENT_TYPE=<serverless|ech|self_managed|docker>
 ELASTIC_VERSION=<e.g., 9.3.1>
 ELASTICSEARCH_URL=<https://your-cluster.es.io:443>
 KIBANA_URL=<https://your-kibana.kb.io:443>
-ES_API_KEY=<your-api-key>
+ES_API_KEY=<your-es-api-key>
+KIBANA_API_KEY=<your-kibana-api-key>
 INDEX_PREFIX=<optional-e.g., cb->
 ```
 
@@ -136,7 +160,7 @@ After writing the `.env`, confirm the cluster is reachable and ready:
 
 ```bash
 # Test connectivity
-curl -s -u "elastic:${ES_API_KEY}" "${ELASTICSEARCH_URL}/_cluster/health?pretty" \
+curl -s -H "Authorization: ApiKey ${ES_API_KEY}" "${ELASTICSEARCH_URL}/_cluster/health?pretty" \
   | python3 -c "import sys,json; h=json.load(sys.stdin); print(f'Status: {h[\"status\"]}, Nodes: {h[\"number_of_nodes\"]}')"
 
 # Confirm Kibana is reachable
@@ -146,6 +170,38 @@ curl -s "${KIBANA_URL}/api/status" | python3 -c "import sys,json; s=json.load(sy
 If connectivity fails: surface the specific error, check that the API key has the right
 permissions (`cluster:monitor/main`, `indices:admin/create`, `indices:data/write/*`),
 and provide a remediation step before writing the `.env`.
+
+## Step 4.5: Verify Feature Flags
+
+**Agent Builder and Kibana Workflows require feature flag activation on both Serverless
+and ECH deployments** until these features reach GA. Do not write any build code against
+these APIs until this check passes.
+
+> Workflows is expected to reach GA with Elastic 9.4. Once confirmed GA on your
+> deployment type, this check can be skipped for that feature. Until then, always verify.
+
+Run immediately after connectivity is confirmed, for all deployment types except Docker:
+
+```bash
+# Agent Builder — 404 means the feature is not yet enabled
+curl -s -o /dev/null -w "%{http_code}" \
+  -H "Authorization: ApiKey ${KIBANA_API_KEY}" \
+  "${KIBANA_URL}/api/agent_builder/agents"
+# → 200: enabled ✅   → 404: NOT enabled — activate before building ❌
+
+# Workflows — same check
+curl -s -o /dev/null -w "%{http_code}" \
+  -H "Authorization: ApiKey ${KIBANA_API_KEY}" \
+  "${KIBANA_URL}/api/workflows"
+# → 200: enabled ✅   → 404: NOT enabled — activate before building ❌
+```
+
+If either returns 404, stop and activate the feature flag before proceeding. The path
+to enable varies by deployment type — surface this to the user with the specific steps
+for their platform (Serverless: project settings UI; ECH: deployment configuration).
+Attempting to build against a disabled feature requires full retesting after activation.
+
+Record the feature flag state in the provision log.
 
 ## Step 5: Write the Provision Log
 
@@ -159,13 +215,14 @@ and provide a remediation step before writing the `.env`.
 **Cluster/Project:** {name}
 
 ## Credentials
-Written to: `{workspace}/{slug}/.env`
+Written to: `{workspace}/.env` (engagement directory = `{workspace}`, e.g. `$DEMOBUILDER_ENGAGEMENTS_ROOT/{slug}/`)
 ES URL: {url} ✅
 Kibana URL: {url} ✅
 API Key: configured ✅
+**ELASTIC_VERSION:** {version} (from API — new deploys: latest GA unless pinned)
 
 ## To reuse this cluster for another demo:
-cp {workspace}/{slug}/.env {workspace}/{other-slug}/.env
+cp "$DEMOBUILDER_ENGAGEMENTS_ROOT/{slug}/.env" "$DEMOBUILDER_ENGAGEMENTS_ROOT/{other-slug}/.env"
 # Then update DEMO_SLUG, ENGAGEMENT, and INDEX_PREFIX in the copied file
 
 ## To teardown this cluster when the demo is complete:

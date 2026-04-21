@@ -135,6 +135,43 @@ Do not train on the anomaly period — the model must learn what "normal" looks 
 }
 ```
 
+**Important — geo_point fields in datafeed source indices:** If the datafeed source
+index contains a `geo_point` field (e.g., `store_location`), the ML datafeed will
+fail when it encounters it. Shadow the field via `runtime_mappings` in the datafeed
+config, or exclude it from `_source`:
+
+```json
+"runtime_mappings": {
+  "store_location": {
+    "type": "keyword",
+    "script": "emit('')"
+  }
+}
+```
+
+### Serverless: ML field names differ from documentation
+
+When querying `.ml-anomalies-*` on Serverless, the actual field names differ from
+what the self-managed documentation shows:
+
+| Self-managed docs | Serverless actual |
+|---|---|
+| `anomaly_score` | `record_score` |
+| `@timestamp` | `timestamp` |
+| The partition field name (e.g., `store_id`) | `partition_field_value` |
+| The by field name (e.g., `sku`) | `by_field_value` |
+
+Before writing any dashboard panel or ES|QL query against `.ml-anomalies-*`, confirm
+field names with: `GET .ml-anomalies-*/_mapping`
+
+### Serverless: ML Anomaly Explorer UI not available
+
+The Kibana ML Anomaly Explorer (swimlane UI) is not available on Serverless. Replace
+it with a custom Kibana dashboard panel using ES|QL or Lens querying `.ml-anomalies-*`
+directly. Update the demo script accordingly — any scene that references the swimlane
+UI must use a custom dashboard instead. The `record_score` field renders identically
+when displayed in a Kibana heatmap visualization.
+
 ## Step 3: Design the Anomaly Injection Plan
 
 This is what makes the demo work. Define exactly what data to insert, for which entities,
@@ -195,6 +232,20 @@ training_end = T-3h (clean separation between train and anomaly periods)
 When the script includes ELSER semantic search or NLP features:
 
 **ELSER v2 deployment** (if not already in the data model):
+
+For **Serverless** — use the managed endpoint (no model_id):
+```json
+PUT /_inference/sparse_embedding/elser-v2-endpoint
+{
+  "service": "elser",
+  "service_settings": {
+    "num_allocations": 1,
+    "num_threads": 1
+  }
+}
+```
+
+For **ECH / self-managed** — deploy the model explicitly:
 ```json
 PUT /_inference/sparse_embedding/elser-v2-endpoint
 {

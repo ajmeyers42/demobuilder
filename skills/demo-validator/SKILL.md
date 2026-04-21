@@ -82,6 +82,12 @@ For each index/data stream in the data model:
 - Is screen sharing tested and working?
 - Are screenshot fallbacks ready for every major screen?
 
+### Script narrative checks (when `{slug}-demo-script.md` exists)
+- Does the script **lead with outcomes** (business value, customer **key asks** from discovery)
+  **before** deep capability or infrastructure scenes — **solution first** (see `docs/decisions.md`
+  D-022)? If it opens capability-first without a clear outcome hook, flag as a **delivery risk**
+  for exec or mixed audiences unless the SA intended that ordering.
+
 ## Step 3: Assess Overall Readiness
 
 **Go:** All critical checks pass. Setup-required items from the platform audit are complete.
@@ -142,6 +148,15 @@ The working document the SE takes into demo prep. Organized by timing.
 - [ ] **ELSER re-warmed** — run one semantic query in Playground, confirm fast response
 - [ ] **Screenshot fallbacks accessible** — local folder or second device, not buried in Finder
 - [ ] **Screen share tested** — confirmed sharing the correct window/display
+
+## 10 Minutes Before
+
+- [ ] **Clear test agent sessions** — testing populates session history; clean it before going live:
+  ```
+  POST /{slug}-sessions/_delete_by_query
+  { "query": { "range": { "@timestamp": { "lt": "now-10m" } } } }
+  ```
+  Verify: `GET /{slug}-sessions/_count` → only pre-seeded sessions remain (typically 2–3)
 
 ---
 
