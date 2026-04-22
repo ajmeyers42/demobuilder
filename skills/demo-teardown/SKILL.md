@@ -61,20 +61,53 @@ shared cluster), emit a prominent warning and require `--confirm` to proceed:
 If `INDEX_PREFIX` is blank AND `DEPLOYMENT_TYPE` is `serverless`: the cluster is always
 isolated per-project; proceed without warning.
 
-## Step 2: Read Pipeline Outputs
+## Step 2: Build the Resource Inventory
 
-Load all available artifacts from the workspace to build the resource inventory:
-- `{slug}-data-model.json` — required. Defines every index, data stream, template,
-  pipeline, and enrich policy that was created.
-- `{slug}-ml-config.json` — optional. ML job IDs and datafeed IDs to stop/delete.
-- `{slug}-deploy-log.md` — if present, cross-reference to confirm what was actually
-  created (not just what was planned). Items in the data model that the deploy log marks
-  as skipped or failed do not need teardown.
+**Primary source — cluster-resident manifest (D-031):**
 
-Extract the full resource inventory — one flat list of every named artifact, tagged by
-type: `ml_job`, `ml_datafeed`, `kibana_dashboard`, `kibana_connector`, `kibana_agent`,
+Try to read the asset manifest from the cluster before falling back to local files. The
+manifest is written by `bootstrap.py` after each step and is the most accurate record of
+what was actually created (including Kibana-assigned IDs that are unknown at generation
+time). See `skills/demo-deploy/references/asset-manifest.md` for the full schema.
+
+```python
+MANIFEST_INDEX = "demobuilder-manifests"
+
+def _load_manifest() -> dict | None:
+    """Read the cluster-resident asset manifest. Returns None if not found."""
+    eng_id = _engagement_id_for_tag()
+    try:
+        resp = es("GET", f"/{MANIFEST_INDEX}/_doc/{eng_id}", ok=(200,))
+        manifest = resp.get("_source", {})
+        if manifest:
+            print(f"  Manifest found — deployed {manifest.get('deployed_at','?')}, "
+                  f"bootstrap v{manifest.get('bootstrap_version','?')}")
+        return manifest
+    except RuntimeError as e:
+        if "404" in str(e):
+            print("  No manifest found — falling back to hardcoded inventory")
+        else:
+            print(f"  Manifest read error ({e}) — falling back to hardcoded inventory")
+        return None
+```
+
+**Fallback — local pipeline outputs** (only if manifest is absent):
+
+- `{slug}-data-model.json` — indices, templates, pipelines, enrich policies
+- `{slug}-ml-config.json` — ML job IDs and datafeed IDs
+- `{slug}-deploy-log.md` — cross-reference to exclude resources the deploy log marks
+  as skipped or failed
+
+**Hardcoded inventory backstop:**
+
+When neither the manifest nor local files are available, `teardown.py` includes a
+hardcoded `_hardcoded_inventory()` function populated at generation time. This is the
+least reliable option (IDs may be stale from a re-deploy) — always prefer the manifest.
+
+Extract the full resource inventory — one flat list of every named artifact by type:
+`ml_job`, `ml_datafeed`, `kibana_dashboard`, `kibana_connector`, `kibana_agent`,
 `kibana_workflow`, `elser_endpoint`, `data_stream`, `index`, `index_template`,
-`component_template`, `ingest_pipeline`, `enrich_policy`, `ilm_policy`, `dsl_policy`.
+`component_template`, `ingest_pipeline`, `enrich_policy`, `ilm_policy`.
 
 Apply the prefix function to every name: `p(name) = f"{PREFIX}{name}"` where PREFIX is
 the value of INDEX_PREFIX from `.env` (may be empty string).
@@ -205,28 +238,88 @@ def check_gone(resource_type, path):
     """Verify via HEAD/GET that a resource no longer exists. Warn if still present."""
     ...
 
-# ── Resource inventory (from data model) ─────────────────────────────────────
-# All names below have the prefix applied via p().
-# This section is generated from {slug}-data-model.json and {slug}-ml-config.json.
+# ── Resource inventory (D-031: cluster-resident manifest is the trusted source) ──────────
+# Populated from the manifest at runtime; hardcoded values are a last-resort backstop.
 
-ML_JOBS      = [p(j) for j in [...]]   # e.g. ["fraud-sla-monitor"]
-ML_DATAFEEDS = [p(f"datafeed-{j}") for j in [...]]
+MANIFEST_INDEX = "demobuilder-manifests"
 
-KIBANA_DASHBOARDS  = [...]   # saved object IDs from the ndjson manifest
-KIBANA_CONNECTORS  = [...]
-KIBANA_AGENTS      = [...]
-KIBANA_WORKFLOWS   = [...]
+def _engagement_id_for_tag() -> str:
+    override = os.environ.get("DEMO_ASSET_TAG", "").strip()
+    raw = override or (PREFIX.strip() if PREFIX.strip() else SLUG)
+    import re
+    s = re.sub(r"[-_\s]+", "", raw).lower()
+    return s or "demo"
 
-ELSER_ENDPOINT     = p("elser-v2-endpoint")   # only present if bootstrap created it
+def _load_manifest() -> dict | None:
+    eng_id = _engagement_id_for_tag()
+    try:
+        resp = es("GET", f"/{MANIFEST_INDEX}/_doc/{eng_id}", ok=(200,))
+        m = resp.get("_source", {})
+        if m:
+            print(f"  Manifest found \u2014 deployed {m.get('deployed_at','?')}, "
+                  f"bootstrap v{m.get('bootstrap_version','?')}")
+        return m
+    except RuntimeError as e:
+        print(f"  \u26a0  Manifest not found ({e}) \u2014 falling back to hardcoded inventory")
+        return None
 
-DATA_STREAMS       = [p(ds) for ds in [...]]
-STATIC_INDICES     = [p(idx) for idx in [...]]   # non-data-stream indices
+def _hardcoded_inventory() -> dict:
+    """Backstop: IDs hardcoded at teardown.py generation time. May be stale after re-deploy."""
+    return {
+        "ilm_policies":        [p(x) for x in [...]],   # fill from {slug}-data-model.json
+        "ingest_pipelines":    [p(x) for x in [...]],
+        "component_templates": [p(x) for x in [...]],
+        "index_templates":     [p(x) for x in [...]],
+        "indices":             [p(x) for x in [...]],
+        "data_streams":        [p(x) for x in [...]],
+        "inference_endpoints": [],                        # e.g. [{"task_type":"sparse_embedding","id":p("elser")}]
+        "ml_jobs":             [p(x) for x in [...]],
+        "ml_datafeeds":        [p(f"datafeed-{x}") for x in [...]],
+        "enrich_policies":     [p(x) for x in [...]],
+        "kibana_space_id":     SLUG,
+        "kibana_data_views":   [...],
+        "slos":                [],                        # [{"id":"...","name":"..."}]
+        "alerting_rules":      [],
+        "dashboards":          [],
+        "connectors":          [],
+        "tags":                [],
+        "workflows":           [],
+        "agent_tools":         [],
+        "agents":              [],
+        "siem_rules":          [],
+    }
 
-INDEX_TEMPLATES    = [p(t) for t in [...]]
-COMPONENT_TEMPLATES = [p(c) for c in [...]]
-INGEST_PIPELINES   = [p(pipe) for pipe in [...]]
-ENRICH_POLICIES    = [p(ep) for ep in [...]]
-ILM_POLICIES       = [p(pol) for pol in [...]]   # empty on serverless
+def _build_inventory(manifest: dict | None) -> dict:
+    if not manifest:
+        return _hardcoded_inventory()
+    a  = manifest.get("assets", {})
+    kb = a.get("kibana", {})
+    return {
+        "ilm_policies":        a.get("ilm_policies", []),
+        "ingest_pipelines":    a.get("ingest_pipelines", []),
+        "component_templates": a.get("component_templates", []),
+        "index_templates":     a.get("index_templates", []),
+        "indices":             a.get("indices", []),
+        "data_streams":        a.get("data_streams", []),
+        "inference_endpoints": a.get("inference_endpoints", []),
+        "ml_jobs":             a.get("ml_jobs", []),
+        "ml_datafeeds":        a.get("ml_datafeeds", []),
+        "enrich_policies":     a.get("enrich_policies", []),
+        "kibana_space_id":     kb.get("space_id", ""),
+        "kibana_data_views":   kb.get("data_views", []),
+        "slos":                kb.get("slos", []),
+        "alerting_rules":      kb.get("alerting_rules", []),
+        "dashboards":          kb.get("dashboards", []),
+        "connectors":          kb.get("connectors", []),
+        "tags":                kb.get("tags", []),
+        "workflows":           kb.get("workflows", []),
+        "agent_tools":         kb.get("agent_tools", []),
+        "agents":              kb.get("agents", []),
+        "siem_rules":          kb.get("siem_rules", []),
+    }
+
+# Populated at runtime in step 1 after manifest read:
+INVENTORY: dict = {}   # set via INVENTORY = _build_inventory(_load_manifest())
 
 # ── Step implementations ──────────────────────────────────────────────────────
 
@@ -350,17 +443,31 @@ Never use a wildcard or bulk Kibana delete — only the saved object IDs importe
 
 **Delete ELSER inference endpoint (step 5)**
 
-Only delete if it was created by this bootstrap (name matches `{p}elser-v2-endpoint`).
+Only delete inference endpoints listed in the manifest `inference_endpoints` array.
+Use `GET` (not `HEAD`) to check existence — the inference API returns 404 on HEAD even
+when the endpoint exists (a known 9.x behaviour):
+
 ```python
-if exists_es(f"/_inference/sparse_embedding/{ELSER_ENDPOINT}"):
-    es("DELETE", f"/_inference/sparse_embedding/{ELSER_ENDPOINT}")
-    deleted(ELSER_ENDPOINT)
-    # Wait a moment and verify gone
-    time.sleep(2)
-    if exists_es(f"/_inference/sparse_embedding/{ELSER_ENDPOINT}"):
-        print(f"  ⚠️  {ELSER_ENDPOINT}: still present — model may be in use by another index")
-else:
-    skipped(ELSER_ENDPOINT)
+def _inference_exists(task_type: str, endpoint_id: str) -> bool:
+    """Use GET, not HEAD — inference API returns 404 on HEAD even when endpoint exists."""
+    try:
+        resp = es("GET", f"/_inference/{task_type}/{endpoint_id}", ok=(200,))
+        endpoints = resp.get("endpoints") or []
+        return bool(endpoints or resp.get("service"))
+    except RuntimeError:
+        return False
+
+for ep in INVENTORY.get("inference_endpoints", []):
+    task_type   = ep["task_type"]
+    endpoint_id = ep["id"]
+    if _inference_exists(task_type, endpoint_id):
+        es("DELETE", f"/_inference/{task_type}/{endpoint_id}", ok=(200, 204))
+        deleted(endpoint_id)
+        time.sleep(2)
+        if _inference_exists(task_type, endpoint_id):
+            print(f"  ⚠️  {endpoint_id}: still present — may be in use by another index")
+    else:
+        skipped(endpoint_id)
 ```
 
 If `--keep-data` was passed, skip step 5 (ELSER endpoint may still be needed for queries

@@ -500,3 +500,214 @@ migrate from `service: "elasticsearch"` to `service: "elastic"` when EIS is conf
 on the target deployment).
 
 **Date:** 2026-04-22 | **Session:** Citizens Bank 9.4 deployment
+
+---
+
+## D-030 — Versioning convention: `BOOTSTRAP_VERSION` as single source of truth across all versioned assets
+
+**Status:** Active | **Applies to:** `bootstrap.py`, `skills/demo-deploy/SKILL.md`
+
+**Context:** Elastic assets have inconsistent version support — some have a formal `version` API
+field, others only have `description` or `_meta`. Without a consistent convention, deployed assets
+are indistinguishable in UIs that don't show API-assigned IDs (e.g. the Workflows UI).
+
+**Decision:**
+- A single `BOOTSTRAP_VERSION = "X.Y.Z"` constant at the top of `bootstrap.py` is the source of truth
+- Bump it on any structural change to assets (new steps, changed queries, workflow edits, etc.)
+- Apply by asset type:
+
+| Asset type | Field | Format |
+|---|---|---|
+| Workflow YAML | `version` (string) | `"1.0.0"` |
+| Workflow description | `description` | `[{slug} v1.0.0] ...` prefix |
+| SIEM detection rules | `version` (integer) | `1` (matches major version) |
+| SIEM rule description | `description` | `[v1.0.0] ...` prefix |
+| All other assets (SLOs, ML jobs, tools, agents, dashboards) | `description` / `_meta` | `[v1.0.0] ...` prefix where practical |
+
+- The `name`/`rule_id` fields stay stable — used for idempotent lookup and deduplication
+
+**Date:** 2026-04-22 | **Session:** Citizens Bank 9.4 deployment
+
+---
+
+## D-031: Cluster-resident asset manifest — trusted source for teardown
+
+**Decision:** `bootstrap.py` writes (and incrementally updates) a **manifest document** to the
+target Elasticsearch cluster in a `demobuilder-manifests` index. The document ID is the
+normalized engagement ID (same value as the `demobuilder:<id>` tag). The manifest captures
+every resource ID created — by type — so `teardown.py` reads it as the **single trusted source**
+of what to delete, rather than relying on hardcoded IDs that go stale across redeployments.
+
+**Manifest index:** `demobuilder-manifests` (no prefix — shared across all engagements on the
+cluster, never deleted by teardown). Document shape:
+
+```json
+{
+  "engagement_id": "cbfraud",
+  "slug": "2026citizens-ai",
+  "bootstrap_version": "1.0.0",
+  "deployed_at": "2026-04-22T...",
+  "es_version": "9.4.0",
+  "assets": {
+    "ilm_policies": [...],
+    "ingest_pipelines": [...],
+    "component_templates": [...],
+    "index_templates": [...],
+    "indices": [...],
+    "data_streams": [...],
+    "inference_endpoints": [{"task_type": "sparse_embedding", "id": "cb-elser"}],
+    "ml_jobs": [...],
+    "ml_datafeeds": [...],
+    "enrich_policies": [...],
+    "kibana": {
+      "space_id": "...",
+      "data_views": [...],
+      "slos": [{"id": "...", "name": "..."}],
+      "alerting_rules": [{"id": "...", "name": "..."}],
+      "dashboards": [{"id": "...", "title": "..."}],
+      "connectors": [{"id": "...", "name": "..."}],
+      "tags": [{"id": "...", "name": "..."}],
+      "workflows": [{"id": "...", "name": "..."}],
+      "agent_tools": [{"id": "...", "name": "..."}],
+      "agents": [{"id": "...", "name": "..."}],
+      "siem_rules": [{"rule_id": "...", "name": "..."}]
+    }
+  }
+}
+```
+
+**Bootstrap** — upserts the manifest after each major step via
+`POST /demobuilder-manifests/_doc/{engagement_id}`. A partial deploy can be cleaned up
+because the manifest reflects what was actually created up to that point.
+
+**Teardown** — reads the manifest at step 1 via
+`GET /demobuilder-manifests/_doc/{engagement_id}`. Falls back to a hardcoded inventory
+if the manifest is not found (with a warning). The `demobuilder-manifests` index itself
+is **never** deleted — it is a durable audit log.
+
+**Rationale:** IDs assigned by Kibana (alerting rules, SLOs, dashboards, connectors,
+workflows, Agent Builder entities) are not deterministic. Hardcoding them in `teardown.py`
+at generation time breaks the moment a re-deploy assigns new IDs. A cluster-resident
+manifest stays fresh automatically because bootstrap writes it.
+
+**Applied to:** `skills/demo-deploy/SKILL.md` (manifest write step),
+`skills/demo-teardown/SKILL.md` (manifest read step),
+`skills/demo-deploy/references/asset-manifest.md` (schema reference).
+
+**Date:** 2026-04-22 | **Session:** post-mortem gap remediation
+
+---
+
+## D-032: Clone Elastic-managed assets; never modify prebuilt rules or policies directly
+
+**Decision:** When a demo requires adapting an **Elastic-managed** asset (prebuilt SIEM
+detection rules, prebuilt ML jobs, built-in Kibana policies, etc.), the pipeline must
+**clone** the asset and modify the clone — **never** PUT/PATCH the original Elastic-managed
+resource.
+
+**Pattern for SIEM prebuilt rules:**
+
+```python
+# 1. GET the prebuilt rule to use as template
+existing = kb("GET", f"/api/detection_engine/rules?rule_id={source_rule_id}", ok=(200,))
+# 2. Strip read-only/managed fields (id, created_at, updated_at, immutable, etc.)
+clone = {k: v for k, v in existing.items()
+         if k not in ("id", "created_at", "updated_at", "updated_by", "created_by",
+                      "immutable", "rule_source", "revision")}
+# 3. Assign demo-specific identity and tagging
+clone["rule_id"]     = f"demo-{source_rule_id}"       # stable ID for idempotency
+clone["name"]        = f"[{SLUG}] {existing['name']}" # prefixed for UI clarity
+clone["description"] = f"[v{BOOTSTRAP_VERSION}] Clone of '{existing['name']}' — {purpose}"
+clone["tags"]        = merge_tags(clone.get("tags", []))
+clone["version"]     = 1
+# 4. POST as a new custom rule
+kb("POST", "/api/detection_engine/rules", clone, ok=(200, 201))
+```
+
+**Custom rules we author from scratch:** upsert by `rule_id` —
+- `GET /api/detection_engine/rules?rule_id={id}` → 200 means update (PUT with `version + 1`)
+- 404 means create (POST with `version: 1`)
+
+**Why:** Elastic-managed prebuilt rules have `immutable: true` and may be overwritten on
+the next detection rules package update, erasing any changes. Failing to modify them is
+reported as an error but the original is preserved. Cloned custom rules carry the engagement
+tag and version, survive package updates, and are deleted cleanly by teardown.
+
+**Applies to:** SIEM prebuilt detection rules, any Elastic-managed asset with an `immutable`
+or `managed_by` flag.
+
+**Applied to:** `skills/demo-deploy/SKILL.md` (step 13g), engagement `bootstrap.py` patterns.
+
+**Date:** 2026-04-22 | **Session:** post-mortem gap remediation
+
+---
+
+## D-033: API baseline is Elastic 9.4+; remove pre-9.x compatibility shims
+
+**Decision:** The demobuilder pipeline targets **Elastic 9.4 ECH and Serverless** as the
+minimum baseline. Pre-9.x compatibility shims, fallback API shapes, and 8.x-era workarounds
+are **removed** from all generated scripts and skill guidance.
+
+**Rationale:**
+- Serverless auto-updates — it is always aligned with this baseline.
+- ECH version is still validated at step 1 connectivity check (D-020); if the live version
+  is below 9.4, bootstrap should **warn and halt** rather than attempt a degraded deploy.
+- Accumulating compat shims adds complexity and is a source of silent failures when the
+  shim is wrong for a new version.
+
+**Baseline assumptions (9.4+):**
+- **ELSER / embeddings:** EIS (`service: "elastic"`) on ECH; `service: "elser"` on Serverless
+  (D-028). `service: "elasticsearch"` for local ML node inference is not used for embeddings.
+- **ILM:** Full 9.x ILM API — no 8.x-era `include_type_name` or deprecated params.
+- **Workflows:** Supported on both ECH 9.4+ and Serverless. Feature-flag check still required
+  until GA (D-011).
+- **Agent Builder:** v0.2.0 shape (D-029) — `configuration.skill_ids`, `index_search` tool
+  type, `workflow` tool type. No legacy 9.0–9.3 payload shapes.
+- **Alerting rules:** 9.x `windows` array schema for SLO burn-rate rules.
+- **Data views API:** `POST /api/data_views/data_view` (9.x shape, no `index-pattern` type).
+- **Inference GET response:** `{"endpoints": [...]}` wrapper (9.x shape).
+
+**ECH version gate in bootstrap.py step 1:**
+```python
+major, minor = (int(x) for x in version.split(".")[:2])
+if (major, minor) < (9, 4):
+    print(f"  ⛔ Cluster version {version} is below 9.4 baseline (D-033).")
+    print(f"     Update the cluster or set SKIP_VERSION_CHECK=true in .env to override.")
+    sys.exit(1)
+```
+
+**Applied to:** `skills/demo-deploy/SKILL.md`, `skills/demo-teardown/SKILL.md`,
+`skills/demo-data-modeler/SKILL.md`, engagement `bootstrap.py` patterns.
+
+**Date:** 2026-04-22 | **Session:** post-mortem gap remediation
+
+---
+
+## D-029 — Agent Builder: skills vs. tools — use `configuration.skill_ids` for platform skills
+
+**Status:** Active | **Applies to:** `skills/demo-deploy/SKILL.md`, `bootstrap.py` step 8f
+
+**Context:** Agent Builder 9.4 introduced a Skills catalog (`GET /api/agent_builder/skills`) alongside
+the existing custom tools API. Skills are platform capability bundles (system instructions + tool_ids)
+that are linked to an agent via `configuration.skill_ids` — a sibling field to `configuration.tools`
+in the agent PUT/POST body. This is distinct from `configuration.tools[].tool_ids` which lists
+individual tool IDs (custom and platform.core.*).
+
+**Decision:**
+- Platform skills (`data-exploration`, `visualization-creation`, etc.) go in `configuration.skill_ids`
+- Individual tools (custom ES|QL, index_search, workflow, platform.core.*) go in `configuration.tools[0].tool_ids`
+- Agent instructions should reference both skills and tools explicitly by name
+- Skills endpoint: `GET /api/agent_builder/skills` — always probe to confirm available skill IDs before deploying
+
+**API shape confirmed on 9.4:**
+```json
+{
+  "configuration": {
+    "instructions": "...",
+    "tools": [{"tool_ids": ["custom-tool-id", "platform.core.search"]}],
+    "skill_ids": ["data-exploration", "visualization-creation"]
+  }
+}
+```
+
+**Date:** 2026-04-22 | **Session:** Citizens Bank 9.4 deployment

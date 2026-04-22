@@ -17,5 +17,8 @@ alwaysApply: true
 - **Tagging (D-026):** Every asset with a `tags` field must carry `demobuilder:<engagement_id>` — full spec in `skills/demo-deploy/references/demobuilder-tagging.md`.
 - **ILM default (D-027):** Generate hot-only ILM (hot `set_priority` + `delete`). Add warm/cold/frozen phases only when the engagement explicitly requires tiered storage. Never use `rollover` on plain indices — only on data streams.
 - **Inference (D-028):** Use **EIS** (`service: "elastic"`) for all embeddings and reranking. Reserve cluster ML nodes for anomaly detection and data frame analytics only.
+- **Asset manifest (D-031):** `bootstrap.py` writes a manifest to `demobuilder-manifests/{engagement_id}` in the cluster after each step. `teardown.py` reads this manifest as the trusted source of IDs to delete. Fallback to hardcoded inventory if absent. Manifest index is never deleted.
+- **Managed assets (D-032):** Never PUT/PATCH Elastic-managed/prebuilt assets (SIEM rules with `immutable: true`, etc.). Clone them with a `demo-` prefixed `rule_id`, demo name, demobuilder tags, and `version: 1`. Update custom demo assets via upsert (GET → PUT if exists, POST if 404).
+- **9.4 baseline (D-033):** All generated scripts and artifacts target **Elastic 9.4+ ECH / Serverless**. Bootstrap halts on clusters below 9.4 unless `SKIP_VERSION_CHECK=true`. No pre-9.x shims. ECH version still validated at step 1 (D-020).
 - **Research order:** This repo (`skills/`, `docs/`) first; then **github.com/elastic** repos (e.g. **integration-packages-slo** for SLO/Fleet packages — see `docs/runtimes/cursor.md`); **general web or non-Elastic sources — ask the SA before relying on them** (see `AGENTS.md`).
 - **Details:** See repo root `AGENTS.md` and `docs/runtimes/cursor.md`.

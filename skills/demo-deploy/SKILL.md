@@ -90,6 +90,8 @@ rules, SLOs, and saved objects follow **product** schemas for the target version
   ML field names, Liquid array syntax, ELSER service names, saved objects quirks
 - `references/workflow-patterns.md` — working Workflow YAML patterns, `| first` syntax,
   template variables, step types, validation checklist, deploy API commands
+- `references/asset-manifest.md` — manifest index schema, `_manifest_add()` helpers,
+  teardown read pattern (D-031)
 
 Do not iterate past 30 minutes on an undocumented Workflow or Agent Builder API without
 surfacing it as a blocker and asking for the `elastic/workflows` or
@@ -298,6 +300,20 @@ print(f"  Prefix:    '{PREFIX}' ({'applied' if PREFIX else 'none — using defau
 env_ver = os.environ.get("ELASTIC_VERSION", "").strip()
 if env_ver and env_ver != version:
     print(f"  ⚠  ELASTIC_VERSION in .env ({env_ver}) != cluster ({version}) — update .env (D-020)")
+# D-033: 9.4+ baseline gate — halt on older clusters
+major, minor = (int(x) for x in version.split(".")[:2])
+if (major, minor) < (9, 4):
+    skip_check = os.environ.get("SKIP_VERSION_CHECK", "").lower() == "true"
+    if not skip_check:
+        print(f"  ⛔ Cluster version {version} is below the 9.4 baseline (D-033).")
+        print(f"     Set SKIP_VERSION_CHECK=true in .env to override (unsupported).")
+        sys.exit(1)
+    print(f"  ⚠  Version {version} below 9.4 baseline — SKIP_VERSION_CHECK override active")
+# D-031: initialise and ensure manifest index exists
+_manifest_init()
+_ensure_manifest_index()
+_manifest["es_version"] = version
+_manifest_push()
 ```
 Fail fast and clearly if connectivity fails — don't attempt subsequent steps.
 
@@ -353,40 +369,43 @@ except:
     print(f"  {p(index['name'])}: created")
 ```
 
-**ELSER endpoint (step 8)**
-
-The ELSER deployment body differs between Serverless and ECH/self-managed:
+**ELSER endpoint (step 8) — EIS for ECH, managed for Serverless (D-028)**
 
 ```python
-# Check if already deployed
+endpoint_id = p("elser")
+task_type   = "sparse_embedding"
+
+# GET response wraps endpoints in {"endpoints": [...]} on 9.x — unwrap before checking
 try:
-    es("GET", f"/_inference/sparse_embedding/{p('elser-v2-endpoint')}", ok=(200,))
-    print("  ELSER endpoint: already deployed — skipping")
-except:
-    if DEP_TYPE == "serverless":
-        # Serverless: managed endpoint — use "elser" service, no model_id
-        body = {
-            "service": "elser",
-            "service_settings": {"num_allocations": 1, "num_threads": 1}
-        }
-    else:
-        # ECH / self-managed: deploy model explicitly
-        body = {
-            "service": "elasticsearch",
-            "service_settings": {
-                "model_id": ".elser_model_2_linux-x86_64",
-                "num_allocations": 1,
-                "num_threads": 1
-            }
-        }
-    es("PUT", f"/_inference/sparse_embedding/{p('elser-v2-endpoint')}", body)
-    print("  ELSER endpoint: deploying... (allow 60-90s for model to load)")
-    # Poll until allocated
-    for _ in range(60):
-        status = es("GET", f"/_inference/sparse_embedding/{p('elser-v2-endpoint')}")
-        if status.get("service_settings", {}).get("num_allocations", 0) > 0:
-            break
-        time.sleep(3)
+    resp      = es("GET", f"/_inference/{task_type}/{endpoint_id}", ok=(200,))
+    endpoints = resp.get("endpoints") or []
+    existing  = endpoints[0] if endpoints else resp
+    svc       = existing.get("service", "")
+    expected  = "elser" if DEP_TYPE == "serverless" else "elastic"
+    if svc == expected:
+        print(f"  ELSER endpoint '{endpoint_id}': exists on correct service='{svc}' — skipping")
+        _manifest_add("inference_endpoints", {"task_type": task_type, "id": endpoint_id})
+        return
+    elif svc:
+        print(f"  ELSER endpoint '{endpoint_id}': found but service='{svc}' != expected '{expected}' — deleting to recreate")
+        es("DELETE", f"/_inference/{task_type}/{endpoint_id}", ok=(200, 204))
+except RuntimeError as e:
+    if "404" not in str(e):
+        raise
+
+if DEP_TYPE == "serverless":
+    # Serverless: managed endpoint — use "elser" service, no model_id (D-028)
+    body = {"service": "elser", "service_settings": {}}
+else:
+    # ECH 9.4+: use Elastic Inference Service — do NOT deploy on ML node (D-028)
+    body = {"service": "elastic", "service_settings": {"model_id": ".elser-2"}}
+
+es("PUT", f"/_inference/{task_type}/{endpoint_id}", body)
+print(f"  ELSER endpoint '{endpoint_id}': deploying via {'Serverless managed' if DEP_TYPE == 'serverless' else 'EIS'}...")
+_manifest_add("inference_endpoints", {"task_type": task_type, "id": endpoint_id})
+# EIS endpoints are ready immediately; Serverless managed may need a warm-up call
+if DEP_TYPE != "serverless":
+    print("  EIS endpoint ready (no model allocation needed)")
 ```
 
 Cold ELSER inference on Serverless can take 30+ seconds on the first call. The warm-up
@@ -440,9 +459,7 @@ burn rate: `slo.rules.burnRate`, `consumer`: `slo`) — validate with `kibana-al
 for the target version.
 
 **SLO stack docs:** Elastic Guide (concepts, create SLO, burn-rate alerts, troubleshoot incl.
-reset) plus the API hub — see **`docs/references-observability-slo.md`** in demobuilder. Use the
-**8.x** minor from `ELASTIC_VERSION` in Guide paths; for **9.0+** stacks use the **`9.0`** Guide
-branch (or `current`) and re-check the page when the stack version changes (**D-025**).
+reset) plus the API hub — see **`docs/references-observability-slo.md`** in demobuilder. Use the **`current`** Guide branch for 9.x stacks (D-033/D-025) and re-check pages when the stack version changes.
 
 **13d — Saved objects** *(when dashboards/visualizations are in scope)*  
 `POST /api/saved_objects/_import?overwrite=true` (multipart NDJSON). Prefer definitions
@@ -461,11 +478,43 @@ manual “Create agent” handoff.
 **13f — Workflows** *(when in scope and supported)*  
 After connectors if needed — follow `references/workflow-patterns.md`.
 
-**13g — Security / SIEM** *(when demo is Sec or hybrid)*  
-Use `security-*` skills as appropriate: detection rules, prebuilt-rule toggles, timelines,
-cases — via documented APIs, not “configure in UI” as the default.
+**13g — Security / SIEM** *(when demo is Sec or hybrid)*
 
-**13h — Other** *(streams, Fleet, synthetics, etc.)*  
+Use `security-*` skills as appropriate. For detection rules:
+
+- **Custom demo rules (authored from scratch):** Upsert by `rule_id` — check existence
+  first, POST if absent, PUT if present (increment `version`). Include `demobuilder_tags()`
+  and `BOOTSTRAP_VERSION` (D-026, D-030).
+
+- **Elastic-managed / prebuilt rules (D-032):** Never modify the original. Clone instead:
+
+```python
+# 1. Fetch the prebuilt rule as a template
+existing = kb("GET", f"/api/detection_engine/rules?rule_id={source_rule_id}", ok=(200,))
+# 2. Strip immutable/read-only fields
+READ_ONLY = {"id","created_at","updated_at","updated_by","created_by",
+             "immutable","rule_source","revision","execution_summary"}
+clone = {k: v for k, v in existing.items() if k not in READ_ONLY}
+# 3. Assign demo identity
+clone["rule_id"]     = f"demo-{source_rule_id}"
+clone["name"]        = f"[{SLUG}] {existing['name']}"
+clone["description"] = f"[v{BOOTSTRAP_VERSION}] Clone of '{existing['name']}' — {purpose}"
+clone["tags"]        = merge_tags(clone.get("tags", []))
+clone["version"]     = 1
+# 4. Idempotent create — check if clone already exists
+try:
+    kb("GET", f"/api/detection_engine/rules?rule_id={clone['rule_id']}", ok=(200,))
+    print(f"  SIEM rule '{clone['rule_id']}': already exists — skipping")
+except RuntimeError as e:
+    if "404" not in str(e): raise
+    kb("POST", "/api/detection_engine/rules", clone, ok=(200, 201))
+    _manifest_add("siem_rules", {"rule_id": clone["rule_id"], "name": clone["name"]})
+    print(f"  SIEM rule '{clone['rule_id']}': created")
+```
+
+Teardown deletes cloned rules by `rule_id`. Elastic-managed originals are left untouched.
+
+*13h — Other** *(streams, Fleet, synthetics, etc.)*  
 If the platform audit and script call for them, add the matching API steps — do not assume
 this list is exhaustive.
 
@@ -505,6 +554,21 @@ resp = es("POST", f"/{p(semantic_index)}/_search", {
 latency = resp["took"]
 print(f"  ELSER warm: {latency}ms {'✅' if latency < 2000 else '⚠️ slow — run again'}")
 ```
+
+**Asset manifest — final write (step 16)**
+
+After all steps complete successfully, do a final upsert of the manifest so it reflects
+the full deployed state. This is the definitive copy teardown will read (D-031).
+
+```python
+def write_final_manifest():
+    _manifest["deployed_at"] = __import__("datetime").datetime.utcnow().isoformat() + "Z"
+    _manifest_push()
+    print(f"  Manifest written: demobuilder-manifests/{_engagement_id_for_tag()}")
+```
+
+The manifest is also written incrementally after each step, so a partial deploy leaves a
+valid manifest for partial teardown. The final write closes out the `deployed_at` timestamp.
 
 ## Step 4: Execute the Script
 
@@ -593,15 +657,17 @@ source {workspace}/.env && python3 {workspace}/bootstrap.py --skip-data
 
 ## Platform-Specific Adaptations
 
-The script auto-adapts based on `DEPLOYMENT_TYPE` in the `.env`:
+The script auto-adapts based on `DEPLOYMENT_TYPE` in the `.env`. **Baseline: 9.4+ (D-033).**
+Clusters below 9.4 are rejected at step 1 unless `SKIP_VERSION_CHECK=true` is set.
 
-| Behavior | Serverless | ECH | Self-managed | Docker |
-|---|---|---|---|---|
-| ILM | Skipped (DSL in template) | Created | Created | Created |
-| ELSER | Managed endpoint (no model_id) | Deployed model | Deployed model | Deployed model |
-| ML node check | Skipped (auto-scaled) | Checked | Checked (warn if none) | Warn |
-| Kibana Workflows | Supported | 9.3+ only | Not available | Not available |
-| Agent Builder | Supported | Cloud only | Not available | Not available |
+| Behavior | Serverless | ECH 9.4+ |
+|---|---|---|
+| ILM | Skipped (DSL in template) | Created (hot-only by default, D-027) |
+| ELSER inference | `service: "elser"` (managed, no model_id) | `service: "elastic"` via EIS (D-028) |
+| ML node check | Skipped (auto-scaled) | Checked — anomaly detection only |
+| Kibana Workflows | Supported | Supported 9.4+ (feature-flag check, D-011) |
+| Agent Builder | Supported | Supported (feature-flag check, D-011) |
+| Asset manifest | Written to cluster (D-031) | Written to cluster (D-031) |
 
 ## What Good Looks Like
 

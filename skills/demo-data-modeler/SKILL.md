@@ -26,8 +26,12 @@ acceptable — use `keyword`, `text`, `date`, `semantic_text`, etc. as the stack
 
 ## Step 0: Resolve the Target Stack Version
 
-**Before authoring any mapping, template, or pipeline**, confirm the Elastic stack version
-the artifacts will be deployed against. Use the first available source:
+**Baseline: 9.4+ (D-033).** All generated artifacts use **9.4 ECH / Serverless API shapes**.
+Pre-9.4 compatibility shims are not generated. If the engagement's cluster is confirmed to be
+below 9.4, flag it as a blocker in `{slug}-risks.md` and do not proceed to artifact generation
+until the cluster is updated.
+
+**Confirm the live version** before authoring any mapping, template, or pipeline:
 
 1. **`{slug}-platform-audit.json`** — read `platform.version` and `platform.version_verified`
 2. **`{slug}-current-state.json`** — read `version` (from diagnostic analyzer output)
@@ -37,9 +41,16 @@ the artifacts will be deployed against. Use the first available source:
 If the version is unverified (no live `GET /` or diagnostic), state this explicitly in the
 data model output header and flag it as a risk in `{slug}-risks.md`.
 
-**Why this matters:** Field types, inference endpoint shapes, ILM vs DSL, and API parameters
-differ between 8.x minors and 9.x. Artifacts authored for the wrong version will fail on
-deploy. See `docs/decisions.md` **D-025** and `skills/demo-deploy/references/serverless-differences.md`.
+**9.4 API shapes to use (D-033):**
+- **Inference endpoints:** EIS (`service: "elastic"`, `model_id: ".elser-2"`) for ECH;
+  `service: "elser"` for Serverless. Do not use `service: "elasticsearch"` for embeddings (D-028).
+- **Inference GET response:** `{"endpoints": [...]}` wrapper — unwrap before reading `service`.
+- **ILM:** Hot-only by default; never `rollover` on plain indices (D-027).
+- **Data views:** `POST /api/data_views/data_view` (9.x shape).
+- **Agent Builder:** v0.2.0 shape — `configuration.skill_ids` and typed tool list (D-029).
+- **Alerting rules:** 9.x `windows` array schema for SLO burn-rate rules.
+
+See `docs/decisions.md` **D-025**, **D-033** and `skills/demo-deploy/references/serverless-differences.md`.
 
 ## Step 1: Extract the Data Requirements
 
