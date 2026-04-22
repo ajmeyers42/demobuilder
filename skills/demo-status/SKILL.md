@@ -4,7 +4,8 @@ description: >
   Checks the live health and readiness of a deployed Elastic demo environment. Reads
   credentials from the engagement's .env file, queries Elasticsearch and Kibana directly,
   and produces a compact terminal status report covering cluster health, index doc counts,
-  ML job state, ELSER endpoint responsiveness, Kibana object reachability, and anomaly
+  ML job state, ELSER endpoint responsiveness, **every saved object in engagement NDJSON**
+  (especially dashboards), **tagged SLOs**, Agent Builder, optional workflows, and anomaly
   injection readiness. Runs in under 60 seconds.
 
   ALWAYS use this skill when the user says "demo status", "is the demo ready", "check the
@@ -23,6 +24,34 @@ working, what is broken, and what command fixes each broken thing.
 
 The entire check must complete in under 60 seconds. Every item has a clear pass/fail and
 a specific remediation for any failure.
+
+## Step 0: Inventory script (run first)
+
+Use the repo script **`skills/demo-status/demo_status.py`** so **every Kibana saved object
+exported in NDJSON** is checked (not only dashboards by title search). From the engagement
+workspace:
+
+```bash
+cd "${DEMOBUILDER_ENGAGEMENTS_ROOT:-$HOME/engagements}/{slug}"
+python3 "$DEMOBUILDER_REPO/skills/demo-status/demo_status.py"
+# or: python3 /path/to/demobuilder/skills/demo-status/demo_status.py --engagement-dir .
+```
+
+**What it validates**
+
+| Source | Check |
+|--------|--------|
+| `kibana-objects/**/*.ndjson`, `kibana/**/*.ndjson` | `GET /api/saved_objects/{type}/{id}` for **each** line (dashboard, lens, index-pattern, etc.) |
+| `{slug}-data-model.json` | Doc counts for listed data streams / indices (`p(name)`) |
+| Observability SLOs | List with `perPage=500`, filter tags **`demobuilder:<engagement_id>`** (**D-026**) |
+| Optional `kibana/status-expected.json` | Extra **`slo_ids`** via GET-by-id (see `references/status-expected.example.json`) |
+| Agent | `AGENT_BUILDER_AGENT_ID` or default from `kibana/deploy_fraud_assistant_agent.py` |
+| Workflows + alerting | `GET /api/alerting/rules/_find` for **`DEMO_STATUS_WORKFLOW_RULE_NAME`** (default **Invoke an Agent**); `GET /api/workflows` — **404** often means set **`KIBANA_SPACE_PATH`** to the Space where Workflows is enabled |
+| Saved-object tag refs (D-026) | Each NDJSON object should reference tag id **`demobuilder-<engagement_id>`** — run engagement **`kibana/apply_demobuilder_tags.py`** after import if missing |
+
+**Env overrides:** `DEMO_STATUS_SKIP_NDJSON=1` skips NDJSON line checks (not recommended). `KIBANA_SPACE_PATH` is honored like bootstrap. `DEMO_STATUS_WORKFLOW_RULE_NAME` overrides the default alerting rule name used as a Workflows readiness signal.
+
+Then run the manual / supplemental checks below (ML, ELSER warm latency, demo-critical docs, etc.), or extend the script when a new asset class is always created.
 
 ## Step 1: Load the Environment
 
@@ -263,45 +292,43 @@ Capture `took` (milliseconds).
        POST /_inference/sparse_embedding/{p("elser-v2-endpoint")}/_warm
 ```
 
-### Check 5 — Kibana Objects
+### Check 5 — Kibana objects (dashboards and all committed NDJSON)
 
-For each dashboard or saved object referenced in the demo script or data model, check
-reachability via the Kibana Saved Objects API:
+**Do not rely on `_find` by title alone** — that can miss objects or match the wrong space.
 
-```
-GET {KIBANA_URL}/api/saved_objects/_find?type=dashboard&search_fields=title&search={dashboard_title}
-Authorization: ApiKey {ES_API_KEY}
-kbn-xsrf: true
-```
+**Primary:** **`demo_status.py`** (Step 0) — parses **every** line in `kibana-objects/*.ndjson`
+(and `kibana/**/*.ndjson`) and calls **`GET /api/saved_objects/{type}/{id}`** for each. That
+includes **dashboards**, **Lens**, **index-patterns**, **search** sessions, **maps**, etc.,
+exactly as exported for the engagement.
 
-If an agent is defined in the engagement, verify it exists:
+**Agent Builder** agents are **not** always in NDJSON; the script checks
+**`/api/agent_builder/agents/{id}`** using `AGENT_BUILDER_AGENT_ID` or the default in
+`kibana/deploy_fraud_assistant_agent.py`.
 
-```
-GET {KIBANA_URL}/api/saved_objects/_find?type=inference&search_fields=title&search={agent_name}
-Authorization: ApiKey {ES_API_KEY}
-kbn-xsrf: true
-```
+**Workflows:** **`GET /api/workflows`** — if **404**, Workflows is not enabled (note and skip).
+If **200**, confirm **`AGENT_BUILDER_WORKFLOW_ID`** appears when that env var is set.
 
-For agent readiness, send a lightweight test prompt via the Chat Completion API if the
-agent's connector is configured. If the agent uses a Kibana AI Assistant or Agent Builder
-configuration, verify the tool definitions resolve:
+**SLOs:** Prefer the **demobuilder tag** filter in **`demo_status.py`**; add optional
+**`kibana/status-expected.json`** for explicit **`slo_ids`** on noisy shared clusters.
 
-```
-GET {KIBANA_URL}/internal/elastic_assistant/conversations
-```
+**Supplemental (optional):** `_find` by title for a quick human spot-check, or
+**`GET {KIBANA_URL}/internal/elastic_assistant/conversations`** only if the demo script
+requires it.
 
 **Pass criteria:**
-- Each expected dashboard returns at least one saved object result
-- Agent object exists and its tool definitions reference indices that exist (cross-check
-  with the index list confirmed in Check 2)
+- **`demo_status.py`** reports **OK** for every NDJSON object, tagged SLOs, and agent (and
+  workflow id when configured).
 
 **Failures:**
 ```
-❌  Dashboard not found: "{dashboard_title}"
-    → Import was not run or failed. Run: python3 bootstrap.py --step 13
+❌  saved_object dashboard:xyz  HTTP 404
+    → Import failed or wrong space. Re-run: python3 bootstrap.py step 13 / deploy_kibana_gaps.py
 
-❌  Agent "{agent_name}" not found in Kibana
-    → Agent Builder config was not imported. Run: python3 bootstrap.py --step 13
+❌  Agent GET 404
+    → Run: python3 kibana/deploy_fraud_assistant_agent.py
+
+❌  Workflow id not in GET /api/workflows
+    → Create workflow or fix AGENT_BUILDER_WORKFLOW_ID
 
 ⚠️  Agent tool references index {index_name} which has 0 docs
     → Agent will return empty results. Load data first (Check 2 failure above).
@@ -467,7 +494,8 @@ Key endpoints used in this skill:
 | Start datafeed | `POST {ES_URL}/_ml/datafeeds/{datafeed_id}/_start` |
 | ELSER endpoint | `GET {ES_URL}/_inference/sparse_embedding/{p("elser-v2-endpoint")}` |
 | Semantic query | `POST {ES_URL}/{p(semantic_index)}/_search` |
-| Kibana saved objects | `GET {KB_URL}/api/saved_objects/_find?type=dashboard&...` |
+| Kibana saved objects (inventory) | `GET {KB_URL}/api/saved_objects/{type}/{id}` (per NDJSON line) — see `demo_status.py` |
+| Kibana saved objects (ad hoc) | `GET {KB_URL}/api/saved_objects/_find?type=dashboard&...` |
 
 ## What Good Looks Like
 

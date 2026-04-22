@@ -182,7 +182,8 @@ replacing prefix-based Elasticsearch scoping.
 **Applied to:** `AGENTS.md`, `.cursor/rules/demobuilder.mdc`, `README.md`,
 `skills/demobuilder/SKILL.md`, `skills/demo-deploy/SKILL.md`,
 `skills/demo-deploy/references/demobuilder-tagging.md`, `skills/demo-deploy/references/env-reference.md`,
-`skills/demo-teardown/SKILL.md`, `engagements/README.md`, engagement `bootstrap.py` patterns.
+`skills/demo-teardown/SKILL.md`, `skills/demo-status/SKILL.md`, `skills/demo-status/demo_status.py`,
+`engagements/README.md`, engagement `bootstrap.py` patterns.
 
 **Date:** 2026-04-16 | **Session:** engagement tagging for discovery and cleanup
 
@@ -434,3 +435,68 @@ clone; customer data and `.env` files stay outside git on a path the SA controls
 **Applied to:** `demobuilder/SKILL.md`, `demo-cloud-provision/SKILL.md`, `demo-deploy/SKILL.md`, `demo-status/SKILL.md`, `demo-teardown/SKILL.md`, `demo-deploy/references/env-reference.md`, `README.md`. `docs/todo.md` item 11 closed.
 
 **Date:** 2026-04-20 | **Session:** workspace organization | **Updated:** 2026-04-21 — engagements root via `DEMOBUILDER_ENGAGEMENTS_ROOT` (D-023)
+
+---
+
+## D-027: ILM defaults to hot-only; tiered phases only when explicitly required
+
+**Decision:** The **default ILM posture for all generated scripts is hot-only** — a hot phase
+with `set_priority` and a `delete` phase. Warm, cold, and frozen phases are **only added when
+the engagement explicitly requires tiered storage** (e.g., the customer wants to demo
+hot-warm-cold cost tiering). Tier detection via `GET /_nodes` is run at bootstrap time to guard
+against applying unavailable phases, but it does not automatically opt-in to more phases.
+
+Additional hard rules:
+- **No `rollover` on plain indices.** Rollover requires `index.lifecycle.rollover_alias` and
+  errors immediately on any index without a write alias
+  (`IllegalArgumentException: setting [index.lifecycle.rollover_alias] … is empty or not defined`).
+  Use age-based `delete` instead.
+- **`forcemerge` in hot requires `rollover`.** If rollover is absent, omit forcemerge too.
+- **Data streams:** rollover is always valid (the stream manages the write alias) and should be
+  used when the engagement calls for it.
+
+**Rationale:** Demo ECH clusters are almost always hot-only. Adding warm/cold/frozen phases by
+default clutters the policy, wastes SA time debugging ERROR-state indices, and obscures whether
+tiering is actually part of the demo story.
+
+**Applied to:** `bootstrap.py` (`step1_connectivity` tier detection, `step2_ilm` policy builder),
+`skills/demo-data-modeler/SKILL.md`.
+
+**Date:** 2026-04-22 | **Session:** Citizens Bank 9.4 deployment
+
+---
+
+## D-028: Use EIS for embeddings and reranking; reserve ML nodes for anomaly detection and DFA
+
+**Decision:** All **text embedding** (sparse and dense) and **reranking** inference in
+demobuilder pipelines must use **Elastic Inference Service (EIS)** endpoints — i.e., inference
+endpoints created with `service: "elastic"` via `PUT /_inference/{task_type}/{id}`. Do **not**
+deploy embedding or reranking models directly on the deployment's ML nodes.
+
+ML nodes are reserved for:
+- **Anomaly detection** (ML jobs + datafeeds)
+- **Data frame analytics** (classification, regression, outlier detection)
+- Other tasks where local execution is architecturally necessary or explicitly requested
+
+**Rationale:** EIS routes inference to Elastic's managed inference infrastructure, keeping ML
+node resources free for jobs that cannot run externally. On demo ECH clusters, ML nodes are
+typically undersized; loading ELSER or reranker weights alongside anomaly jobs causes resource
+contention, slow model startup, and 408 timeouts during demos. EIS also scales independently of
+the cluster and eliminates the ELSER adaptive-allocation warm-up delay during the demo itself.
+
+**Implementation (9.x):**
+```json
+// Sparse embedding via EIS
+PUT /_inference/sparse_embedding/elser-eis
+{ "service": "elastic", "service_settings": { "model_id": ".elser-2" } }
+
+// Reranking via EIS
+PUT /_inference/rerank/rerank-eis
+{ "service": "elastic", "service_settings": { "model_id": "elastic-reranker-v1" } }
+```
+
+**Applied to:** `skills/demo-data-modeler/SKILL.md`, `bootstrap.py` step 5 (ELSER endpoint —
+migrate from `service: "elasticsearch"` to `service: "elastic"` when EIS is confirmed available
+on the target deployment).
+
+**Date:** 2026-04-22 | **Session:** Citizens Bank 9.4 deployment

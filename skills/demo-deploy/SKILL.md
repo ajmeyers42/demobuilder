@@ -176,6 +176,7 @@ Usage:
 
 Steps:
   1.  Connectivity check (includes version validation vs ELASTIC_VERSION)
+  1b. Kibana Space — ensure /s/{DEMO_SLUG} exists (create if absent, idempotent)
   2.  ILM / Data Stream Lifecycle policies
   3.  Enrich policies (create + execute)
   4.  Ingest pipelines
@@ -197,13 +198,14 @@ import os, sys, json, time, argparse, re
 import urllib.request, urllib.error
 
 # ── Credentials (from .env) ─────────────────────────────────────────────────
-ES_URL    = os.environ.get("ELASTICSEARCH_URL", "").rstrip("/")
-KB_URL    = os.environ.get("KIBANA_URL", "").rstrip("/")
-API_KEY   = os.environ.get("ES_API_KEY", "")
-KB_KEY    = os.environ.get("KIBANA_API_KEY", "")  # used for all Kibana API calls
-DEP_TYPE  = os.environ.get("DEPLOYMENT_TYPE", "ech")
-PREFIX    = os.environ.get("INDEX_PREFIX", "")
-SLUG      = os.environ.get("DEMO_SLUG", "demo")
+ES_URL       = os.environ.get("ELASTICSEARCH_URL", "").rstrip("/")
+KB_URL       = os.environ.get("KIBANA_URL", "").rstrip("/")
+API_KEY      = os.environ.get("ES_API_KEY", "")
+KB_KEY       = os.environ.get("KIBANA_API_KEY", "")  # used for all Kibana asset operations
+DEP_TYPE     = os.environ.get("DEPLOYMENT_TYPE", "ech")
+PREFIX       = os.environ.get("INDEX_PREFIX", "")
+SLUG         = os.environ.get("DEMO_SLUG", "demo")
+SPACE_PATH   = os.environ.get("KIBANA_SPACE_PATH", "").strip()  # e.g. /s/2026citizens-ai
 
 def p(name): return f"{PREFIX}{name}" if PREFIX else name  # apply index prefix
 
@@ -236,6 +238,31 @@ def step(n, label):
 
 # ── Step implementations ──────────────────────────────────────────────────────
 def check_connectivity():   ...
+
+def ensure_kibana_space():
+    """Step 1b — create /s/{DEMO_SLUG} if absent. Idempotent; 409 = already exists."""
+    space_id = SLUG.strip().lower()
+    if not space_id:
+        return
+    # Space management API MUST use the default-space base URL (no SPACE_PATH prefix)
+    import urllib.error
+    headers = {"Authorization": f"ApiKey {KB_KEY}", "Content-Type": "application/json", "kbn-xsrf": "demobuilder"}
+    req = urllib.request.Request(f"{KB_URL}/api/spaces/space/{space_id}", method="GET", headers=headers)
+    try:
+        urllib.request.urlopen(req, timeout=30)
+        print(f"  Kibana space '{space_id}' already exists"); return
+    except urllib.error.HTTPError as e:
+        if e.code != 404: raise
+    body = json.dumps({"id": space_id, "name": os.environ.get("ENGAGEMENT", space_id),
+                       "description": f"Demobuilder engagement {space_id}"}).encode()
+    req = urllib.request.Request(f"{KB_URL}/api/spaces/space", data=body, method="POST", headers=headers)
+    try:
+        urllib.request.urlopen(req, timeout=30)
+        print(f"  Kibana space '{space_id}' created")
+    except urllib.error.HTTPError as e:
+        if e.code == 409: print(f"  Kibana space '{space_id}' already exists (409)")
+        else: raise
+
 def create_ilm_policies():  ...  # skipped on serverless (uses DSL)
 def create_dsl_policies():  ...  # serverless only
 def create_enrich_policies():    ...
@@ -267,8 +294,26 @@ version = resp["version"]["number"]
 print(f"  Connected: {ES_URL}")
 print(f"  Version:   {version}")
 print(f"  Prefix:    '{PREFIX}' ({'applied' if PREFIX else 'none — using default index names'})")
+# D-020: warn if .env ELASTIC_VERSION disagrees with live cluster
+env_ver = os.environ.get("ELASTIC_VERSION", "").strip()
+if env_ver and env_ver != version:
+    print(f"  ⚠  ELASTIC_VERSION in .env ({env_ver}) != cluster ({version}) — update .env (D-020)")
 ```
 Fail fast and clearly if connectivity fails — don't attempt subsequent steps.
+
+**Kibana Space (step 1b)**
+
+Run `ensure_kibana_space()` immediately after connectivity. This step uses the **default-space
+base URL** (`KB_URL/api/spaces/space`) — never the `SPACE_PATH`-prefixed URL — because the
+space does not yet exist when this call is first made. All subsequent Kibana calls (step 13
+and beyond) use `SPACE_PATH` as the prefix through the `kb()` helper:
+
+```python
+def kb(method, path, body=None, *, ok=(200,)):
+    """Kibana API with SPACE_PATH prefix (set by KIBANA_SPACE_PATH in .env)."""
+    full_path = f"{SPACE_PATH}{path}" if SPACE_PATH else path
+    ...
+```
 
 **ILM / DSL (step 2) — deployment-type-aware**
 ```python

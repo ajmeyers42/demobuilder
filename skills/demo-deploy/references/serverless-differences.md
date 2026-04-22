@@ -10,7 +10,7 @@ Most sections apply to Serverless. Feature flags (first section) apply to **both
 
 ## Feature Flags — Serverless AND ECH (not enabled by default)
 
-**Agent Builder and Kibana Workflows require feature flag activation on both Serverless and ECH deployments** — not just Serverless. Workflows is expected to reach GA with Elastic 9.4; until then, always verify.
+**Agent Builder and Kibana Workflows require feature flag activation on both Serverless and ECH deployments** — not just Serverless. Availability varies by stack version and deployment type; always verify at provisioning time before writing any build code against these APIs.
 
 Verify immediately after project/deployment creation, before any build work:
 

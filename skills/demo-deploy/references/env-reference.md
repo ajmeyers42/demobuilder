@@ -24,6 +24,23 @@ ES_API_KEY=VuaCfGcBCdbkQm...     # base64-encoded API key or ApiKey header value
 # Set this at provisioning time alongside ES_API_KEY.
 KIBANA_API_KEY=
 
+# Kibana Space — written by demo-cloud-provision / bootstrap.py ensure_kibana_space().
+# Set to /s/{DEMO_SLUG} for per-engagement asset isolation; leave blank for default Space only.
+# All bootstrap Kibana API calls (saved objects, SLOs, Agent Builder, Workflows) target this Space.
+# demo-status checks the space exists and warns if KIBANA_SPACE_PATH is unset.
+KIBANA_SPACE_PATH=
+
+# ── ECH Deployment Pre-flight (Step 0) ───────────────────
+# Optional. If set, bootstrap.py patches Kibana user_settings_json via the ECH
+# Management API *before* the space is created — enabling Workflows and other
+# deployment-level feature flags without a manual ECH-UI step + re-run.
+# EC_API_KEY:    Elastic Cloud org-level API key (cloud.elastic.co → Account → API Keys)
+# DEPLOYMENT_ID: found in the ECH URL  .../deployments/{DEPLOYMENT_ID}
+# KIBANA_REF_ID: defaults to "main-kibana" — only override if the deployment uses a custom ref_id
+# EC_API_KEY=
+# DEPLOYMENT_ID=
+# KIBANA_REF_ID=main-kibana
+
 # ── Version (informational, set by demo-cloud-provision) ──
 ELASTIC_VERSION=9.3.1
 
@@ -98,11 +115,17 @@ Every workspace should have one alongside the `.env`:
 DEMO_SLUG=<slug-e.g.-citizens-bank>
 ENGAGEMENT=<company-name>
 DEPLOYMENT_TYPE=<serverless|ech|self_managed|docker>
+# D-020: must match live cluster version — run: curl -s -H "Authorization: ApiKey $ES_API_KEY" $ELASTICSEARCH_URL | python3 -m json.tool | grep '"number"'
 ELASTIC_VERSION=<e.g.-9.3.1>
 
 ELASTICSEARCH_URL=<https://your-cluster.es.io:443>
 KIBANA_URL=<https://your-kibana.kb.io:443>
 ES_API_KEY=<your-api-key>
+# KIBANA_API_KEY=<separate-kibana-key-if-required>
+
+# Kibana Space — written by demo-cloud-provision / bootstrap.py ensure_kibana_space().
+# Set to /s/{DEMO_SLUG} for per-engagement asset isolation; leave blank for default Space.
+KIBANA_SPACE_PATH=/s/<DEMO_SLUG>
 
 INDEX_PREFIX=<optional-e.g.-cb->
 # DEMO_ASSET_TAG=<optional-override-for-demobuilder:-tags>
@@ -110,7 +133,6 @@ INDEX_PREFIX=<optional-e.g.-cb->
 CLUSTER_NAME=<demobuilder-slug-YYYYMMDD>
 REGION=<e.g.-us-east-1>
 PROVISIONED_BY=demobuilder
-ENGAGEMENT=<company-name>
 ```
 
 ## API Key Permissions Required

@@ -21,10 +21,7 @@ This repository is meant to be driven by an **assistant** (Cursor, Claude Code, 
    version, and **product conventions** from `elastic/agent-skills` and reference repos — not
    invented types or generic JSON. See `docs/decisions.md` **D-025**.
 
-9. **Engagement tagging:** Every deploy path that creates an asset with a **`tags`** field (SLOs,
-   rules, ML jobs, Agent Builder, etc.) must include **`demobuilder:<engagement_id>`** per
-   **`skills/demo-deploy/references/demobuilder-tagging.md`** and **`docs/decisions.md` D-026**.
-   Optional **`DEMO_ASSET_TAG`** in `.env` overrides the normalized id.
+9. **Engagement tagging (D-026):** Every asset with a `tags` field must carry `demobuilder:<engagement_id>` — see **`skills/demo-deploy/references/demobuilder-tagging.md`** for the full spec, helper functions, and NDJSON post-import tagging.
 
 ## Runtime-specific setup
 

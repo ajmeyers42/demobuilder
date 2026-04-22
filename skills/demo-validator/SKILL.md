@@ -82,6 +82,19 @@ For each index/data stream in the data model:
 - Is screen sharing tested and working?
 - Are screenshot fallbacks ready for every major screen?
 
+### Version alignment check (D-025)
+- Does `{slug}-platform-audit.json` have a **verified** `platform.version`? If `version_verified`
+  is `false` or the field is absent, flag as a **no-go blocker** — artifact deployability cannot
+  be confirmed without a resolved stack version.
+- For each field type in `{slug}-data-model.json` mappings, confirm it is valid for the resolved
+  stack version (`keyword`, `text`, `date`, `semantic_text`, etc. — not abstract or invented
+  types). See `docs/decisions.md` **D-025**.
+- For each API payload in the data model or bootstrap template, confirm the parameter shapes
+  and required fields match the resolved version's API (use `skills/demo-deploy/references/`
+  and `docs/references-observability-slo.md` as the version-scoped reference).
+- If the data model was generated **without** a verified version in Step 0 of `demo-data-modeler`,
+  mark the data layer as **conditional go** until a live `GET /` confirms the version matches.
+
 ### Script narrative checks (when `{slug}-demo-script.md` exists)
 - Does the script **lead with outcomes** (business value, customer **key asks** from discovery)
   **before** deep capability or infrastructure scenes — **solution first** (see `docs/decisions.md`

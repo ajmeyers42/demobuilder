@@ -127,6 +127,9 @@ KIBANA_API_KEY={kibana_api_key}   # used for all Kibana asset operations
 # Set this if running multiple demos on the same cluster to avoid collisions
 INDEX_PREFIX=
 
+# Kibana Space — written by Step 4.1 (ensure_kibana_space); /s/{DEMO_SLUG} for isolation
+KIBANA_SPACE_PATH=/s/{slug}
+
 # Optional: override demobuilder:<id> tag suffix (D-026); see demo-deploy/references/demobuilder-tagging.md
 # DEMO_ASSET_TAG=
 
@@ -144,11 +147,13 @@ This is safe to share or commit — it documents what's needed without exposing 
 # .env.example — copy to .env and fill in values
 DEMO_SLUG=<slug>
 DEPLOYMENT_TYPE=<serverless|ech|self_managed|docker>
+# D-020: must match live cluster version (run: curl ... GET / | grep '"number"')
 ELASTIC_VERSION=<e.g., 9.3.1>
 ELASTICSEARCH_URL=<https://your-cluster.es.io:443>
 KIBANA_URL=<https://your-kibana.kb.io:443>
 ES_API_KEY=<your-es-api-key>
 KIBANA_API_KEY=<your-kibana-api-key>
+KIBANA_SPACE_PATH=/s/<slug>
 INDEX_PREFIX=<optional-e.g., cb->
 # DEMO_ASSET_TAG=<optional-override-for-demobuilder-tags>
 ```
@@ -175,14 +180,69 @@ If connectivity fails: surface the specific error, check that the API key has th
 permissions (`cluster:monitor/main`, `indices:admin/create`, `indices:data/write/*`),
 and provide a remediation step before writing the `.env`.
 
+## Step 4.1: Create Engagement Kibana Space
+
+Every engagement gets a dedicated Kibana Space for asset isolation — saved objects, SLOs,
+and Agent Builder entities created by bootstrap will live here, not in the shared default
+Space. This makes teardown clean and prevents demo assets from appearing in the customer's
+or team's default view.
+
+**Space ID:** use `DEMO_SLUG` as-is (e.g. `2026citizens-ai`). The Kibana Spaces API
+is always called on the **default-space base URL** (no `/s/{id}` prefix), even when
+`KIBANA_SPACE_PATH` is set.
+
+```python
+import json, urllib.request, urllib.error
+
+def ensure_kibana_space(kb_url, kb_api_key, demo_slug, engagement):
+    """Create a Kibana Space for this engagement if it does not exist. Idempotent."""
+    space_id = demo_slug.strip().lower()
+    headers = {
+        "Authorization": f"ApiKey {kb_api_key}",
+        "Content-Type": "application/json",
+        "kbn-xsrf": "demobuilder",
+    }
+    # Always use the default-space path for space management APIs
+    url = f"{kb_url.rstrip('/')}/api/spaces/space"
+    # Check if space already exists
+    req = urllib.request.Request(f"{url}/{space_id}", method="GET", headers=headers)
+    try:
+        urllib.request.urlopen(req, timeout=30)
+        print(f"  Kibana space '{space_id}' already exists")
+        return  # 200 → exists, nothing to do
+    except urllib.error.HTTPError as e:
+        if e.code != 404:
+            raise
+    # Create the space
+    body = json.dumps({
+        "id": space_id,
+        "name": engagement,
+        "description": f"Demobuilder engagement {space_id}",
+    }).encode()
+    req = urllib.request.Request(url, data=body, method="POST", headers=headers)
+    try:
+        urllib.request.urlopen(req, timeout=30)
+        print(f"  Kibana space '{space_id}' created")
+    except urllib.error.HTTPError as e:
+        if e.code == 409:
+            print(f"  Kibana space '{space_id}' already exists (409)")
+        else:
+            raise
+```
+
+After creating the space, append to `.env`:
+```
+KIBANA_SPACE_PATH=/s/{slug}
+```
+
+All subsequent Kibana API calls in bootstrap use this path prefix via `kb()` helper.
+
 ## Step 4.5: Verify Feature Flags
 
 **Agent Builder and Kibana Workflows require feature flag activation on both Serverless
-and ECH deployments** until these features reach GA. Do not write any build code against
-these APIs until this check passes.
-
-> Workflows is expected to reach GA with Elastic 9.4. Once confirmed GA on your
-> deployment type, this check can be skipped for that feature. Until then, always verify.
+and ECH deployments** — not just Serverless. Availability varies by stack version and
+deployment type; always verify at provisioning time before writing any build code. Do not
+write any build code against these APIs until this check passes.
 
 Run immediately after connectivity is confirmed, for all deployment types except Docker:
 
@@ -224,6 +284,7 @@ ES URL: {url} ✅
 Kibana URL: {url} ✅
 API Key: configured ✅
 **ELASTIC_VERSION:** {version} (from API — new deploys: latest GA unless pinned)
+**KIBANA_SPACE_PATH:** /s/{slug} (created in Step 4.1)
 
 ## To reuse this cluster for another demo:
 ROOT="${DEMOBUILDER_ENGAGEMENTS_ROOT:-$HOME/engagements}"

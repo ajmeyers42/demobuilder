@@ -20,6 +20,27 @@ Everything you produce must be valid, runnable Elasticsearch configuration — n
 not placeholders. An SE should be able to take your output, run it against a cluster, and
 have a working data layer.
 
+**Deployability (D-025):** Every field type, API body, and pipeline processor you write must
+be valid for the **resolved target stack version**. Generic or invented types are not
+acceptable — use `keyword`, `text`, `date`, `semantic_text`, etc. as the stack requires.
+
+## Step 0: Resolve the Target Stack Version
+
+**Before authoring any mapping, template, or pipeline**, confirm the Elastic stack version
+the artifacts will be deployed against. Use the first available source:
+
+1. **`{slug}-platform-audit.json`** — read `platform.version` and `platform.version_verified`
+2. **`{slug}-current-state.json`** — read `version` (from diagnostic analyzer output)
+3. **`.env`** — read `ELASTIC_VERSION` (informational; treat as unverified unless also in audit)
+4. **Ask the SA** — if none of the above are available, ask before proceeding
+
+If the version is unverified (no live `GET /` or diagnostic), state this explicitly in the
+data model output header and flag it as a risk in `{slug}-risks.md`.
+
+**Why this matters:** Field types, inference endpoint shapes, ILM vs DSL, and API parameters
+differ between 8.x minors and 9.x. Artifacts authored for the wrong version will fail on
+deploy. See `docs/decisions.md` **D-025** and `skills/demo-deploy/references/serverless-differences.md`.
+
 ## Step 1: Extract the Data Requirements
 
 Read the demo script (`{slug}-demo-script.md`) and discovery JSON (`{slug}-discovery.json`).
@@ -44,7 +65,7 @@ For each index, define:
 **Field types** — use the most specific type that fits the query pattern:
 - Identifiers (`store_id`, `sku`, `session_id`): `keyword`
 - Free text for full-text search: `text` with `.keyword` sub-field for aggregations
-- Semantic/ELSER search: `semantic_text` with `inference_id` pointing to the ELSER endpoint
+- Semantic/ELSER search: `semantic_text` with `inference_id` pointing to the EIS ELSER endpoint (see D-028)
 - Counts and quantities: `integer` or `long`
 - Rates and percentages: `float` or `double`
 - Timestamps: `date`
@@ -62,10 +83,27 @@ On indices where dynamic mapping is acceptable (e.g., enrichment lookup tables),
 - Small lookup/metadata indices (< 1GB): 1 primary shard
 - Default replica count: 1 (adjust based on platform audit output)
 
-**ILM:**
-- Data streams always get an ILM policy (hot → warm → delete at minimum)
-- Regular mutable indices that grow unboundedly also need ILM or retention strategy
-- Lookup/seed data indices: no ILM needed
+**ILM (see D-027):**
+- **Default: hot-only.** Generate a hot phase (`set_priority`) + `delete` phase unless the
+  engagement explicitly requires tiered storage as part of the demo story.
+- **Plain indices (non-data-stream):** never use `rollover` — requires `index.lifecycle.rollover_alias`
+  and ERRORs immediately on any index without a write alias. `forcemerge` in hot also requires
+  rollover; omit it too.
+- **Data streams:** `rollover` is valid and appropriate when the engagement calls for it.
+- **Warm/cold/frozen phases:** only include when (a) the engagement requires it AND (b) those
+  node roles are present on the target cluster (`GET /_nodes?filter_path=nodes.*.roles`).
+- Lookup/seed data indices: no ILM needed.
+
+**Inference endpoints (see D-028):**
+- Use **EIS** (`service: "elastic"`) for all text embedding and reranking inference — never
+  deploy these models on the cluster's ML nodes.
+- Reserve ML nodes for anomaly detection jobs, data frame analytics, and tasks that require
+  local execution.
+- EIS sparse embedding: `PUT /_inference/sparse_embedding/{id}` with `service: "elastic"`,
+  `model_id: ".elser-2"`
+- EIS reranking: `PUT /_inference/rerank/{id}` with `service: "elastic"`,
+  `model_id: "elastic-reranker-v1"`
+- Map `semantic_text` fields to the EIS inference endpoint id, not a local `.elser-*` deployment.
 
 ## Step 3: Design the Ingest Pipelines
 

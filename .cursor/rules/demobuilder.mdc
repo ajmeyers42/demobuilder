@@ -14,6 +14,8 @@ alwaysApply: true
 - **Solution first:** Scripts/plans — **outcomes and key asks** before deep capability walk-through; ask the SA if goals are unclear.
 - **`elastic/agent-skills`:** Install the **full** plugin (Search, Observability, **Elastic Security**) so Security and hybrid demos have the same toolchain as search-only engagements; see `docs/todo.md`.
 - **Deployability:** Artifacts must apply on a real cluster — **Elasticsearch field types** and **Elastic API** request shapes for the target version (`docs/decisions.md` D-025); no invented param types.
-- **Tagging:** Merge **`demobuilder:<engagement_id>`** into every created asset that supports `tags` (`docs/decisions.md` D-026, `skills/demo-deploy/references/demobuilder-tagging.md`).
+- **Tagging (D-026):** Every asset with a `tags` field must carry `demobuilder:<engagement_id>` — full spec in `skills/demo-deploy/references/demobuilder-tagging.md`.
+- **ILM default (D-027):** Generate hot-only ILM (hot `set_priority` + `delete`). Add warm/cold/frozen phases only when the engagement explicitly requires tiered storage. Never use `rollover` on plain indices — only on data streams.
+- **Inference (D-028):** Use **EIS** (`service: "elastic"`) for all embeddings and reranking. Reserve cluster ML nodes for anomaly detection and data frame analytics only.
 - **Research order:** This repo (`skills/`, `docs/`) first; then **github.com/elastic** repos (e.g. **integration-packages-slo** for SLO/Fleet packages — see `docs/runtimes/cursor.md`); **general web or non-Elastic sources — ask the SA before relying on them** (see `AGENTS.md`).
 - **Details:** See repo root `AGENTS.md` and `docs/runtimes/cursor.md`.

@@ -171,7 +171,7 @@ This repository contains [`engagements/README.md`](engagements/README.md) as a p
 
 **Elastic truthfulness.** Every defined asset must be **deployable** on Elastic using supported APIs and **conform to Elasticsearch datatypes and product conventions** (mappings, Agent Builder tool params, rules, saved objects) — see `docs/decisions.md` **D-025**. Do not specify abstract types where the stack expects `keyword`, `text`, `date`, etc.
 
-**Engagement tags.** Deployed assets that support **`tags`** carry **`demobuilder:<engagement_id>`** so operators can find or correlate demo resources — see `docs/decisions.md` **D-026** and `skills/demo-deploy/references/demobuilder-tagging.md`.
+**Engagement tags (D-026).** Every deployed asset with a `tags` field carries `demobuilder:<engagement_id>` for discovery and cleanup — see `skills/demo-deploy/references/demobuilder-tagging.md`.
 
 ## Validation Coverage
 
@@ -236,9 +236,15 @@ demobuilder/
     ├── demo-deploy/
     │   ├── SKILL.md
     │   ├── evals/evals.json
-    │   └── references/env-reference.md     ← .env field docs + multi-customer workflow
+    │   └── references/
+    │       ├── env-reference.md            ← .env field docs + multi-customer workflow
+    │       ├── demobuilder-tagging.md      ← D-026 engagement tag spec
+    │       ├── serverless-differences.md   ← feature flags, ML, ELSER, Workflows, saved objects
+    │       └── workflow-patterns.md        ← Kibana Workflows YAML + Liquid syntax
     ├── demo-status/
     │   ├── SKILL.md
+    │   ├── demo_status.py
+    │   ├── references/status-expected.example.json
     │   └── evals/evals.json
     └── demo-teardown/
         ├── SKILL.md
@@ -278,4 +284,8 @@ Run `cloud-setup` once to configure your Elastic Cloud API key before using
 | `docs/todo.md` | Open items requiring user action (installs, credentials, validations) |
 | `docs/references-observability-slo.md` | Elastic Guide + API links for programmatic SLOs and burn-rate rules |
 | `docs/references-kibana-apis.md` | Kibana Saved Objects + Alerting (rules & connectors); complements SLO reference |
+| `skills/demo-deploy/references/env-reference.md` | `.env` field reference, multi-customer workflow, API key permissions |
 | `skills/demo-deploy/references/demobuilder-tagging.md` | `demobuilder:<id>` on all tagged deploy assets (D-026) |
+| `skills/demo-deploy/references/serverless-differences.md` | Serverless/ECH behavioral differences: feature flags, ML, ELSER, Workflows YAML, saved objects |
+| `skills/demo-deploy/references/workflow-patterns.md` | Kibana Workflows YAML patterns and Liquid syntax reference |
+| `skills/demo-status/demo_status.py` | NDJSON inventory + version check + tagged SLOs + agent + space + workflows (pre-demo checks) |
