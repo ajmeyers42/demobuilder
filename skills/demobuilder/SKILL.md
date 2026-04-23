@@ -121,6 +121,7 @@ for a prior customer; **read the inputs** and produce artifacts that match **thi
 
 **Additional skills (planning / Kibana / Security):**
 - `demo-ideation` — consultative SA coaching to choose demo direction, archetype, and wow moments before discovery. Produces `{slug}-ideation.md` (see Stage 0 above).
+- `demo-opportunity-review` — consolidates all discovery and diagnostic outputs into a living Opportunity Summary for SDR/AE/SA team alignment. MEDDPIC qualification assessment + technical landscape. Acts as the gate between intelligence gathering and demo planning. Produces `{slug}-opportunity-summary.md` and `{slug}-opportunity-profile.json`. Re-run after any follow-up call. See Stage 2b.
 - `demo-kibana-agent-design` — when the demo script includes **Elastic Agent Builder** (custom agent, tools, workflows), produce `{slug}-agent-builder-spec.md` per `skills/demo-kibana-agent-design/SKILL.md`.
 - `token-visibility` — two-dimensional: (A) SA tooling for tracking own Claude Code / Cursor spend; (B) demo feature that adds an **AI Cost + Usage dashboard** to any Agent Builder demo. Included by default when Agent Builder is in scope (D-036). Read `skills/token-visibility/SKILL.md`.
 - **Elastic Security** — when the story includes detection, alerts, cases, or sample security data, read and follow the relevant `security-*` skills from `elastic/agent-skills` (same install as Search/Obs); **platform-audit** must reflect Sec license/tier and feature availability.
@@ -220,7 +221,8 @@ Stage                    | Output file                     | Re-run if...
 demo-ideation            | {slug}-ideation.md              | No discovery notes; SA needs direction
 demo-discovery-parser    | {slug}-discovery.json           | New/changed discovery notes
 demo-diagnostic-analyzer | {slug}-current-state.json       | New/changed diagnostic file
-demo-platform-audit      | {slug}-platform-audit.json      | discovery or current-state changed
+demo-opportunity-review  | {slug}-opportunity-summary.md   | discovery or diagnostic changed; follow-up notes added
+demo-platform-audit      | {slug}-platform-audit.json      | opportunity-profile or current-state changed
 demo-script-template     | {slug}-demo-script.md           | platform-audit or ideation changed or user requested
 demo-data-modeler        | {slug}-data-model.json          | script changed
 demo-ml-designer         | {slug}-ml-config.json           | data-model changed and ML scenes in script
@@ -238,7 +240,8 @@ Currency check           ✅ Up to date (demobuilder rev abc1234, hive-mind rev 
 Ideation                 ⏭  Skipped  (discovery notes provided)
 Discovery parser         ✅ Complete  ({slug}-discovery.json)
 Diagnostic analyzer      ⏭  Skipped  (no diagnostic provided)
-Platform audit           ✅ Complete  ({slug}-platform-audit.json)
+Opportunity review       🔲 Pending
+Platform audit           🔲 Pending  (runs after opportunity review)
 Script template          🔲 Pending
 Data modeler             🔲 Pending
 ML designer              🔲 Pending  (will check for ML scenes in script)
@@ -310,10 +313,39 @@ For each stage that needs to run, in order:
 - Inputs: diagnostic ZIP or API exports
 - Outputs: `{slug}-current-state.json`, `{slug}-architecture.md`, `{slug}-findings.md`
 
+**Stage 2b — demo-opportunity-review**
+- Skip if **all** of the following are true:
+  1. `{slug}-opportunity-summary.md` AND `{slug}-opportunity-profile.json` both exist
+  2. `{slug}-discovery.json` and `{slug}-gaps.md` have not changed since the last run
+  3. `{slug}-current-state.json` and `{slug}-findings.md` have not changed (or were absent before and remain absent)
+  4. **No new raw notes, follow-up text, or supplemental files have been provided in this session**
+- Re-run (do not skip) if any of the following are true:
+  - The outputs do not exist
+  - `{slug}-discovery.json` or `{slug}-gaps.md` changed (e.g., Stage 1 just ran)
+  - `{slug}-current-state.json` or `{slug}-findings.md` changed (e.g., Stage 2 just ran)
+  - **The SA has provided new notes, follow-up text, or files in the current session** — even if
+    the parsed JSON files appear unchanged, fresh input always warrants a re-run so the living
+    document reflects the latest intelligence
+- Read: `../demo-opportunity-review/SKILL.md`
+- Inputs: `{slug}-discovery.json` (required), `{slug}-gaps.md`, `{slug}-current-state.json`,
+  `{slug}-findings.md`, `{slug}-architecture.md` (all optional but used when present),
+  plus any raw follow-up notes or supplemental files provided in the current session
+- Outputs: `{slug}-opportunity-summary.md`, `{slug}-opportunity-profile.json`
+- **Team alignment gate:** After writing outputs, surface the qualification recommendation
+  and prompt the SA to share `{slug}-opportunity-summary.md` with the SDR and AE for review
+  before continuing. Do not proceed to platform audit until the SA confirms alignment
+  (or explicitly says "proceed anyway").
+- **Qualification gate:** If `qualification_status` is `not_qualified`, **stop the pipeline**
+  and report clearly. Do not run platform audit or demo build for unqualified opportunities.
+  If `continue_discovery`, surface the open questions and ask the SA whether to continue
+  building or wait for answers.
+
 **Stage 3 — demo-platform-audit**
-- Skip if: `{slug}-platform-audit.json` exists AND neither discovery nor current-state changed
+- Skip if: `{slug}-platform-audit.json` exists AND neither discovery, current-state, nor
+  opportunity-profile have changed
 - Read: `../demo-platform-audit/SKILL.md`
-- Inputs: `{slug}-discovery.json`, `{slug}-current-state.json` (if available)
+- Inputs: `{slug}-discovery.json`, `{slug}-current-state.json` (if available),
+  `{slug}-opportunity-profile.json` (use `demo_scope_signals` to pre-scope the audit)
 - Outputs: `{slug}-platform-audit.json`, `{slug}-platform-audit.md`
 - **Blocker check:** If overall_status is RED, surface the blocking features before
   proceeding. Auto-adjust scope: remove blocked features from the script brief, continue.
@@ -396,6 +428,10 @@ Discovery & Context
   ✅  {slug}-discovery.json            — structured customer profile
   ✅  {slug}-confirmation.md           — send to customer before demo
   ✅  {slug}-gaps.md                   — internal follow-up questions
+
+Qualification
+  ✅  {slug}-opportunity-summary.md    — living team review doc (SDR/AE/SA)
+  ✅  {slug}-opportunity-profile.json  — MEDDPIC + technical landscape (machine-readable)
 
 Platform & Feasibility
   ⏭   or ✅  {slug}-current-state.json  — diagnostic (optional)

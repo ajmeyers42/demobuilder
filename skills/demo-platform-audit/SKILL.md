@@ -33,13 +33,36 @@ assumptions and mark them as unverified. Recommend getting a diagnostic before b
 ## Step 1: Read the Inputs
 
 Read all available files:
+
 - `{slug}-discovery.json` — from demo-discovery-parser. Focus on `demo_scope.recommended_features`,
   `demo_scope.recommended_type`, `elastic_relationship`, and `deal_context`.
 - `{slug}-current-state.json` — from demo-diagnostic-analyzer (if available). Focus on
   `cluster.version`, `cluster.license_type`, `cluster.deployment_type`, `features_in_use`,
   `resource_signals`, and `findings_summary`.
+- `{slug}-opportunity-profile.json` — from demo-opportunity-review (if available). Read
+  `demo_scope_signals` to pre-scope the feature audit to only the capabilities actually in
+  play for this engagement:
 
-If neither file exists, ask the user to run `demo-discovery-parser` first.
+  ```json
+  "demo_scope_signals": {
+    "primary_solution_area": "search | observability | security | cross_solution",
+    "agent_builder_in_scope": false,
+    "ml_in_scope": false,
+    "siem_in_scope": false,
+    "slo_in_scope": false,
+    "noted_wow_moments": []
+  }
+  ```
+
+  **When opportunity-profile is present:** use `demo_scope_signals` to narrow the feature
+  compatibility matrix in Step 2 — only evaluate features flagged as in-scope. Do not audit
+  the full feature table for capabilities the qualification review has already determined are
+  out of scope. This keeps the audit focused and actionable.
+
+  **When opportunity-profile is absent:** run a full audit against all features in
+  `demo_scope.recommended_features` from the discovery JSON, as before.
+
+If `{slug}-discovery.json` is missing, ask the user to run `demo-discovery-parser` first.
 
 **Version anchoring:** When the target is an **existing** cluster (diagnostic present or
 the SA supplied endpoints/credentials), the audit **must** use the **observed**
@@ -126,6 +149,8 @@ should be re-scoped.
     "audit_mode": "full | partial",
     "discovery_version": "",
     "diagnostic_version": "",
+    "opportunity_profile_version": "",
+    "scope_pre_filtered": false,
     "platform_summary": ""
   },
   "platform": {
