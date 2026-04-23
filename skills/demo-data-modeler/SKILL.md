@@ -275,6 +275,64 @@ PUT /_index_template/{name}
 { "index_patterns": ["{name}-*"], "data_stream": {}, "composed_of": [...], "priority": 200 }
 ```
 
+## Step 5b: Data Fidelity Assessment
+
+Before finalizing the data specification, assess fidelity requirements by demo scenario.
+**50 well-crafted records beat 10,000 poorly formed ones.**
+
+**Reference:** `hive-mind/patterns/data/DATA_FIDELITY_GUIDE.md` — fidelity requirements
+by scenario type with critical/important/nice-to-have breakdown.
+
+| Dimension | What It Means | Example |
+|---|---|---|
+| **Visual** | Images load, realistic display | Product photos, chart data in correct ranges |
+| **Structural** | Relationships make sense | Categories contain appropriate items, IDs are consistent |
+| **Statistical** | Numbers are realistic | Prices in expected ranges, anomaly ratios match the story |
+| **Semantic** | Content is meaningful for search | Descriptions keyword-rich, questions sound like real users |
+| **Temporal** | Dates/times are plausible and ordered | Events in logical sequence, no future timestamps |
+
+**Critical fidelity by scenario:**
+
+| Scenario | Must Be Realistic | Can Approximate |
+|---|---|---|
+| AI Search / Agent Builder | Descriptions, attributes, relationships | Exact prices, dates |
+| Operational/SIEM | Timestamps, event types, anomaly patterns | Exact IPs, metadata |
+| Support / Knowledge Base | Content, questions, answers | Dates, view counts |
+| Analytics / Observability | Queries, click patterns, sessions | Exact counts |
+| Financial / Fraud | Transaction sequences, amounts in range | Non-demo-path records |
+
+**Common fidelity failures to avoid:**
+- Broken image URLs — use `picsum.photos/seed/{id}/400/400` or validated placeholder pattern
+- Generic content (`Product 1`, `Sample Description`) — all demo-visible text must be domain-realistic
+- Inconsistent IDs — entity IDs used in demo-critical documents must appear in related indices
+- Temporal incoherence — events that precede their prerequisite events (logout before login)
+- Anomaly injection too early or too late — ML jobs need sufficient lead time before the anomaly
+
+**For seed data with AI:** `hive-mind/patterns/data/LLM_DATA_GENERATION.md` provides
+structured LLM prompts for generating domain-specific demo data. Use when custom data
+is required (especially for Domain Expert Advisor and Documentation/Support archetypes).
+
+## Step 5c: Token Visibility Index (conditional)
+
+When the demo includes **Elastic Agent Builder**, include a `{prefix}agent-sessions` index
+in the data model. This index powers the AI Cost + Usage dashboard (D-036).
+
+Read `skills/token-visibility/SKILL.md` for the full mapping, seed data spec, and ES|QL
+query patterns. Add the index to the `build_order` in `{slug}-data-model.json` as the
+last standard index step (before ML config if present):
+
+```json
+{
+  "step": N,
+  "artifact": "{prefix}agent-sessions",
+  "type": "index",
+  "reason": "AI Cost + Usage dashboard — operational transparency for Agent Builder demos (D-036)"
+}
+```
+
+Add `"include_token_visibility": true` to the data model JSON when this is included.
+Set to `false` if the demo scope does not include Agent Builder or AI features.
+
 ## What Good Looks Like
 
 **Lowe's pattern** — complex interdependent model: `store-transactions` data stream (events

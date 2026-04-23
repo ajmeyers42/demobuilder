@@ -1,10 +1,113 @@
-# Kibana Workflow Patterns — Practical Reference (9.3)
+# Kibana Workflow Patterns — Practical Reference (9.4+)
 
-**Upstream library (Elastic org):** **[elastic/workflows](https://github.com/elastic/workflows)** — official **Elastic Workflow Library** (sample YAML under `workflows/`, docs under `docs/`). Use that repo for step types, Liquid patterns, and copy-paste examples; use *this* file for demobuilder-specific API wiring (Agent Builder `workflow_id`, `GET /api/workflows`, feature flags).
+**Upstream libraries (Elastic org):**
+- **[elastic/workflows](https://github.com/elastic/workflows)** — official Elastic Workflow Library (sample YAML under `workflows/`, docs under `docs/`). Use for step types, Liquid patterns, and copy-paste examples.
+- **[hive-mind/patterns/workflows/WORKFLOWS_API_REFERENCE.md](../../../../../hive-mind/patterns/workflows/WORKFLOWS_API_REFERENCE.md)** — detailed API reference including DELETE endpoint, search endpoint, and execution status. Use for API wiring.
+- **[hive-mind/patterns/workflows/WORKFLOW_YAML_STEP_TYPES.md](../../../../../hive-mind/patterns/workflows/WORKFLOW_YAML_STEP_TYPES.md)** — reference for YAML step types and Liquid syntax.
 
-Patterns below are also derived from the Lowe's "Store That Knows" demo. Every snippet here
-was validated against a live Serverless cluster. Use this as a lookup, not a
-tutorial.
+Use *this* file for demobuilder-specific API wiring (Agent Builder `workflow_id`, idempotency patterns, known issues).
+
+Patterns below are derived from live 9.4 ECH deployments. Use this as a lookup, not a tutorial.
+
+---
+
+## ⚠️ Known Issue: Stale Reads After Create/Update
+
+After `POST /api/workflows` or `PUT /api/workflows/{id}`, **do not immediately `GET` the
+workflow to read its ID**. The response body contains the `id` — capture it from the POST
+response directly. A `GET /api/workflows/{id}` right after creation may return stale data
+or 404 for up to a few seconds due to index refresh timing.
+
+```python
+# CORRECT — capture id from POST response
+resp = kb("POST", "/api/workflows", yaml_body)
+workflow_id = resp["id"]   # always here; do not re-fetch
+
+# WRONG — race condition; GET may return stale/missing data
+kb("POST", "/api/workflows", yaml_body)
+resp = kb("GET", "/api/workflows")  # may not reflect new workflow yet
+```
+
+**Workaround for name-based lookup:** If you must look up by name (e.g. for idempotency
+check before create), use `POST /api/workflows/search` with a name filter rather than
+fetching all workflows:
+
+```python
+def _workflow_id_by_name(name):
+    resp = kb("POST", "/api/workflows/search", {"query": name, "limit": 1})
+    items = resp.get("results") or resp.get("items") or []
+    for wf in items:
+        if wf.get("name") == name:
+            return wf["id"]
+    return None
+```
+
+---
+
+## Workflow CRUD — Complete API Reference
+
+**Create:**
+
+```bash
+curl -s -X POST "${KIBANA_URL}/api/workflows" \
+  -H "Authorization: ApiKey ${ES_API_KEY}" \
+  -H "Content-Type: application/yaml" \
+  -H "kbn-xsrf: true" \
+  -H "x-elastic-internal-origin: kibana" \
+  --data-binary @my-workflow.yaml
+# Response: {"id": "wf-...", "name": "...", "valid": true}
+```
+
+**Read (by ID):**
+
+```bash
+curl -s -X GET "${KIBANA_URL}/api/workflows/${WORKFLOW_ID}" \
+  -H "Authorization: ApiKey ${ES_API_KEY}" \
+  -H "kbn-xsrf: true" \
+  | jq '{id, name, valid, validationErrors}'
+```
+
+**Update:**
+
+```bash
+curl -s -X PUT "${KIBANA_URL}/api/workflows/${WORKFLOW_ID}" \
+  -H "Authorization: ApiKey ${ES_API_KEY}" \
+  -H "Content-Type: application/yaml" \
+  -H "kbn-xsrf: true" \
+  -H "x-elastic-internal-origin: kibana" \
+  --data-binary @my-workflow.yaml
+```
+
+**Delete (confirmed working in 9.4):**
+
+```bash
+curl -s -X DELETE "${KIBANA_URL}/api/workflows/${WORKFLOW_ID}" \
+  -H "Authorization: ApiKey ${ES_API_KEY}" \
+  -H "kbn-xsrf: true"
+# Returns 200 {} on success; 404 if already deleted (treat as success in teardown)
+```
+
+**Search by name (preferred for idempotency checks):**
+
+```bash
+curl -s -X POST "${KIBANA_URL}/api/workflows/search" \
+  -H "Authorization: ApiKey ${ES_API_KEY}" \
+  -H "Content-Type: application/json" \
+  -H "kbn-xsrf: true" \
+  -d '{"query": "my-workflow-name", "limit": 1}'
+# Response: {"results": [...], "total": N}  (note: key is "results", not "items")
+```
+
+**List all (use only for auditing — prefer search for lookups):**
+
+```bash
+curl -s -X GET "${KIBANA_URL}/api/workflows" \
+  -H "Authorization: ApiKey ${ES_API_KEY}" \
+  -H "kbn-xsrf: true" \
+  | jq '.items[] | {id, name, valid}'
+```
+
+---
 
 ---
 
@@ -240,10 +343,11 @@ curl -s -X POST "${KIBANA_URL}/api/workflows" \
   -H "Authorization: ApiKey ${ES_API_KEY}" \
   -H "Content-Type: application/yaml" \
   -H "kbn-xsrf: true" \
+  -H "x-elastic-internal-origin: kibana" \
   --data-binary @nearby-store-transfer.yaml
 ```
 
-Response includes `id` — this is the `workflow_id` you wire into Agent Builder.
+Response includes `id` — capture it immediately; do not re-fetch.
 
 ```json
 {
@@ -253,13 +357,15 @@ Response includes `id` — this is the `workflow_id` you wire into Agent Builder
 }
 ```
 
-**2. List existing workflows to get IDs:**
+**2. Search for a workflow by name (idempotency check):**
 
 ```bash
-curl -s -X GET "${KIBANA_URL}/api/workflows" \
+curl -s -X POST "${KIBANA_URL}/api/workflows/search" \
   -H "Authorization: ApiKey ${ES_API_KEY}" \
+  -H "Content-Type: application/json" \
   -H "kbn-xsrf: true" \
-  | jq '.items[] | {id, name, valid}'
+  -d '{"query": "nearby-store-transfer", "limit": 1}'
+# Response key is "results", not "items"
 ```
 
 **3. Get a specific workflow to verify `valid: true`:**
@@ -273,9 +379,21 @@ curl -s -X GET "${KIBANA_URL}/api/workflows/${WORKFLOW_ID}" \
   | jq '{id, name, valid, validationErrors}'
 ```
 
+**4. Delete a workflow (teardown):**
+
+```bash
+curl -s -X DELETE "${KIBANA_URL}/api/workflows/${WORKFLOW_ID}" \
+  -H "Authorization: ApiKey ${ES_API_KEY}" \
+  -H "kbn-xsrf: true"
+# 200: deleted; 404: already gone — both are OK during teardown
+```
+
 The `id` returned from creation is what goes into the Agent Builder tool config
 under `workflow_id`. Do not confuse it with the workflow `name` — the agent
 runtime resolves by ID only.
+
+**Header note:** Always include `x-elastic-internal-origin: kibana` on CREATE and UPDATE
+calls. Omitting it on some ECH 9.x builds causes 400 or silent validation failures.
 
 ---
 
@@ -290,3 +408,6 @@ runtime resolves by ID only.
 | `404` on `GET /api/workflows` | Workflows feature flag is not enabled | Enable via Management → Advanced Settings or re-provision with `kibana.workflows.enabled: true` |
 | Geo query rejects `lat`/`lon` as wrong type | Input values passed through `{{ }}` string interpolation arrive as strings | Use `${{ inputs.origin_lat }}` (expression syntax) for all numeric input positions |
 | `nil` field written to index document | Search returned 0 hits; `\| first` on an empty array returns nil; no guard in place | Wrap the index step in an `if` step that checks `steps.search.output.hits.total.value > 0` |
+| Duplicate workflows after re-deploy | `GET /api/workflows` returned stale list after prior create; idempotency check failed | Use `POST /api/workflows/search {"query": name}` instead of GET all + filter; capture ID from POST response directly |
+| Workflow ID `unknown` / `valid=False` after creation | `_workflow_id_by_name` was parsing `items` key but 9.4 returns `results` key | Check both: `resp.get("results") or resp.get("items")` |
+| 400 on workflow create | Missing `x-elastic-internal-origin: kibana` header | Add header to all POST/PUT workflow calls |

@@ -120,12 +120,79 @@ only that. Do not retrofit every engagement into a “standard” shape that hap
 for a prior customer; **read the inputs** and produce artifacts that match **this** demo.
 
 **Additional skills (planning / Kibana / Security):**
+- `demo-ideation` — consultative SA coaching to choose demo direction, archetype, and wow moments before discovery. Produces `{slug}-ideation.md` (see Stage 0 above).
 - `demo-kibana-agent-design` — when the demo script includes **Elastic Agent Builder** (custom agent, tools, workflows), produce `{slug}-agent-builder-spec.md` per `skills/demo-kibana-agent-design/SKILL.md`.
+- `token-visibility` — two-dimensional: (A) SA tooling for tracking own Claude Code / Cursor spend; (B) demo feature that adds an **AI Cost + Usage dashboard** to any Agent Builder demo. Included by default when Agent Builder is in scope (D-036). Read `skills/token-visibility/SKILL.md`.
 - **Elastic Security** — when the story includes detection, alerts, cases, or sample security data, read and follow the relevant `security-*` skills from `elastic/agent-skills` (same install as Search/Obs); **platform-audit** must reflect Sec license/tier and feature availability.
+
+**Reference libraries (hive-mind):**
+The `hive-mind` local clone (see currency check, Step 0) provides validated patterns for:
+- Kibana dashboards: `hive-mind/patterns/dashboards/DASHBOARD_NDJSON_FORMAT.md`
+- Workflows API: `hive-mind/patterns/workflows/WORKFLOWS_API_REFERENCE.md`
+- Agent Builder API: `hive-mind/patterns/agent-builder/AGENT_BUILDER_API_MANAGEMENT.md`
+- Probe-based feature detection: `hive-mind/patterns/deployment/SERVERLESS_FEATURE_DETECTION.md`
+- Data fidelity: `hive-mind/patterns/data/DATA_FIDELITY_GUIDE.md`
+- Demo archetypes + coaching: `hive-mind/skills/hive-sa-coaching/`
+Always prefer demobuilder's `docs/decisions.md` and `skills/demo-deploy/references/` for
+demobuilder-specific decisions; use hive-mind for upstream pattern reference.
 
 **Additional post-deploy skills** available once a cluster is deployed:
 - `demo-status` — quick pre-demo readiness pulse check (connectivity, doc counts, ML state, ELSER latency)
 - `demo-teardown` — post-demo cleanup; removes all demo resources prefix-aware
+
+## Step 0: Currency Check (before any pipeline work)
+
+Before starting or continuing any pipeline for an engagement, verify that the demobuilder
+repo and the hive-mind reference library are current. This ensures all skill guidance,
+workflow patterns, and agent-builder patterns reflect the latest known-good implementations.
+
+```bash
+# Run from the demobuilder repo root
+cd /path/to/demobuilder && git fetch origin && git status
+# If behind: git pull --ff-only
+```
+
+If a **hive-mind** local clone is available (default: check `../hive-mind` relative to
+demobuilder root, or `HIVE_MIND_PATH` env var), run:
+
+```bash
+cd /path/to/hive-mind && git fetch origin && git status
+```
+
+Report the result before continuing:
+```
+🔄 Currency check
+  demobuilder:  ✅ up to date (main, rev abc1234)
+  hive-mind:    ✅ up to date (main, rev def5678)
+  agent-skills: ⚠️  not found — install per docs/todo.md
+```
+
+If the demobuilder repo has unpulled commits and the SA wants to proceed anyway, note
+the version being used and continue. Do not block on `hive-mind` — it is a reference
+library, not a hard dependency.
+
+**Why:** New pattern adoptions (workflow DELETE, search-by-name, probe-based detection,
+dashboard stable UUIDs) are documented in `hive-mind/patterns/`. Running against a stale
+clone means the agent works from outdated guidance. This check adds ~10 seconds and
+prevents hours of debugging.
+
+## Step 0b: Ideation Gate (optional — precedes discovery when direction is unclear)
+
+If the SA provides **only a company name, vertical, or vague direction** (no discovery notes,
+no diagnostic, no prior pipeline outputs), run the ideation stage before continuing:
+
+- Read: `../demo-ideation/SKILL.md`
+- Inputs: SA's description of the customer, vertical, or situation
+- Outputs: `{slug}-ideation.md` — frozen demo direction contract
+
+The ideation stage produces a `{slug}-ideation.md` that feeds directly into
+`demo-script-template` as the primary narrative contract. If discovery notes are also
+available, run `demo-discovery-parser` first, then pass both to `demo-script-template`.
+
+**Skip ideation if:**
+- Discovery notes or a diagnostic file are already provided (proceed to Step 1 / Stage 1)
+- The SA specifies exactly what they want to build
+- The engagement already has a `{slug}-discovery.json` or `{slug}-ideation.md` in the workspace
 
 ## Step 1: Identify the Engagement and Workspace
 
@@ -150,10 +217,11 @@ don't re-run a stage if its output already exists and the inputs haven't changed
 ```
 Stage                    | Output file                     | Re-run if...
 -------------------------|----------------------------------|---------------------------
+demo-ideation            | {slug}-ideation.md              | No discovery notes; SA needs direction
 demo-discovery-parser    | {slug}-discovery.json           | New/changed discovery notes
 demo-diagnostic-analyzer | {slug}-current-state.json       | New/changed diagnostic file
 demo-platform-audit      | {slug}-platform-audit.json      | discovery or current-state changed
-demo-script-template     | {slug}-demo-script.md           | platform-audit changed or user requested
+demo-script-template     | {slug}-demo-script.md           | platform-audit or ideation changed or user requested
 demo-data-modeler        | {slug}-data-model.json          | script changed
 demo-ml-designer         | {slug}-ml-config.json           | data-model changed and ML scenes in script
 demo-validator           | {slug}-demo-checklist.md        | always run last — regenerate each time
@@ -166,6 +234,8 @@ Report the inventory to the user before executing:
 
 Stage                    Status
 ─────────────────────────────────────────
+Currency check           ✅ Up to date (demobuilder rev abc1234, hive-mind rev def5678)
+Ideation                 ⏭  Skipped  (discovery notes provided)
 Discovery parser         ✅ Complete  ({slug}-discovery.json)
 Diagnostic analyzer      ⏭  Skipped  (no diagnostic provided)
 Platform audit           ✅ Complete  ({slug}-platform-audit.json)
@@ -222,10 +292,16 @@ For each stage that needs to run, in order:
 
 ### Stage execution order and skip conditions
 
+**Stage 0 — demo-ideation** *(optional — run when no discovery notes or diagnostic exist)*
+- Skip if: `{slug}-discovery.json` OR `{slug}-ideation.md` exists, OR discovery notes provided
+- Read: `../demo-ideation/SKILL.md`
+- Inputs: SA description, customer vertical, or "I have a meeting with X" context
+- Outputs: `{slug}-ideation.md` (frozen contract: archetype, wow moments, capability map, data strategy)
+
 **Stage 1 — demo-discovery-parser**
 - Skip if: `{slug}-discovery.json` exists in workspace AND no new discovery notes provided
 - Read: `../demo-discovery-parser/SKILL.md`
-- Inputs: discovery notes (PDF/text/markdown)
+- Inputs: discovery notes (PDF/text/markdown); optionally `{slug}-ideation.md` for narrative validation
 - Outputs: `{slug}-discovery.json`, `{slug}-confirmation.md`, `{slug}-gaps.md`
 
 **Stage 2 — demo-diagnostic-analyzer** *(optional)*
@@ -243,9 +319,9 @@ For each stage that needs to run, in order:
   proceeding. Auto-adjust scope: remove blocked features from the script brief, continue.
 
 **Stage 4 — demo-script-template**
-- Skip if: `{slug}-demo-script.md` exists AND platform-audit hasn't changed
+- Skip if: `{slug}-demo-script.md` exists AND platform-audit hasn't changed AND ideation hasn't changed
 - Read: `../demo-script-template/SKILL.md`
-- Inputs: `{slug}-discovery.json`, `{slug}-platform-audit.json`
+- Inputs: `{slug}-discovery.json`, `{slug}-platform-audit.json`, `{slug}-ideation.md` (if exists — takes priority for wow moments and archetype)
 - Outputs: `{slug}-demo-script.md`, `{slug}-demo-brief.md`
 
 **Stage 5 — demo-data-modeler**

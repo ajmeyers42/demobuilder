@@ -19,9 +19,13 @@ You are specifying how the SE implements **Elastic Agent Builder** in Kibana for
 
 ## Canonical references (read before writing)
 
-- **This repo:** `skills/demo-deploy/references/workflow-patterns.md` — workflow `id` vs name, Agent Builder tool wiring, `GET /api/workflows`.
+- **This repo:** `skills/demo-deploy/references/workflow-patterns.md` — workflow `id` vs name, Agent Builder tool wiring, stale-read warning, workflow DELETE and search-by-name API.
+- **hive-mind (adopt these — D-034):**
+  - `hive-mind/patterns/agent-builder/AGENT_BUILDER_API_MANAGEMENT.md` — CRUD API for agents and tools (tool types, system prompt design, agent cloning pattern)
+  - `hive-mind/patterns/agent-builder/WORKFLOW_INTEGRATION.md` — wiring workflows as agent tools
+  - `hive-mind/patterns/agent-builder/A2A_COORDINATOR_PATTERN.md` — multi-agent orchestration (for stretch scenarios)
 - **Elastic org:** **[elastic/workflows](https://github.com/elastic/workflows)** — Elastic Workflow Library (YAML examples, docs). Prefer this for workflow *authoring*; use `workflow-patterns.md` for Kibana API + agent handoff.
-- **Elastic Docs (same topic):** [Agent Builder get started](https://www.elastic.co/docs/explore-analyze/ai-features/agent-builder/get-started), [custom agents](https://www.elastic.co/docs/explore-analyze/ai-features/agent-builder/custom-agents), [custom tools](https://www.elastic.co/docs/explore-analyze/ai-features/agent-builder/tools/custom-tools), [Agent Builder API tutorial](https://www.elastic.co/docs/explore-analyze/ai-features/agent-builder/agent-builder-api-tutorial) if programmatic.
+- **Elastic Docs:** [Agent Builder get started](https://www.elastic.co/docs/explore-analyze/ai-features/agent-builder/get-started), [custom agents](https://www.elastic.co/docs/explore-analyze/ai-features/agent-builder/custom-agents), [custom tools](https://www.elastic.co/docs/explore-analyze/ai-features/agent-builder/tools/custom-tools).
 
 ## Step 1: Confirm scope
 
@@ -41,22 +45,61 @@ Write **copy-paste-ready** agent instructions that:
 3. **Link** to the customer SLA language from discovery (e.g. acknowledge vs resolve windows).
 4. **Safety:** POC only; no production or PII claims.
 
-## Step 4: Tools (9.3 Agent Builder)
+## Step 4: Tools (9.4+ Agent Builder v0.2.0)
 
-List each tool with **type** and **purpose**:
+List each tool with **type** and **purpose**. Reference `hive-mind/patterns/agent-builder/AGENT_BUILDER_API_MANAGEMENT.md` for the current API shape.
 
 | Type | Use |
 |------|-----|
-| **ES|QL** | Parameterized queries the SA tests in the tool editor (SLA breakdowns, lookups). |
-| **Index search** | Scoped patterns to claims + KB; semantic/policy questions. |
-| **Workflow** | **Workflow `id`** (from API) that performs **create Case** or other scripted action — not the workflow *name*. |
+| **ES|QL** | Parameterized queries the SA tests in the tool editor (SLA breakdowns, aggregations, lookups). Parameter `type` values must use ES-style types: `keyword`, `text`, `integer`, `date`. |
+| **Index search** | Scoped to one index pattern; semantic/policy questions, document retrieval. Use `index_search` tool type (9.4+). |
+| **Workflow** | **Workflow `id`** (from API) that performs an action — not the workflow *name*. Obtain `id` from POST response; do not re-fetch. |
+| **Platform built-in** | `platform.core.create_visualization`, `platform.core.index_explorer` — add these to `tool_ids` to give the agent UI creation capability. |
+
+**Platform skills** (`configuration.skill_ids`) — these are capability bundles separate from tools:
+- `data-exploration` — enables the agent to run ES|QL analytics autonomously
+- `visualization-creation` — enables the agent to create charts and dashboards
+- Probe `GET /api/agent_builder/skills` to confirm available skill IDs before deploying
+
+**Agent configuration shape (9.4+, D-029):**
+```json
+{
+  "configuration": {
+    "instructions": "...",
+    "tools": [{"tool_ids": ["tool-id-1", "tool-id-2", "platform.core.create_visualization"]}],
+    "skill_ids": ["data-exploration", "visualization-creation"]
+  }
+}
+```
 
 Do **not** specify **MCP tools** unless the SA explicitly asks — default demobuilder demos use Elastic-native tools only.
 
 ## Step 5: Workflow linkage
 
 - Name the **workflow** as scripted in `{slug}-demo-script.md`.
-- Remind: create workflow first → copy **`id`** → attach to **Workflow tool** in Agent Builder per `workflow-patterns.md`.
+- Create workflow first → capture **`id`** from POST response → attach as **Workflow tool** in Agent Builder per `workflow-patterns.md`.
+- Do NOT re-fetch workflow ID after creation — use the value directly from POST response (stale-read risk).
+- Reference `hive-mind/patterns/agent-builder/WORKFLOW_INTEGRATION.md` for the exact API wiring pattern.
+
+## Step 5b: Agent Cloning pattern (for multi-tenant or shared cluster demos)
+
+When the same agent needs to run in multiple engagement spaces on the same cluster, or when
+you need to adapt an existing Elastic-managed agent without modifying it:
+
+```python
+# GET base agent
+base = kb("GET", f"/api/agent_builder/agents/{source_agent_id}")
+# Strip read-only fields
+clone = {k: v for k, v in base.items()
+         if k not in ("id", "created_at", "updated_at", "created_by", "updated_by")}
+# Apply engagement-specific customization
+clone["name"]        = f"[{SLUG}] {base['name']}"
+clone["configuration"]["instructions"] = custom_instructions
+# POST as new agent
+resp = kb("POST", "/api/agent_builder/agents", clone)
+```
+
+Reference: `hive-mind/patterns/agent-builder/AGENT_BUILDER_API_MANAGEMENT.md`.
 
 ## Step 6: Output
 

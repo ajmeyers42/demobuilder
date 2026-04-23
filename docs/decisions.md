@@ -683,6 +683,113 @@ if (major, minor) < (9, 4):
 
 ---
 
+## D-034: hive-mind as pattern reference library; adopt where better with no gaps
+
+**Decision:** The local `elastic/hive-mind` clone is a **reference library** for
+demobuilder. When `hive-mind` provides a pattern, API reference, or skill that is
+demonstrably better than demobuilder's current guidance **and** does not introduce a gap
+in demobuilder's capabilities, the demobuilder skill should **reference or adopt** the
+hive-mind pattern rather than maintaining a parallel implementation.
+
+**Adoption boundaries:**
+- hive-mind **patterns** (`patterns/workflows/`, `patterns/dashboards/`, `patterns/agent-builder/`,
+  `patterns/deployment/`, `patterns/data/`) → Reference from demobuilder skills; do not copy verbatim.
+- hive-mind **skills** (`skills/hive-sa-coaching/`, `skills/hive-token-optimization/`) → May be
+  referenced or adapted; demobuilder-specific overlays in demobuilder skill files.
+- hive-mind **does not replace** demobuilder's pipeline decisions (`docs/decisions.md`),
+  engagement tagging (D-026), asset manifest (D-031), ILM defaults (D-027), or any ECH-specific
+  patterns not present in hive-mind.
+
+**Reference paths (default):**
+- hive-mind root: `../hive-mind` relative to demobuilder root, or `HIVE_MIND_PATH` env var
+- Currency checked at pipeline start (Step 0 in demobuilder/SKILL.md)
+
+**Rationale:** hive-mind confirmed the Workflows DELETE endpoint, search-by-name pattern,
+stale-read warning, dashboard stable UUIDs, probe-based feature detection, and agent-builder
+A2A coordinator pattern — all of which demobuilder had discovered the hard way or missed
+entirely. Maintaining alignment means future demobuilder builds benefit from hive-mind
+improvements without manual re-discovery.
+
+**Applied to:** `skills/demobuilder/SKILL.md`, `skills/demo-deploy/SKILL.md`,
+`skills/demo-deploy/references/workflow-patterns.md`.
+
+**Date:** 2026-04-21 | **Session:** hive-mind comparison and adoption
+
+---
+
+## D-035: Demo Ideation as Stage 0 in the demobuilder pipeline
+
+**Decision:** A new **demo-ideation** stage (Stage 0) is added to the demobuilder pipeline,
+running **before** `demo-discovery-parser` when the SA does not have a clear demo direction,
+no discovery notes, or is at a hackathon / exploratory phase. It produces a frozen
+`{slug}-ideation.md` contract that flows into `demo-script-template` as the primary
+narrative source.
+
+**The ideation stage implements the hive-mind SA coaching methodology** from
+`hive-mind/skills/hive-sa-coaching/` and uses the **Demo Archetypes gallery** from
+`hive-mind/skills/hive-sa-coaching/references/DEMO_ARCHETYPES.md`:
+- AI Search + Assistant
+- Operational Triage Console
+- Customer Support Intelligence
+- E-Commerce with Analytics
+- Domain Expert Advisor
+
+**Skip condition:** If discovery notes, a diagnostic file, or prior pipeline outputs
+(`{slug}-discovery.json`, `{slug}-ideation.md`) already exist, ideation is skipped.
+
+**Output contract** (`{slug}-ideation.md`) includes:
+- Chosen archetype + rationale
+- Top 3 wow moments
+- Main demo paths (happy paths with user actions and expected outcomes)
+- Elastic capability map (2-4 capabilities, outcome-first)
+- Data strategy (starter vs custom, volume minimum)
+- Operational transparency flag (token visibility — see D-036)
+- Workflow automation proposals if applicable
+- Build path (Quick / Customized / Custom Data / Full Custom) with time estimate
+
+**Rationale:** The pipeline previously assumed discovery notes would always be provided
+upfront. In practice, many engagements start with "I have a meeting next week — what
+should I show?" This stage answers that before committing to a build direction.
+
+**Applied to:** `skills/demobuilder/SKILL.md` (Step 0b and Stage 0),
+`skills/demo-ideation/SKILL.md` (new skill), `skills/demo-script-template/SKILL.md` (Step 1b).
+
+**Date:** 2026-04-21 | **Session:** hive-mind comparison and adoption
+
+---
+
+## D-036: Token visibility as a standard demo feature for Agent Builder engagements
+
+**Decision:** Any demo that includes **Elastic Agent Builder** must include an **AI Cost +
+Usage dashboard** as a standard deliverable, unless the SA explicitly opts out
+(`INCLUDE_TOKEN_VISIBILITY=false` in `.env`).
+
+**What is included:**
+1. **`{prefix}agent-sessions` index** — engagement-scoped, schema compatible with hive-mind
+   Group B token tracking. Hot-only ILM, delete after 90 days (D-027).
+2. **30-60 synthetic session documents** — covering 7-14 days of realistic AI agent usage,
+   realistic cost distribution ($0.02–$2.50/session), multiple models and agents.
+3. **ES|QL dashboard panels** — daily spend, cost by model, sessions by agent, average cost
+   per query, cache efficiency. Dashboard ID is stable (deterministic UUID from slug + "ai-usage").
+4. **A demo scene** in `{slug}-demo-script.md` titled "AI Cost + Usage — Operational Transparency"
+   with talking points for budget owners, IT governance, and CTO audiences.
+
+**Rationale:** Enterprises buying AI-powered solutions increasingly ask: "What does it cost
+to operate?" and "Who can see the usage?" The ability to show operational transparency and
+AI cost governance is a differentiated capability that transforms a demo from a feature
+showcase into a platform story. It lands especially well with finance and IT leadership.
+
+**Index schema:** See `skills/token-visibility/SKILL.md` for the full mapping, cost formula,
+and ES|QL queries. The schema is intentionally compatible with hive-mind Group B so SAs
+can compare their own session patterns against the demo data.
+
+**Applied to:** `skills/demo-data-modeler/SKILL.md` (Step 5c), `skills/demo-deploy/SKILL.md`
+(Step 13j), `skills/demo-script-template/SKILL.md` (token visibility scene), `skills/token-visibility/SKILL.md`.
+
+**Date:** 2026-04-21 | **Session:** hive-mind comparison and adoption
+
+---
+
 ## D-029 — Agent Builder: skills vs. tools — use `configuration.skill_ids` for platform skills
 
 **Status:** Active | **Applies to:** `skills/demo-deploy/SKILL.md`, `bootstrap.py` step 8f

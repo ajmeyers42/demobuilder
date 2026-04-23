@@ -1,0 +1,37 @@
+---
+description: Hive Mind pattern-first workflow for Elastic integrations
+globs:
+alwaysApply: false
+---
+
+# Hive Mind
+
+This project has hive-mind skills installed at `.cursor/skills/` (symlinked to `../hive-mind/skills/`).
+
+## Pattern-First Workflow
+1. Before implementing, check `../hive-mind/.hive-mind-index.json` for relevant patterns by tag.
+2. Read the full pattern file before coding.
+3. Follow established conventions and code structure.
+4. Check skill `references/` directories for troubleshooting docs.
+
+## Skills Routing
+Route tasks through domain skills in `.cursor/skills/`:
+- SA coaching, demo ideation, hackathon brainstorming -> hive-sa-coaching
+- token optimization, reduce tokens, save tokens, cost, vibe coding, model tiering, RTK -> hive-token-optimization
+- Elastic Workflows API, workflow YAML, automation -> hive-workflows
+- Kibana dashboards, NDJSON, Lens panels, data views -> hive-dashboards
+- demo data, dataset generation, LLM data, data fidelity -> hive-demo-data
+- composite demo guides, end-to-end build -> hive-demo-recipes
+- Elastic Agent Skills, npx skills, agentskills.io -> hive-elastic-agent-skills
+
+## Recipe Shortcuts
+- /hive-demo-recipes search -> recipes/SEARCH_DEMO.md
+- /hive-demo-recipes agent-builder -> recipes/AGENT_BUILDER_DEMO.md
+- /hive-demo-recipes ecommerce -> recipes/ECOMMERCE_DEMO.md
+
+## Discovery Commands
+- /hive-mind list -> python ../hive-mind/scripts/hive-mind-index-cli.py list
+- /hive-mind search <tag> -> python ../hive-mind/scripts/hive-mind-index-cli.py search <tag>
+- /hive-mind tags [prefix] -> python ../hive-mind/scripts/hive-mind-index-cli.py tags [prefix]
+
+Start with `../hive-mind/skills/hive-mind/SKILL.md` for broad requests.

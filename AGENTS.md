@@ -48,3 +48,31 @@ Cloud provisioning and Kibana / Observability / **Elastic Security** operations 
 **full** **[elastic/agent-skills](https://github.com/elastic/agent-skills)** install (see
 [`docs/todo.md`](docs/todo.md)) — not a Search-only subset. If missing, say so clearly instead
 of failing silently.
+
+## hive-mind-start
+# Hive Mind
+
+This project has hive-mind skills installed at `.agents/skills/`, `.cursor/skills/`, and `.claude/skills/`
+(symlinked to `../hive-mind/skills/`). Use these for Elastic integration patterns.
+
+## Pattern-First Workflow
+1. Before implementing, check `../hive-mind/.hive-mind-index.json` for relevant patterns by tag.
+2. Read the full pattern file before coding.
+3. Follow established conventions and code structure.
+4. Check skill `references/` directories for troubleshooting docs.
+
+## Skills Routing
+Route tasks through domain skills:
+- SA coaching, demo ideation, hackathon brainstorming → `.agents/skills/hive-sa-coaching`
+- token optimization, reduce tokens, save tokens, cost, vibe coding, model tiering → `.agents/skills/hive-token-optimization`
+- Elastic Workflows API, workflow YAML, automation → `.agents/skills/hive-workflows`
+- Kibana dashboards, NDJSON, Lens panels, data views → `.agents/skills/hive-dashboards`
+- demo data, dataset generation, LLM data, data fidelity → `.agents/skills/hive-demo-data`
+- composite demo guides, end-to-end build → `.agents/skills/hive-demo-recipes`
+- Elastic Agent Skills, npx skills, agentskills.io → `.agents/skills/hive-elastic-agent-skills`
+
+## Discovery Commands
+- /hive-mind list → `python ../hive-mind/scripts/hive-mind-index-cli.py list`
+- /hive-mind search <tag> → `python ../hive-mind/scripts/hive-mind-index-cli.py search <tag>`
+- /hive-mind tags [prefix] → `python ../hive-mind/scripts/hive-mind-index-cli.py tags [prefix]`
+## hive-mind-end

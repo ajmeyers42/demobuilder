@@ -89,9 +89,13 @@ rules, SLOs, and saved objects follow **product** schemas for the target version
 - `references/serverless-differences.md` — Serverless-specific behaviors, feature flags,
   ML field names, Liquid array syntax, ELSER service names, saved objects quirks
 - `references/workflow-patterns.md` — working Workflow YAML patterns, `| first` syntax,
-  template variables, step types, validation checklist, deploy API commands
+  template variables, step types, stale-read warning, DELETE endpoint, search-by-name, deploy API commands
 - `references/asset-manifest.md` — manifest index schema, `_manifest_add()` helpers,
   teardown read pattern (D-031)
+- `hive-mind/patterns/agent-builder/AGENT_BUILDER_API_MANAGEMENT.md` — API management guide
+  for Agent Builder (CRUD, tool types, system prompts, agent cloning) — D-034
+- `hive-mind/patterns/dashboards/DASHBOARD_NDJSON_FORMAT.md` — Kibana dashboard NDJSON reference
+  (Lens panel types, stable UUIDs, common pitfalls) — D-034
 
 Do not iterate past 30 minutes on an undocumented Workflow or Agent Builder API without
 surfacing it as a blocker and asking for the `elastic/workflows` or
@@ -171,10 +175,11 @@ Engagement dir is `{workspace}` (default parent `~/engagements` per docs/engagem
 After `GET /`, print cluster version and warn if `ELASTIC_VERSION` in `.env` disagrees (D-020).
 
 Usage:
-  python3 bootstrap.py              # deploy everything
-  python3 bootstrap.py --dry-run   # print what would be done, no API calls
-  python3 bootstrap.py --skip-data # skip data loading (re-run after a config change)
-  python3 bootstrap.py --step N    # resume from step N (see step list below)
+  python3 bootstrap.py                    # deploy everything
+  python3 bootstrap.py --dry-run         # print what would be done, no API calls
+  python3 bootstrap.py --skip-data       # skip data loading (re-run after a config change)
+  python3 bootstrap.py --step N          # resume from step N (see step list below)
+  python3 bootstrap.py --only GROUP      # deploy only a named group (e.g. --only kibana, --only ml, --only data)
 
 Steps:
   1.  Connectivity check (includes version validation vs ELASTIC_VERSION)
@@ -255,8 +260,13 @@ def ensure_kibana_space():
         print(f"  Kibana space '{space_id}' already exists"); return
     except urllib.error.HTTPError as e:
         if e.code != 404: raise
-    body = json.dumps({"id": space_id, "name": os.environ.get("ENGAGEMENT", space_id),
-                       "description": f"Demobuilder engagement {space_id}"}).encode()
+    body = json.dumps({
+        "id": space_id,
+        "name": os.environ.get("ENGAGEMENT", space_id),
+        "description": f"Demobuilder engagement {space_id}",
+        "disabledFeatures": [],                          # enable all Kibana features in this space
+        "solution": os.environ.get("KIBANA_SOLUTION", "es")  # "es", "oblt", or "security" per demo
+    }).encode()
     req = urllib.request.Request(f"{KB_URL}/api/spaces/space", data=body, method="POST", headers=headers)
     try:
         urllib.request.urlopen(req, timeout=30)
@@ -461,10 +471,26 @@ for the target version.
 **SLO stack docs:** Elastic Guide (concepts, create SLO, burn-rate alerts, troubleshoot incl.
 reset) plus the API hub — see **`docs/references-observability-slo.md`** in demobuilder. Use the **`current`** Guide branch for 9.x stacks (D-033/D-025) and re-check pages when the stack version changes.
 
-**13d — Saved objects** *(when dashboards/visualizations are in scope)*  
+**13d — Saved objects / Dashboards** *(when dashboards/visualizations are in scope)*  
 `POST /api/saved_objects/_import?overwrite=true` (multipart NDJSON). Prefer definitions
 authored via `kibana-dashboards` from the data model + script. Apply `INDEX_PREFIX` to
 index titles in queries before import.
+
+**Stable UUIDs for dashboards and saved objects** — always use deterministic UUIDs derived
+from the engagement ID + object name so re-deploys produce the same IDs and avoid duplicates:
+
+```python
+import uuid
+_NS = uuid.UUID("6ba7b810-9dad-11d1-80b4-00c04fd430c8")  # UUID namespace (URL)
+
+def stable_id(name: str) -> str:
+    """Generate a stable UUID from engagement slug + object name."""
+    return str(uuid.uuid5(_NS, f"{SLUG}:{name}"))
+```
+
+Use `stable_id("dashboard-name")` whenever authoring dashboard or saved object IDs.
+This makes teardown reliable (IDs are known at generation time) and prevents duplicate
+panels when bootstrap is re-run. Reference: `hive-mind/patterns/dashboards/DASHBOARD_NDJSON_FORMAT.md`.
 
 **Kibana APIs (rules, connectors, saved objects):** See **`docs/references-kibana-apis.md`**
 — Kibana Guide `current` for **Saved Objects** and **Alerting** (rules and connectors). SLO
@@ -514,11 +540,62 @@ except RuntimeError as e:
 
 Teardown deletes cloned rules by `rule_id`. Elastic-managed originals are left untouched.
 
-*13h — Other** *(streams, Fleet, synthetics, etc.)*  
+**13h — Cases configuration** *(when Security or SIEM is in scope)*  
+Configure the Cases feature for the engagement:
+
+```python
+# GET current config (will 404 on first run → POST to create)
+try:
+    existing = kb("GET", "/api/cases/configure", ok=(200,))
+    version = existing[0]["version"] if existing else None
+    if version:
+        kb("PATCH", "/api/cases/configure", {"closure_type": "close-by-user", "version": version})
+    else:
+        kb("POST", "/api/cases/configure", {"closure_type": "close-by-user"})
+except Exception:
+    kb("POST", "/api/cases/configure", {"closure_type": "close-by-user", "owner": "securitySolution"})
+print("  Cases: configured")
+```
+
+**13i — Probe-based feature detection** *(for optional capabilities — applies alongside D-033 version gate)*
+
+For capabilities that may or may not be available (Agent Builder, Workflows, ELSER, Cases),
+use HTTP status probe before attempting deployment — do not only rely on deployment type:
+
+```python
+def attempt_or_skip(label: str, fn):
+    """Try fn(); skip gracefully if API returns 404/403/400 (feature not available)."""
+    try:
+        fn()
+    except RuntimeError as e:
+        code = str(e)[:3]
+        if code in ("404", "403", "400"):
+            print(f"  {label}: not available on this cluster — skipping (probe: {code})")
+        else:
+            raise
+```
+
+Usage:
+```python
+attempt_or_skip("Agent Builder",  lambda: create_agent_builder())
+attempt_or_skip("Workflows",      lambda: deploy_workflows())
+attempt_or_skip("Cases config",   lambda: configure_cases())
+```
+
+This complements the version gate (D-033) — it catches feature-flag or license-level
+unavailability that version numbers don't predict. Reference: `hive-mind/patterns/deployment/SERVERLESS_FEATURE_DETECTION.md`.
+
+**13j — Token Visibility dashboard** *(when Agent Builder is in scope and INCLUDE_TOKEN_VISIBILITY=true)*
+
+Deploy the AI Cost + Usage dashboard from `skills/token-visibility/SKILL.md`.
+Create the `{prefix}agent-sessions` index, load 30-60 seed session documents, and build
+the ES|QL dashboard panels. This is a standard deliverable for any Agent Builder demo (D-036).
+
+*13k — Other** *(streams, Fleet, synthetics, etc.)*  
 If the platform audit and script call for them, add the matching API steps — do not assume
 this list is exhaustive.
 
-**13i — Engagement tagging (`demobuilder:<id>`)** *(D-026 — whenever a create payload has `tags`)*  
+**13l — Engagement tagging (`demobuilder:<id>`)** *(D-026 — whenever a create payload has `tags`)*  
 Merge **`demobuilder_tags()`** from **`references/demobuilder-tagging.md`** into SLOs, alerting
 rules, ML job bodies, Agent Builder agents/tools, Security rules (if tagged), and any other
 scoped creates. Indices remain distinguished by **`p(name)`**; saved objects should carry the tag

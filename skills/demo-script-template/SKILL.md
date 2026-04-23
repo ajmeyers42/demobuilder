@@ -56,6 +56,28 @@ appropriate when the audit supports combined capabilities.
 If only raw discovery notes are provided (no parsed JSON), read them directly and extract
 what you need to proceed.
 
+## Step 1b: Apply Demo Archetype (from ideation or archetype gallery)
+
+If `{slug}-ideation.md` exists in the workspace, read it first. The ideation contract
+provides frozen wow moments, capability map, and audience context that should drive
+the script structure directly — do not re-derive these from discovery JSON alone.
+
+If no ideation contract exists, consult the Demo Archetype Gallery in
+`skills/demo-ideation/SKILL.md` (which mirrors `hive-mind/skills/hive-sa-coaching/references/DEMO_ARCHETYPES.md`).
+Select the archetype that best matches the discovery profile:
+
+| Customer vertical / pain | Suggested anchor archetype |
+|---|---|
+| Retail, product catalog, e-commerce | AI Search + Assistant or E-Commerce with Analytics |
+| Operations, field service, IT ops, manufacturing | Operational Triage Console |
+| Support, service desk, helpdesk | Customer Support Intelligence |
+| Financial services, insurance, healthcare, government | Domain Expert Advisor |
+| Cross-solution / hybrid | Operational Triage Console + Domain Expert Advisor |
+
+Use the archetype's **wow moments** and **minimum bar** as the target for the script.
+State the chosen archetype in the script header. If combining archetypes, name both:
+"Anchor: Operational Triage Console | Stretch: Domain Expert Advisor elements."
+
 ## Step 2: Determine the Script Shape
 
 Before writing a single scene, answer these questions from the discovery JSON:
@@ -187,6 +209,30 @@ of what just happened, before moving to the next scene.]"* [Omit if no exec in a
 ---
 
 [Repeat scene structure for each scene]
+
+---
+
+## [Scene: AI Cost + Usage — Operational Transparency] (optional — include when demo has Agent Builder)
+
+**Talking points:**
+- "Everything the AI agents do is observable. This dashboard shows you the exact token
+  consumption per agent, per session, what it's costing, and which models are being used."
+- "Budget owners and IT governance get this visibility without asking engineering. You can
+  see cache efficiency — how much is being reused versus re-tokenized — which directly
+  correlates to operating costs."
+- "If usage spikes after a new release, you see it here before your cloud bill arrives."
+
+**On screen:** Navigate to AI Usage & Cost Overview dashboard. Show daily spend trend,
+cost by model breakdown, sessions by agent, and recent session table.
+
+**Wow moment:** *"You're not just deploying AI — you're operating it. This is what AI governance
+looks like in practice: complete visibility into what your agents are doing and what it costs."*
+
+**Exec bridge:** *"This is the dashboard your CFO and CTO both want to see — business value
+from AI, with cost controls they can actually act on."*
+
+*Note for SE: This scene is 3-5 minutes and lands especially well with IT leadership, finance,
+and governance stakeholders. Skip if audience is purely technical/developer-focused.*
 
 ---
 
