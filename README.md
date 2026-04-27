@@ -18,11 +18,11 @@ Drop in discovery notes (and optionally a diagnostic export) and say **"build th
 | **Cursor** or **Claude Code** | The assistant drives the pipeline; you provide inputs and approvals |
 | **Python 3** | Required for `bootstrap.py`, `teardown.py`, `demo_status.py` |
 | **elastic/agent-skills** (full install) | `npx skills add elastic/agent-skills` — install all skill areas (Search, Observability, **Security**) |
-| **elastic/hive-mind** (sibling clone) | `git clone https://github.com/elastic/hive-mind ../hive-mind` — must be a sibling of this repo |
+| **elastic/hive-mind** | `git clone https://github.com/elastic/hive-mind ../hive-mind` — sibling clone is the default; set `HIVE_MIND_PATH` if you keep it elsewhere |
 | **Elastic Cloud API key** | Run the `cloud-setup` skill once to set `EC_API_KEY` |
 | **`DEMOBUILDER_ENGAGEMENTS_ROOT`** | Optional. Defaults to `~/engagements`. Set in your shell profile to use a different root. |
 
-> **hive-mind location matters.** The skill symlinks in `.cursor/skills/`, `.claude/skills/`, and `.agents/skills/` point to `../hive-mind/skills/`. Clone hive-mind into the same parent directory as demobuilder and the links resolve automatically.
+> **hive-mind location matters.** The skill symlinks in `.cursor/skills/`, `.claude/skills/`, and `.agents/skills/` point to `../hive-mind/skills/`. Clone hive-mind into the same parent directory as demobuilder and the links resolve automatically. If your clone lives elsewhere, set `HIVE_MIND_PATH` and re-link using [Dependencies](docs/dependencies.md).
 
 ## Quick Start
 
@@ -45,7 +45,9 @@ For runtime-specific setup (MCP, rules, plugin paths): [Cursor](docs/runtimes/cu
 | | |
 |---|---|
 | [Pipeline & skills](docs/pipeline.md) | Stage-by-stage overview, skills table, outputs, validation coverage |
+| [Skills index](docs/skills-index.md) | When to invoke the full orchestrator vs. a specific skill |
 | [Design principles](docs/design-principles.md) | Why things work the way they do — API baseline, tagging, ILM, EIS, approvals |
+| [JSON schemas](schemas/README.md) | Versioned contracts for machine-readable pipeline outputs |
 | [Dependencies](docs/dependencies.md) | Full setup for `elastic/agent-skills` and `elastic/hive-mind` |
 | [Architecture decisions](docs/decisions.md) | Decision log D-001 – D-036 with rationale |
 | [Engagement workspace layout](docs/engagements-path.md) | Where output files go, env var override, multi-customer isolation |

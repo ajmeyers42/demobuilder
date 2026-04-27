@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://elastic.co/demobuilder/schemas/data-model.schema.json",
+  "title": "Demobuilder Data Model",
+  "type": "object",
+  "required": ["slug", "engagement", "index_prefix", "elastic_version", "deployment_type", "build_order"],
+  "properties": {
+    "slug": { "type": "string", "minLength": 1 },
+    "engagement": { "type": "string" },
+    "index_prefix": { "type": "string" },
+    "kibana_space": { "type": "string" },
+    "elastic_version": { "type": "string" },
+    "deployment_type": { "type": "string", "enum": ["ech", "serverless", "self_managed", "docker", "unknown"] },
+    "build_order": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["step", "artifact", "type"],
+        "properties": {
+          "step": { "type": ["integer", "number", "string"] },
+          "artifact": { "type": "string" },
+          "type": { "type": "string" },
+          "reason": { "type": "string" }
+        },
+        "additionalProperties": true
+      }
+    },
+    "indices": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "purpose"],
+        "properties": {
+          "name": { "type": "string" },
+          "type": { "type": "string" },
+          "purpose": { "type": "string" },
+          "primary_shards": { "type": "integer", "minimum": 1 },
+          "replica_shards": { "type": "integer", "minimum": 0 },
+          "ilm_policy": { "type": "string" },
+          "demo_doc_count": { "type": "integer", "minimum": 0 },
+          "fields": { "type": "object" },
+          "notes": { "type": "string" }
+        },
+        "additionalProperties": true
+      }
+    },
+    "ingest_pipelines": { "type": "array", "items": { "type": "object" } },
+    "ilm_policies": { "type": "array", "items": { "type": "object" } },
+    "seed_data": { "type": ["object", "array"] },
+    "slo_definitions": { "type": "array", "items": { "type": "object" } },
+    "ml_jobs": { "type": "array", "items": { "type": "object" } }
+  },
+  "additionalProperties": true
+}

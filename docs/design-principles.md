@@ -10,6 +10,8 @@ Drop into any stage independently — you don't need to run the full pipeline ev
 
 Every skill's JSON output is designed as a machine-readable input to the next skill. The discovery JSON drives the platform audit; the platform audit constrains the script; the script shapes the data model; the data model drives `bootstrap.py`. Nothing is re-inferred downstream — what you approved is what gets built.
 
+Core machine-readable contracts are documented in [`../schemas/`](../schemas/). Skills may include richer examples and reasoning guidance, but schemas define the stable fields downstream stages can rely on.
+
 ## Nothing is hallucinated
 
 Confirmation docs use only the customer's own language. Platform audits only clear features that are actually supported on the customer's platform and license tier. Scripts are grounded in specific pain points from discovery, not generic feature showcases. If a capability can't be confirmed from inputs, it's flagged as a gap.

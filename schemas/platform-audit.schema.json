@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://elastic.co/demobuilder/schemas/platform-audit.schema.json",
+  "title": "Demobuilder Platform Audit",
+  "type": "object",
+  "required": ["meta", "platform", "feature_audit", "overall_status"],
+  "properties": {
+    "meta": {
+      "type": "object",
+      "required": ["slug", "audit_date", "audit_mode"],
+      "properties": {
+        "slug": { "type": "string" },
+        "audit_date": { "type": "string" },
+        "audit_mode": { "type": "string", "enum": ["partial", "full"] },
+        "discovery_version": { "type": ["string", "null"] },
+        "diagnostic_version": { "type": ["string", "null"] },
+        "platform_summary": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "platform": {
+      "type": "object",
+      "required": ["version", "deployment_type", "version_verified"],
+      "properties": {
+        "version": { "type": "string" },
+        "license_type": { "type": "string" },
+        "deployment_type": { "type": "string", "enum": ["ech", "serverless", "self_managed", "docker", "unknown"] },
+        "version_verified": { "type": "boolean" },
+        "license_verified": { "type": "boolean" }
+      },
+      "additionalProperties": true
+    },
+    "feature_audit": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["feature", "planned", "status", "requirement_met", "demo_impact"],
+        "properties": {
+          "feature": { "type": "string" },
+          "planned": { "type": "boolean" },
+          "status": { "type": "string", "enum": ["ready", "setup_required", "upgrade_required", "blocked", "descoped"] },
+          "requirement_met": {
+            "type": "object",
+            "properties": {
+              "version": { "type": "boolean" },
+              "license": { "type": "boolean" },
+              "infrastructure": { "type": "boolean" },
+              "configuration": { "type": "boolean" }
+            },
+            "additionalProperties": true
+          },
+          "gap": { "type": ["string", "null"] },
+          "remediation": { "type": ["string", "null"] },
+          "effort": { "type": ["string", "null"] },
+          "demo_impact": { "type": "string" },
+          "alternative": { "type": ["string", "null"] }
+        },
+        "additionalProperties": true
+      }
+    },
+    "overall_status": { "type": "string", "enum": ["green", "amber", "red"] },
+    "blocking_count": { "type": "integer", "minimum": 0 },
+    "setup_required_count": { "type": "integer", "minimum": 0 },
+    "ready_count": { "type": "integer", "minimum": 0 },
+    "pre_demo_tasks": { "type": "array", "items": { "type": "object" } },
+    "descoped_features": { "type": "array", "items": { "type": "object" } },
+    "recommended_alternatives": { "type": "array", "items": { "type": "object" } }
+  },
+  "additionalProperties": true
+}

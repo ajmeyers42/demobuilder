@@ -224,10 +224,16 @@ demo-diagnostic-analyzer | {slug}-current-state.json       | New/changed diagnos
 demo-opportunity-review  | {slug}-opportunity-summary.md   | discovery or diagnostic changed; follow-up notes added
 demo-platform-audit      | {slug}-platform-audit.json      | opportunity-profile or current-state changed
 demo-script-template     | {slug}-demo-script.md           | platform-audit or ideation changed or user requested
+demo-kibana-agent-design | {slug}-agent-builder-spec.md    | script includes Agent Builder and script/audit changed
 demo-data-modeler        | {slug}-data-model.json          | script changed
 demo-ml-designer         | {slug}-ml-config.json           | data-model changed and ML scenes in script
 demo-validator           | {slug}-demo-checklist.md        | always run last — regenerate each time
 ```
+
+Conditional skills without a standalone required file (`token-visibility`, Security-specific
+sample data, SLO authoring helpers) should still be invoked when the script or audit scopes
+those capabilities. Record their outputs in the downstream artifact they enrich (usually
+`{slug}-data-model.json`, `{slug}-demo-checklist.md`, or `bootstrap.py`).
 
 Report the inventory to the user before executing:
 ```
@@ -277,6 +283,8 @@ For each stage that needs to run, in order:
 2. **Read the sub-skill SKILL.md** from the sibling directory:
    `../demo-discovery-parser/SKILL.md` (relative to this file's location)
    This loads the specialist's instructions. Follow them exactly.
+   If the relative path does not resolve in the current agent runtime, read
+   `{demobuilder_repo}/skills/<skill>/SKILL.md` from the repo root instead.
 3. **Execute the stage** using the loaded instructions and available inputs.
 4. **Write outputs** to the workspace directory with the slug prefix.
 5. **Announce completion:** `✅ demo-discovery-parser complete → {slug}-discovery.json`
@@ -356,10 +364,28 @@ For each stage that needs to run, in order:
 - Inputs: `{slug}-discovery.json`, `{slug}-platform-audit.json`, `{slug}-ideation.md` (if exists — takes priority for wow moments and archetype)
 - Outputs: `{slug}-demo-script.md`, `{slug}-demo-brief.md`
 
+**Stage 4b — demo-kibana-agent-design** *(conditional — Agent Builder only)*
+- Skip if: `{slug}-demo-script.md` does not include Agent Builder / custom agents / tools /
+  workflows, OR `{slug}-agent-builder-spec.md` exists AND the script and audit have not changed
+- Read: `../demo-kibana-agent-design/SKILL.md`
+- Inputs: `{slug}-demo-script.md`, `{slug}-discovery.json`, `{slug}-platform-audit.json`
+- Outputs: `{slug}-agent-builder-spec.md`
+- If the platform audit marks Agent Builder blocked, do not write a runnable full spec; surface
+  the blocker and fallback.
+
+**Stage 4c — token-visibility** *(conditional — AI / Agent Builder only)*
+- Skip if: no Agent Builder or AI-powered component is in scope, OR `INCLUDE_TOKEN_VISIBILITY=false`
+- Read: `../token-visibility/SKILL.md`
+- Inputs: `{slug}-demo-script.md`, `{slug}-data-model.json` if it exists, `.env` if available
+- Outputs: guidance and schema content that downstream stages must materialize in
+  `{slug}-data-model.json`, `{slug}-demo-checklist.md`, dashboards, and `bootstrap.py`
+- Include by default for Agent Builder demos per D-036.
+
 **Stage 5 — demo-data-modeler**
 - Skip if: `{slug}-data-model.json` exists AND script hasn't changed
 - Read: `../demo-data-modeler/SKILL.md` and `../demo-data-modeler/references/mapping-patterns.md`
-- Inputs: `{slug}-demo-script.md`, `{slug}-discovery.json`
+- Inputs: `{slug}-demo-script.md`, `{slug}-discovery.json`, `{slug}-agent-builder-spec.md`
+  (if present), and token-visibility guidance if Agent Builder / AI is in scope
 - Outputs: `{slug}-data-model.json`, `{slug}-data-model.md`, individual mapping files
 
 **Stage 6 — demo-ml-designer** *(conditional)*
@@ -441,6 +467,7 @@ Platform & Feasibility
 Demo Script
   ✅  {slug}-demo-script.md            — full SE script with scenes and queries
   ✅  {slug}-demo-brief.md             — one-page AE brief
+  ⏭   or ✅  {slug}-agent-builder-spec.md — Agent Builder spec (if agent scenes exist)
 
 Build Artifacts
   ✅  {slug}-data-model.json           — index mappings, build order, seed data spec
@@ -484,14 +511,14 @@ DEMO DAY
 ## Handling Partial Inputs
 
 **Only discovery notes, no diagnostic:**
-Run stages 1, 3, 4, 5, 6 (if ML), 7. Skip stage 2. Platform audit runs in partial mode.
+Run stages 1, 2b, 3, 4, 4b/4c if in scope, 5, 6 (if ML), 7. Skip stage 2. Platform audit runs in partial mode after opportunity review.
 
 **Only a diagnostic file, no discovery notes:**
 Run stage 2 only. Output the current-state and findings. Tell the user: "Run
 `demo-discovery-parser` with discovery notes to continue the pipeline."
 
 **Discovery notes + diagnostic:**
-Run all stages in order. Full audit with both inputs.
+Run all stages in order, including opportunity review before platform audit and conditional 4b/4c stages when in scope. Full audit with both inputs.
 
 **Resuming a partial build:**
 User says "continue the [customer] demo build" or "pick up where we left off."

@@ -14,3 +14,7 @@ venv/
 
 # Editor workspace files
 *.code-workspace
+
+# Local agent scratch/planning artifacts
+.scratch/
+.cursor/plans/

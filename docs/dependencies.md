@@ -68,9 +68,11 @@ Seven hive-mind skills are pre-symlinked into demobuilder's agent skill director
 
 ### If you move hive-mind
 
-If you need hive-mind at a different path, re-run the symlink setup from the demobuilder root:
+If you need hive-mind at a different path, set `HIVE_MIND_PATH` and re-run the symlink setup from the demobuilder root:
 
 ```bash
+export HIVE_MIND_PATH="/path/to/hive-mind"
+
 # Remove old links
 for dir in .cursor/skills .claude/skills .agents/skills; do
   for skill in hive-sa-coaching hive-token-optimization hive-workflows hive-dashboards hive-demo-data hive-demo-recipes hive-elastic-agent-skills; do
@@ -79,7 +81,7 @@ for dir in .cursor/skills .claude/skills .agents/skills; do
 done
 
 # Re-link from new location (adjust path as needed)
-HIVE_MIND=/path/to/hive-mind
+HIVE_MIND="$HIVE_MIND_PATH"
 for skill in hive-sa-coaching hive-token-optimization hive-workflows hive-dashboards hive-demo-data hive-demo-recipes hive-elastic-agent-skills; do
   for dir in .cursor/skills .claude/skills .agents/skills; do
     ln -s "$(python3 -c "import os; print(os.path.relpath('$HIVE_MIND/skills/$skill', '$dir'))")" "$dir/$skill"

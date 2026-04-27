@@ -8,8 +8,9 @@ description: >
   ALWAYS use this skill when the user asks "are we ready for the demo", "what do I need
   to check before tomorrow", "pre-demo checklist", "is everything set up", or has completed
   demo build work and wants a final readiness review. Also trigger when the user explicitly
-  says they're running the skill before a scheduled demo. This is the last skill in the
-  pipeline — run it after demo-data-modeler and demo-ml-designer outputs exist.
+  says they're running the skill before a scheduled demo. This is the last planning /
+  readiness stage before provision or deploy — run it after demo-data-modeler and
+  demo-ml-designer outputs exist.
 ---
 
 # Demo Validator

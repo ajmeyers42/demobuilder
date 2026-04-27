@@ -1,0 +1,169 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://elastic.co/demobuilder/schemas/opportunity-profile.schema.json",
+  "title": "Demobuilder Opportunity Profile",
+  "type": "object",
+  "required": [
+    "slug",
+    "customer",
+    "last_updated",
+    "qualification_status",
+    "qualification_rationale",
+    "meddpic",
+    "technical_landscape",
+    "open_questions",
+    "proceed_blockers",
+    "demo_scope_signals"
+  ],
+  "properties": {
+    "slug": { "type": "string", "minLength": 1 },
+    "customer": { "type": "string", "minLength": 1 },
+    "last_updated": { "type": "string" },
+    "qualification_status": {
+      "type": "string",
+      "enum": ["proceed", "continue_discovery", "not_qualified"]
+    },
+    "qualification_rationale": { "type": "string" },
+    "meddpic": {
+      "type": "object",
+      "required": ["metrics", "economic_buyer", "decision_criteria", "decision_process", "paper_process", "identify_pain", "champion"],
+      "properties": {
+        "metrics": { "$ref": "#/$defs/meddpicDimension" },
+        "economic_buyer": { "$ref": "#/$defs/meddpicDimension" },
+        "decision_criteria": { "$ref": "#/$defs/meddpicDimension" },
+        "decision_process": { "$ref": "#/$defs/meddpicDimension" },
+        "paper_process": { "$ref": "#/$defs/meddpicDimension" },
+        "identify_pain": { "$ref": "#/$defs/meddpicDimension" },
+        "champion": { "$ref": "#/$defs/meddpicDimension" }
+      },
+      "additionalProperties": true
+    },
+    "technical_landscape": {
+      "type": "object",
+      "required": ["current_elastic", "interfacing_systems", "data_sources", "tooling_stack", "competing_software"],
+      "properties": {
+        "current_elastic": {
+          "type": "object",
+          "properties": {
+            "present": { "type": "boolean" },
+            "deployment_type": { "type": "string", "enum": ["ech", "serverless", "self_managed", "docker", "none", "unknown"] },
+            "version": { "type": "string" },
+            "license_tier": { "type": "string" },
+            "solution_areas": { "type": "array", "items": { "type": "string" } },
+            "cluster_topology": { "type": "string" },
+            "approximate_volume_gb_day": { "type": ["number", "null"] },
+            "existing_indices": { "type": "array", "items": { "type": "string" } },
+            "clarifications_needed": { "type": "array", "items": { "type": "string" } }
+          },
+          "additionalProperties": true
+        },
+        "interfacing_systems": { "type": "array", "items": { "$ref": "#/$defs/interfacingSystem" } },
+        "data_sources": { "type": "array", "items": { "$ref": "#/$defs/dataSource" } },
+        "tooling_stack": { "type": "array", "items": { "$ref": "#/$defs/tooling" } },
+        "competing_software": { "type": "array", "items": { "$ref": "#/$defs/competingSoftware" } },
+        "key_technical_questions": { "type": "array", "items": { "$ref": "#/$defs/keyQuestion" } }
+      },
+      "additionalProperties": true
+    },
+    "open_questions": {
+      "type": "object",
+      "required": ["business", "technical", "stakeholder"],
+      "properties": {
+        "business": { "type": "array", "items": { "type": "string" } },
+        "technical": { "type": "array", "items": { "type": "string" } },
+        "stakeholder": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "proceed_blockers": { "type": "array", "items": { "type": "string" } },
+    "demo_scope_signals": {
+      "type": "object",
+      "properties": {
+        "primary_solution_area": { "type": "string", "enum": ["search", "observability", "security", "cross_solution", "unknown"] },
+        "agent_builder_in_scope": { "type": "boolean" },
+        "ml_in_scope": { "type": "boolean" },
+        "siem_in_scope": { "type": "boolean" },
+        "slo_in_scope": { "type": "boolean" },
+        "noted_wow_moments": { "type": "array", "items": { "type": "string" } }
+      },
+      "additionalProperties": true
+    }
+  },
+  "$defs": {
+    "meddpicDimension": {
+      "type": "object",
+      "required": ["status", "notes"],
+      "properties": {
+        "status": { "type": "string", "enum": ["confirmed", "partial", "not_captured", "disqualifying"] },
+        "notes": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "interfacingSystem": {
+      "type": "object",
+      "required": ["name", "integration_status"],
+      "properties": {
+        "name": { "type": "string" },
+        "category": { "type": "string" },
+        "hosting": { "type": "string" },
+        "version_or_api": { "type": "string" },
+        "integration_status": { "type": "string", "enum": ["connected", "needs_integration", "unknown"] },
+        "data_it_produces": { "type": "string" },
+        "clarification_needed": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "dataSource": {
+      "type": "object",
+      "required": ["name"],
+      "properties": {
+        "name": { "type": "string" },
+        "format": { "type": "string" },
+        "est_doc_or_event_count": { "type": "string" },
+        "est_volume_gb": { "type": "string" },
+        "ingest_frequency": { "type": "string", "enum": ["realtime", "near_realtime", "batch", "unknown"] },
+        "retention_requirement": { "type": "string" },
+        "downstream_use_in_demo": { "type": "string" },
+        "clarification_needed": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "tooling": {
+      "type": "object",
+      "required": ["tool"],
+      "properties": {
+        "tool": { "type": "string" },
+        "category": { "type": "string" },
+        "vendor": { "type": "string" },
+        "hosting": { "type": "string" },
+        "version_or_tier": { "type": "string" },
+        "role_in_demo": { "type": "string" },
+        "clarification_needed": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "competingSoftware": {
+      "type": "object",
+      "required": ["tool", "relationship"],
+      "properties": {
+        "tool": { "type": "string" },
+        "vendor": { "type": "string" },
+        "relationship": { "type": "string", "enum": ["displacement", "coexistence", "data_source", "unknown"] },
+        "active_evaluation": { "type": ["boolean", "string"] },
+        "differentiation_angle": { "type": "string" },
+        "clarification_needed": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "keyQuestion": {
+      "type": "object",
+      "required": ["question", "status"],
+      "properties": {
+        "question": { "type": "string" },
+        "why_it_matters": { "type": "string" },
+        "owner": { "type": "string" },
+        "status": { "type": "string", "enum": ["open", "answered"] }
+      },
+      "additionalProperties": true
+    }
+  }
+}

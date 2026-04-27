@@ -8,9 +8,10 @@ description: >
   demo that includes Elastic Agent Builder, giving customers operational transparency
   into AI spend and usage patterns as a first-class demo deliverable.
 
-  Use this skill when the SA asks about token costs, wants to track AI spend, asks
-  "what does this agent cost to run", or when a demo script includes Agent Builder
-  and the SA wants to show operational transparency to the customer.
+  ALWAYS use this skill when a demo script includes Agent Builder or another AI-powered
+  component, unless `INCLUDE_TOKEN_VISIBILITY=false` is set for the engagement. Also use
+  it when the SA asks about token costs, wants to track AI spend, or asks "what does this
+  agent cost to run".
 ---
 
 # Token Visibility
