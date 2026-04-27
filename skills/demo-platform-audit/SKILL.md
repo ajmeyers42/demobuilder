@@ -99,7 +99,8 @@ requirement and mark as unverified.
 | ML anomaly detection (UI + API) | 7.3 | Gold (self-managed/cloud); included on serverless | Self-managed needs dedicated ML node(s) | ML nodes with adequate heap |
 | ML NLP / trained models | 8.7 | Platinum (self-managed); included on serverless | ML nodes required on self-managed | 1+ ML node with ≥ 16GB heap |
 | AI Assistant (Security / Observability) | 8.14 | All (connector required) | Kibana connector to OpenAI/Bedrock/etc. must be configured | None beyond connector config |
-| Agent Builder | 9.0 | Any (serverless or cloud) | Serverless Elasticsearch project type; not available self-managed | None |
+| Agent Builder | 9.3 | Any | ECK/self-managed 9.3+, ECH, Serverless Elasticsearch — available on all deployment types from 9.3; requires Cloud Connect for Elastic Managed LLMs | Cloud Connect to EIS if using Elastic Managed LLMs |
+| Elastic Inference Service (EIS) via Cloud Connect | 9.0 | Basic | ECK/self-managed and ECH connect to EIS via Cloud Connect (one-time setup); built-in on Serverless. Default for semantic_text embedding (ELSER, jina-embeddings-v3), reranking (jina-reranker-v3), and Elastic Managed LLMs for Agent Builder | ECK/self-managed: Cloud Connect config required; Serverless: auto-provisioned |
 | Elastic Workflows | 9.3 | Any (serverless or cloud) | Serverless only at initial release | None |
 | Kibana Playground | 8.14 | Basic | All | ELSER or other inference endpoint for semantic |
 | ILM | 7.0 | Basic | Serverless uses DSL (data stream lifecycle) instead | None |
@@ -117,9 +118,13 @@ requirement and mark as unverified.
 
 **Deployment type caveats:**
 - **Serverless Elasticsearch:** No ILM (use Data Stream Lifecycle), no self-managed ML nodes
-  (ML is auto-scaled), Agent Builder and Workflows available, no Watcher
-- **ECH (Elastic Cloud Hosted):** Full feature set, standard licensing applies
-- **Self-managed:** Full feature set, explicit node roles required for ML/frozen/transform
+  (ML is auto-scaled), Agent Builder (9.3+) and Workflows available, EIS built-in, no Watcher
+- **ECH (Elastic Cloud Hosted):** Full feature set, standard licensing applies; Agent Builder
+  available 9.3+; EIS via Cloud Connect
+- **Self-managed / ECK:** Full feature set from 9.3+, explicit node roles required for
+  ML/frozen/transform; Agent Builder available on ECK 9.3+ (requires Cloud Connect for Elastic
+  Managed LLMs); EIS accessible via Cloud Connect (quick one-time config); local ML nodes for
+  anomaly detection and specialized models that cannot leave the customer environment
 
 ## Step 3: Identify Gaps and Remediation
 
@@ -243,9 +248,15 @@ setup). ML anomaly detection available and Gold license confirmed. Agent Builder
 Assistant which works on 8.14+. Overall amber — buildable with prep.
 
 **Red — Self-managed 7.17, modern demo scope:** ELSER requires 8.11 (upgrade required).
-ML available but on basic license (Gold required). Agent Builder not available. Recommendation:
-re-scope to ES|QL + BM25 + basic ML, or flag that an upgrade conversation needs to happen
-before the demo can be built. Overall red — scope must change.
+ML available but on basic license (Gold required). Agent Builder requires 9.3+ (not available
+on 7.x or 8.x). Recommendation: re-scope to ES|QL + BM25 + basic ML, or flag that an upgrade
+conversation needs to happen before the demo can be built. Overall red — scope must change.
+
+**Amber — ECK 9.4, Agent Builder in scope:** Greenfield deployment, ECK 9.4 with Enterprise
+Trial. Agent Builder is available (9.3+ on ECK). EIS access requires Cloud Connect
+configuration (quick, one-time). Inference endpoints (ELSER on EIS, jina-embeddings-v3,
+jina-reranker-v3) not yet deployed — setup required. Overall amber — buildable, critical path
+is Cloud Connect → inference endpoints → corpus load.
 
 **Partial audit — no diagnostic:** Discovery says "on-prem Elastic, version unknown." Mark
 all ML and semantic features as unverified. Pre-demo task: get diagnostic before scoping

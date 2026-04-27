@@ -108,7 +108,8 @@ role from title and context. A "SRE who supports Patrick's team a lot" is `techn
     "version": "",
     "footprint_description": "",
     "environments": [],
-    "fallen_behind_releases": null
+    "fallen_behind_releases": null,
+    "deployment_model_requirement": "serverless | eck | ech | self_managed | unknown — capture any explicit constraint (e.g. 'must be on-prem', 'ECK required', 'no cloud')"
   },
   "current_state": {
     "tech_stack": [],
@@ -143,6 +144,15 @@ role from title and context. A "SRE who supports Patrick's team a lot" is `techn
   },
   "demo_scope": {
     "recommended_type": "champion_enablement | executive_alignment | technical_deep_dive | migration_assessment | rag_demo | agentic_demo | search_demo | observability_demo | security_demo",
+    "deployment_model": "",
+    "target_elastic_version": "",
+    "inference_guidance": {
+      "note": "Default: use EIS via Cloud Connect for all semantic_text embedding and reranking. Use local ML nodes only for anomaly detection or models that cannot leave the customer environment.",
+      "semantic_text_default": "EIS via Cloud Connect — ELSER v2 on EIS for sparse; jina-embeddings-v3 on EIS for dense vector",
+      "reranking_default": "jina-reranker-v3 on EIS for highest precision; jina-reranker-v2-base-multilingual for low-latency multilingual",
+      "llm_default": "Elastic Managed LLMs via EIS (Claude, GPT, Gemini) — created automatically via Cloud Connect",
+      "local_ml_node_use_cases": "ML anomaly detection, custom trained models, models with data residency requirements"
+    },
     "recommended_features": [],
     "key_scenarios": [],
     "anti_patterns": [],
