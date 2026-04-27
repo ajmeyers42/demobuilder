@@ -193,26 +193,51 @@ available, run `demo-discovery-parser` first, then pass both to `demo-script-tem
 **Skip ideation if:**
 - Discovery notes or a diagnostic file are already provided (proceed to Step 1 / Stage 1)
 - The SA specifies exactly what they want to build
-- The engagement already has a `{slug}-discovery.json` or `{slug}-ideation.md` in the workspace
+- The engagement already has a `{slug}-discovery.json` or `{slug}-ideation.md` in `{engagement_dir}`
 
-## Step 1: Identify the Engagement and Workspace
+## Step 1: Identify the Engagement and Set the Engagement Directory
 
-**Determine the slug** from the customer name in the input files or the user's prompt.
-Lowercase, hyphenated: "Citizens Bank" → `citizens-bank`, "Deutsche Telekom SOC-T" → `dt-soct`.
-The slug identifies **one engagement** (everything specific to that demo).
+**Determine `{engagement_dir}` first, then derive the slug from it.**
 
-**Set the workspace directory** to that engagement’s folder: **`$DEMOBUILDER_ENGAGEMENTS_ROOT/{slug}/`**
-where **`DEMOBUILDER_ENGAGEMENTS_ROOT`** defaults to **`$HOME/engagements`** when unset (see
-`docs/engagements-path.md`). Only per-demo artifacts belong in `{slug}/`; pipeline code stays in the
-demobuilder clone (`skills/`, `docs/`). If the SA sets a different root or absolute workspace, use it;
-create the directory if it doesn’t exist.
+**Path-first resolution (preferred):** If the user provides a path to discovery
+documents or files that are already inside a folder under `DEMOBUILDER_ENGAGEMENTS_ROOT`
+(e.g., `~/engagements/2026lenovoGAIaaS/discovery/notes.md`), the **parent of that
+discovery folder is `{engagement_dir}`**:
 
-All output files for this engagement live in the workspace. Use the slug as a prefix for
-every file: `{slug}-discovery.json`, `{slug}-demo-script.md`, etc.
+```
+user provides: ~/engagements/2026lenovoGAIaaS/discovery/
+                               ^^^^^^^^^^^^^^^^^
+engagement_dir = ~/engagements/2026lenovoGAIaaS/   ← use exactly as-is
+slug           = 2026lenovoGAIaaS                  ← taken from folder name, not re-normalized
+```
+
+Use the **folder name exactly as it exists on disk** for the slug in this case.
+Do not normalize or lowercase it when an existing folder was provided.
+
+**Name-first resolution (fallback):** If no path is provided and you only have a
+customer name, derive slug and engagement_dir from the user's prompt:
+
+```
+slug           = lowercase-hyphenated form of customer name
+                 "Citizens Bank" → citizens-bank
+                 "Deutsche Telekom SOC-T" → dt-soct
+engagement_dir = "${DEMOBUILDER_ENGAGEMENTS_ROOT:-$HOME/engagements}/{slug}/"
+```
+
+> **Important:** `{engagement_dir}` is always a folder under `~/engagements/` (or the
+> configured root). **Never** name it `workspace`, `workspace-{slug}`, or any path
+> relative to the demobuilder repo root. The repo holds skills only; all customer
+> artifacts live outside it under `{engagement_dir}`.
+
+Create the directory if it doesn’t exist. Only per-demo artifacts belong in
+`{engagement_dir}/`; pipeline code stays in the demobuilder clone (`skills/`, `docs/`).
+
+All output files for this engagement live in `{engagement_dir}`. Use the slug as a prefix
+for every file: `{slug}-discovery.json`, `{slug}-demo-script.md`, etc.
 
 ## Step 2: Take Inventory
 
-Check the workspace for existing pipeline outputs. Use this to determine where to start —
+Check the engagement directory (`{engagement_dir}`) for existing pipeline outputs. Use this to determine where to start —
 don't re-run a stage if its output already exists and the inputs haven't changed.
 
 ```
@@ -238,7 +263,7 @@ those capabilities. Record their outputs in the downstream artifact they enrich 
 Report the inventory to the user before executing:
 ```
 📋 Engagement: [Company] ([slug])
-📁 Workspace: [path]
+📁 Engagement dir: {engagement_dir}
 
 Stage                    Status
 ─────────────────────────────────────────
@@ -272,7 +297,7 @@ run `demo-discovery-parser` first.
 If present and no `{slug}-current-state.json` exists, run `demo-diagnostic-analyzer`.
 If absent, skip the diagnostic stage entirely — it's optional.
 
-**Existing pipeline outputs** — Any `{slug}-*.json` or `{slug}-*.md` files in the workspace.
+**Existing pipeline outputs** — Any `{slug}-*.json` or `{slug}-*.md` files in `{engagement_dir}`.
 Use these as inputs to downstream stages. Do not regenerate unless inputs changed.
 
 ## Step 4: Execute Each Pending Stage
@@ -286,7 +311,7 @@ For each stage that needs to run, in order:
    If the relative path does not resolve in the current agent runtime, read
    `{demobuilder_repo}/skills/<skill>/SKILL.md` from the repo root instead.
 3. **Execute the stage** using the loaded instructions and available inputs.
-4. **Write outputs** to the workspace directory with the slug prefix.
+4. **Write outputs** to `{engagement_dir}` with the slug prefix.
 5. **Announce completion:** `✅ demo-discovery-parser complete → {slug}-discovery.json`
 6. **Surface any blockers:** If a stage produces a RED platform audit or critical gaps, pause
    and report before continuing:
@@ -400,20 +425,20 @@ For each stage that needs to run, in order:
 **Stage 7 — demo-validator**
 - Always run last before deploy — regenerate even if it exists
 - Read: `../demo-validator/SKILL.md`
-- Inputs: all available `{slug}-*.json` and `{slug}-*.md` files in workspace
+- Inputs: all available `{slug}-*.json` and `{slug}-*.md` files in `{engagement_dir}`
 - Outputs: `{slug}-demo-checklist.md`, `{slug}-risks.md`
 
 **Stage 8 — demo-cloud-provision** *(optional — new cluster path only)*
 - **Requires explicit SA approval** to spend resources / create infrastructure (unless
   the user already clearly requested provisioning this session)
-- Skip if: `{workspace}/.env` already exists and credentials are valid
+- Skip if: `{engagement_dir}/.env` already exists and credentials are valid
 - Run if: user requests "create a new cluster", "spin up a serverless project", or no `.env`
   exists and deployment was requested
 - Read: `../demo-cloud-provision/SKILL.md`
 - Inputs: deployment type preference, region, engagement slug
-- Outputs: `{workspace}/.env`, `{workspace}/.env.example`, `{slug}-provision-log.md`
+- Outputs: `{engagement_dir}/.env`, `{engagement_dir}/.env.example`, `{slug}-provision-log.md`
 - Note: if user wants to reuse an existing cluster for a new engagement, copy the `.env`
-  from the prior workspace and update `DEMO_SLUG`, `ENGAGEMENT`, and `INDEX_PREFIX` —
+  from the prior engagement's workspace and update `DEMO_SLUG`, `ENGAGEMENT`, and `INDEX_PREFIX` —
   no re-provisioning needed
 
 **Stage 9 — demo-deploy** *(optional — runs after validator if cluster target is known)*
@@ -424,16 +449,16 @@ For each stage that needs to run, in order:
   **`bootstrap.py --dry-run`** and generating the script **do not** count as deploy.
   See `docs/decisions.md` **D-024** and `AGENTS.md`.
 - Skip if: user has not requested deployment and no `.env` is present
-- Run if: `.env` exists in the workspace (from stage 8 or copied from another engagement)
+- Run if: `.env` exists in `{engagement_dir}` (from stage 8 or copied from another engagement)
   AND user says "deploy", "build it", "set up the cluster", or "bootstrap" **after** review
-- Requires: `{workspace}/.env` — stop and surface a clear message if missing
+- Requires: `{engagement_dir}/.env` — stop and surface a clear message if missing
 - Read: `../demo-deploy/SKILL.md` (including the **Automation contract** — every **in-scope**
   Kibana / Security / Observability asset must be created via APIs inside `bootstrap.py`,
   with definitions sourced from `elastic/agent-skills` where applicable — not left as
   manual UI steps)
-- Inputs: `{workspace}/.env`, `{slug}-data-model.json`, `{slug}-ml-config.json` (if present),
+- Inputs: `{engagement_dir}/.env`, `{slug}-data-model.json`, `{slug}-ml-config.json` (if present),
   `{slug}-demo-script.md` / checklist / any supplemental specs (dashboards, agents, Sec, etc.)
-- Outputs: `{workspace}/bootstrap.py`, `{slug}-deploy-log.md` — deploy log must list **all**
+- Outputs: `{engagement_dir}/bootstrap.py`, `{slug}-deploy-log.md` — deploy log must list **all**
   resource classes created for **this** engagement (indices, ML, Kibana objects, rules,
   agents, etc.) and must not claim “done” while required assets are still manual
 
@@ -547,7 +572,7 @@ No re-provisioning unless credentials or endpoint change; rebuild data model onl
 ## What Good Looks Like
 
 **Full cold start:** User drops a PDF and a diagnostic ZIP. Orchestrator auto-detects
-both, runs all 7 stages in order, delivers a complete workspace with 12+ files and a
+both, runs all 7 stages in order, delivers a complete engagement directory with 12+ files and a
 clear handoff summary. Total time to run: the time it takes to execute each stage.
 
 **Resume from discovery JSON:** User already has `{slug}-discovery.json` from a prior

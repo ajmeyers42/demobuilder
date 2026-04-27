@@ -55,11 +55,11 @@ Then run the manual / supplemental checks below (ML, ELSER warm latency, demo-cr
 
 ## Step 1: Load the Environment
 
-Read `{workspace}/.env`. All API calls use these credentials. Never hardcode.
+Read `{engagement_dir}/.env`. All API calls use these credentials. Never hardcode.
 
 If `.env` doesn't exist, stop immediately:
 ```
-ERROR: No .env found at {workspace}/.env
+ERROR: No .env found at {engagement_dir}/.env
 Run demo-cloud-provision first, or create .env from the template.
 ```
 
@@ -445,9 +445,9 @@ into their terminal to attempt remediation:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
  FIX COMMANDS — paste to resolve failures
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-set -a && source {workspace}/.env && set +a
-python3 {workspace}/bootstrap.py --step 8
-python3 {workspace}/bootstrap.py --step 10
+set -a && source {engagement_dir}/.env && set +a
+python3 {engagement_dir}/bootstrap.py --step 8
+python3 {engagement_dir}/bootstrap.py --step 10
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
 
@@ -457,8 +457,8 @@ If everything passes, output the ELSER warm-up command as a proactive step:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
  RECOMMENDED — run before the demo
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-set -a && source {workspace}/.env && set +a
-python3 {workspace}/bootstrap.py --step 15   # ELSER warm-up
+set -a && source {engagement_dir}/.env && set +a
+python3 {engagement_dir}/bootstrap.py --step 15   # ELSER warm-up
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
 

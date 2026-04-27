@@ -117,7 +117,7 @@ connectivity checks that do not mutate production. See **`docs/decisions.md` D-0
 
 ## Step 1: Load the Environment
 
-Read `{workspace}/.env` (engagement directory = `{workspace}`). All subsequent API calls use these credentials. Never
+Read `{engagement_dir}/.env` (engagement directory = `{engagement_dir}`). All subsequent API calls use these credentials. Never
 hardcode credentials in the script itself — always read from the `.env`.
 
 If `.env` doesn't exist: stop and tell the user to run `demo-cloud-provision` first, or
@@ -156,11 +156,11 @@ Extract the build order from the data model — this is the sequence the script 
 `kibana-objects/{slug}-*.ndjson`, `kibana/workflows/*`, `kibana/agent/*.json`, or declarative
 `elasticsearch/**` JSON, **`bootstrap.py` must load and apply them** via APIs (saved objects
 import, Workflows, Agent Builder, ES `PUT`s) — single script, no parallel `deploy_*.py`. Paths
-are relative to `{workspace}` (**D-024**).
+are relative to `{engagement_dir}` (**D-024**).
 
 ## Step 3: Generate `bootstrap.py`
 
-Write a complete, executable Python script to `{workspace}/bootstrap.py`.
+Write a complete, executable Python script to `{engagement_dir}/bootstrap.py`.
 
 The script structure:
 
@@ -171,7 +171,7 @@ Demobuilder bootstrap — {Company} ({slug})
 Generated: {date}
 Deployment: {type} at {ELASTICSEARCH_URL}
 
-Engagement dir is `{workspace}` (default parent `~/engagements` per docs/engagements-path.md).
+Engagement dir is `{engagement_dir}` (default parent `~/engagements` per docs/engagements-path.md).
 After `GET /`, print cluster version and warn if `ELASTIC_VERSION` in `.env` disagrees (D-020).
 
 Usage:
@@ -652,8 +652,8 @@ valid manifest for partial teardown. The final write closes out the `deployed_at
 Source the `.env` and run:
 
 ```bash
-set -a && source {workspace}/.env && set +a
-python3 {workspace}/bootstrap.py
+set -a && source {engagement_dir}/.env && set +a
+python3 {engagement_dir}/bootstrap.py
 ```
 
 Stream output to the terminal so the SE can watch progress. Each step prints:
@@ -729,7 +729,7 @@ Index prefix: {PREFIX or 'none'}
 |---|---|---|
 
 ## To re-run (if something changed):
-source {workspace}/.env && python3 {workspace}/bootstrap.py --skip-data
+source {engagement_dir}/.env && python3 {engagement_dir}/bootstrap.py --skip-data
 ```
 
 ## Platform-Specific Adaptations
