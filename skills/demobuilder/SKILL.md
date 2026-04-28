@@ -250,7 +250,8 @@ demo-opportunity-review  | {slug}-opportunity-summary.md   | discovery or diagno
 demo-platform-audit      | {slug}-platform-audit.json      | opportunity-profile or current-state changed
 demo-script-template     | {slug}-demo-script.md           | platform-audit or ideation changed or user requested
 demo-kibana-agent-design | {slug}-agent-builder-spec.md    | script includes Agent Builder and script/audit changed
-demo-data-modeler        | {slug}-data-model.json          | script changed
+demo-vulcan-generate     | {slug}-vulcan-queries.json      | ES|QL-heavy script; RAG/semantic search in scope; integrations needed
+demo-data-modeler        | {slug}-data-model.json          | script changed or Vulcan outputs changed
 demo-ml-designer         | {slug}-ml-config.json           | data-model changed and ML scenes in script
 demo-validator           | {slug}-demo-checklist.md        | always run last — regenerate each time
 ```
@@ -406,11 +407,27 @@ For each stage that needs to run, in order:
   `{slug}-data-model.json`, `{slug}-demo-checklist.md`, dashboards, and `bootstrap.py`
 - Include by default for Agent Builder demos per D-036.
 
+**Stage 4.5 — demo-vulcan-generate** *(conditional — ES|QL / RAG / integration-grounded data)*
+- Skip if **all** of the following are true:
+  1. `{slug}-vulcan-queries.json` exists AND the script hasn't changed
+  2. Vulcan is not installed at `../vulcan` and the SA does not want to install it now
+  3. No integration-grounded data is needed (no Fleet/Beats integrations in scope)
+- Run if **any** of the following are true:
+  - Script has 5+ distinct ES|QL queries or parameterized query scenes
+  - Demo includes semantic / RAG search (`semantic_text`, RERANK, COMPLETION)
+  - Discovery or script references Elastic integrations (logs-* / metrics-* naming needed)
+  - SA says "use Vulcan", "generate synthetic data", or "generate validated queries"
+- Read: `../demo-vulcan-generate/SKILL.md`
+- Inputs: `{slug}-demo-script.md`, `{slug}-discovery.json`, `../vulcan/.env` (cluster creds)
+- Outputs: `{slug}-vulcan-queries.json`, `{slug}-vulcan-data-profile.json`,
+  `{slug}-vulcan-query-results.json`, `{engagement_dir}/vulcan-data/*.csv`
+
 **Stage 5 — demo-data-modeler**
-- Skip if: `{slug}-data-model.json` exists AND script hasn't changed
+- Skip if: `{slug}-data-model.json` exists AND script hasn't changed AND Vulcan outputs unchanged
 - Read: `../demo-data-modeler/SKILL.md` and `../demo-data-modeler/references/mapping-patterns.md`
 - Inputs: `{slug}-demo-script.md`, `{slug}-discovery.json`, `{slug}-agent-builder-spec.md`
-  (if present), and token-visibility guidance if Agent Builder / AI is in scope
+  (if present), `{slug}-vulcan-queries.json` (if present — fast path for ES|QL + seed data),
+  and token-visibility guidance if Agent Builder / AI is in scope
 - Outputs: `{slug}-data-model.json`, `{slug}-data-model.md`, individual mapping files
 
 **Stage 6 — demo-ml-designer** *(conditional)*

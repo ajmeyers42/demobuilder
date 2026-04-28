@@ -23,6 +23,7 @@ Use `demobuilder` when you want the guided end-to-end pipeline. Use an individua
 | Skill | Use when | Primary outputs |
 |---|---|---|
 | `demo-script-template` | Discovery and platform audit are ready and the SA needs a solution-first demo script and AE brief | `{slug}-demo-script.md`, `{slug}-demo-brief.md` |
+| `demo-vulcan-generate` | Script has 5+ ES\|QL queries, semantic/RAG search, or integration-grounded data (Fleet/Beats) — run before demo-data-modeler | `{slug}-vulcan-queries.json`, `{slug}-vulcan-data-profile.json`, `vulcan-data/*.csv` |
 | `demo-data-modeler` | The script is ready and the demo needs indices, mappings, data streams, pipelines, seed data, and build order | `{slug}-data-model.json`, `{slug}-data-model.md`, mapping files |
 | `demo-ml-designer` | The script includes ML anomaly detection, data frame analytics, anomaly injection, or model deployment scenes | `{slug}-ml-config.json`, `{slug}-ml-setup.md` |
 | `demo-kibana-agent-design` | The script includes Elastic Agent Builder custom agents, tools, workflows, or multi-agent orchestration | `{slug}-agent-builder-spec.md` |
@@ -44,4 +45,5 @@ Use `demobuilder` when you want the guided end-to-end pipeline. Use an individua
 - If you already have `{slug}-discovery.json` and only want qualification, invoke `demo-opportunity-review`.
 - If you only changed the storyline, rerun `demo-script-template`, then rerun downstream affected stages (`demo-data-modeler`, `demo-ml-designer` if relevant, and `demo-validator`).
 - If Agent Builder appears in the script, run `demo-kibana-agent-design` and `token-visibility` before deploy planning.
+- If the script has 5+ ES|QL queries, semantic search, or Fleet/Beats integrations, run `demo-vulcan-generate` before `demo-data-modeler` to get cluster-validated queries and synthetic CSV data.
 - If you only need to check the environment on demo morning, invoke `demo-status`; do not rerun the whole pipeline.

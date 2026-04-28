@@ -91,6 +91,45 @@ done
 
 ---
 
+## elastic/vulcan (optional)
+
+**https://github.com/elastic/vulcan**
+
+An AI-powered demo generator that produces validated, parameterized ES|QL queries, LLM-generated synthetic datasets, EPR-grounded integration data, and tested RAG pipelines. Used by the `demo-vulcan-generate` skill (Stage 4.5) to generate the data + query layer before `demo-data-modeler` runs.
+
+Vulcan is **optional** — it activates when the demo script has 5+ ES|QL queries, semantic/RAG search, or Fleet/Beats integrations. If not installed, the pipeline skips Stage 4.5 and `demo-data-modeler` generates the data model from the script directly.
+
+### Install
+
+Clone as a **sibling of demobuilder** (same parent directory):
+
+```bash
+git clone https://github.com/elastic/vulcan ../vulcan
+cd ../vulcan
+pip install -r requirements.txt
+cp .env.example .env   # fill in ELASTICSEARCH credentials + LLM provider keys
+```
+
+Vulcan needs its own `.env` with cluster credentials (can point to the same cluster as the engagement `.env`) and an LLM provider key (`LLM_PROVIDER=claude-sdk` recommended).
+
+### Keeping it current
+
+```bash
+cd ../vulcan && git pull
+```
+
+### Usage
+
+The `demo-vulcan-generate` skill handles invocation — either through Vulcan's Streamlit UI (`streamlit run app.py`) or programmatically. See `skills/demo-vulcan-generate/SKILL.md` for details.
+
+### If Vulcan is unavailable
+
+If the cluster is unavailable or Vulcan is not installed:
+- Set `skip_indexing: true` in the Vulcan context to generate query strategy only (no cluster needed)
+- Or skip Stage 4.5 entirely — `demo-data-modeler` will proceed without Vulcan outputs
+
+---
+
 ## DEMOBUILDER_ENGAGEMENTS_ROOT (optional)
 
 By default, engagement workspaces are written to `~/engagements/{slug}/`. Set this env var in your shell profile to use a different parent directory:

@@ -77,6 +77,15 @@ For a quick lookup of when to invoke a specific skill without running the full p
       Agent Builder → demo-kibana-agent-design
       AI component  → token-visibility
                │
+      conditional (ES|QL-heavy / RAG / integrations):
+      ┌─────────────────────────────────┐
+      │  demo-vulcan-generate optional  │
+      │  validated ES|QL + synth data   │
+      │  EPR grounding + RAG pipelines  │
+      │ → vulcan-queries.json           │
+      │ → vulcan-data/*.csv             │
+      └────────────────┬────────────────┘
+                       │
                     ┌──────────▼──────────┐
                     │  demo-data-         │
                     │  modeler            │
@@ -130,7 +139,8 @@ For a quick lookup of when to invoke a specific skill without running the full p
 | `demo-opportunity-review` | All parsed discovery + diagnostic outputs | `{slug}-opportunity-summary.md` (team review), `{slug}-opportunity-profile.json` | v1 |
 | `demo-platform-audit` | Discovery JSON + opportunity profile (pre-scopes audit) + optional diagnostic | `{slug}-platform-audit.json`, `{slug}-platform-audit.md` | v1 |
 | `demo-script-template` | Discovery JSON + platform audit | `{slug}-demo-script.md`, `{slug}-demo-brief.md` | v2 |
-| `demo-data-modeler` | Demo script + discovery JSON | `{slug}-data-model.json`, `{slug}-data-model.md`, mapping files | v2 |
+| `demo-vulcan-generate` | Demo script (ES\|QL / RAG / integration-grounded demos) | `{slug}-vulcan-queries.json`, `{slug}-vulcan-data-profile.json`, `vulcan-data/*.csv` | v1 |
+| `demo-data-modeler` | Demo script + discovery JSON + optional Vulcan outputs | `{slug}-data-model.json`, `{slug}-data-model.md`, mapping files | v2 |
 | `demo-ml-designer` | Demo script + data model | `{slug}-ml-config.json`, `{slug}-ml-setup.md` | v1 |
 | `demo-validator` | All pipeline outputs | `{slug}-demo-checklist.md`, `{slug}-risks.md` | v1 |
 | `demo-kibana-agent-design` | Demo script + discovery (Agent Builder in scope) | `{slug}-agent-builder-spec.md` | v2 |
@@ -159,6 +169,10 @@ Every engagement produces a folder under `$DEMOBUILDER_ENGAGEMENTS_ROOT/{slug}/`
 ├── {slug}-demo-script.md             ← full SE script with scenes + timing
 ├── {slug}-demo-brief.md              ← one-page AE brief
 ├── {slug}-agent-builder-spec.md      ← Agent Builder spec (if applicable)
+├── {slug}-vulcan-queries.json        ← validated ES|QL queries from Vulcan (if ran)
+├── {slug}-vulcan-data-profile.json   ← data profile summary from Vulcan (if ran)
+├── {slug}-vulcan-query-results.json  ← query pass/fail results from Vulcan (if ran)
+├── vulcan-data/                      ← synthetic CSV datasets from Vulcan (if ran)
 ├── {slug}-data-model.json            ← index mappings + build order
 ├── {slug}-ml-config.json             ← ML job configs (if applicable)
 ├── {slug}-demo-checklist.md          ← timed pre-demo checklist
@@ -182,6 +196,7 @@ See [docs/engagements-path.md](engagements-path.md) for the env-var override and
 | `demo-opportunity-review` | Evals written — initial MEDDPIC review + living-document update |
 | `demo-platform-audit` | Sample diagnostics from multiple customer self-managed deployments |
 | `demo-script-template` | Sample notes from multiple customer interactions (single-contact and executive-present scenarios) |
+| `demo-vulcan-generate` | Evals written — ES\|QL parameterized demo + integration-grounded data + RAG pipeline |
 | `demo-data-modeler` | Sample notes from multiple customer interactions (fraud detection use case) |
 | `demo-ideation` | Evals written — cold-start demo direction + vague operational AI prompt |
 | `demo-kibana-agent-design` | Evals written — Agent Builder spec + blocked Agent Builder fallback |
