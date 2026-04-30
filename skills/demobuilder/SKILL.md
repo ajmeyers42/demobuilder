@@ -237,8 +237,46 @@ for every file: `{slug}-discovery.json`, `{slug}-demo-script.md`, etc.
 
 ## Step 2: Take Inventory
 
-Check the engagement directory (`{engagement_dir}`) for existing pipeline outputs. Use this to determine where to start —
-don't re-run a stage if its output already exists and the inputs haven't changed.
+**Token-efficient inventory — read pipeline-state first.**
+
+Check for `{engagement_dir}/{slug}-pipeline-state.json`. If it exists, read it instead of
+scanning all output files individually — it is the authoritative record of what has run and
+what inputs each stage last saw. If it does not exist yet, fall back to the file scan below
+and write the state file once inventory is complete.
+
+Pipeline-state schema (write and update this after every stage completes):
+
+```json
+{
+  "slug": "{slug}",
+  "engagement_dir": "{engagement_dir}",
+  "last_updated": "ISO-8601 timestamp",
+  "stages": {
+    "ideation":            { "status": "complete|skipped|pending", "output": "{slug}-ideation.md",           "input_hash": "…" },
+    "discovery-parser":    { "status": "complete|skipped|pending", "output": "{slug}-discovery.json",        "input_hash": "…" },
+    "diagnostic-analyzer": { "status": "complete|skipped|pending", "output": "{slug}-current-state.json",    "input_hash": "…" },
+    "opportunity-review":  { "status": "complete|skipped|pending", "output": "{slug}-opportunity-summary.md","input_hash": "…" },
+    "platform-audit":      { "status": "complete|skipped|pending", "output": "{slug}-platform-audit.json",   "input_hash": "…" },
+    "script-template":     { "status": "complete|skipped|pending", "output": "{slug}-demo-script.md",        "input_hash": "…" },
+    "agent-design":        { "status": "complete|skipped|pending", "output": "{slug}-agent-builder-spec.md", "input_hash": "…" },
+    "vulcan-generate":     { "status": "complete|skipped|pending", "output": "{slug}-vulcan-queries.json",   "input_hash": "…" },
+    "data-modeler":        { "status": "complete|skipped|pending", "output": "{slug}-data-model.json",       "input_hash": "…" },
+    "ml-designer":         { "status": "complete|skipped|pending", "output": "{slug}-ml-config.json",        "input_hash": "…" },
+    "validator":           { "status": "complete|skipped|pending", "output": "{slug}-demo-checklist.md",     "input_hash": "…" },
+    "cloud-provision":     { "status": "complete|skipped|pending", "output": ".env",                         "input_hash": "…" },
+    "deploy":              { "status": "complete|skipped|pending", "output": "bootstrap.py",                 "input_hash": "…" }
+  }
+}
+```
+
+`input_hash` is a short fingerprint (first 8 chars of the last-modified timestamp of the
+primary input file, or `"none"` if no input). Use it to detect when re-runs are needed —
+if the hash on disk differs from the hash recorded here, mark the stage pending.
+
+If `{slug}-pipeline-state.json` is missing (first run), scan for individual output files to
+populate it, then write it.
+
+**File scan fallback** (only when no state file exists):
 
 ```
 Stage                    | Output file                     | Re-run if...
@@ -303,6 +341,13 @@ Use these as inputs to downstream stages. Do not regenerate unless inputs change
 
 ## Step 4: Execute Each Pending Stage
 
+**Context budget — load only what the current stage needs.**
+Before running a stage, load only its required input files. Once a stage completes and its
+structured JSON output is written, that output is the canonical representation — raw inputs
+(discovery note PDFs, raw note text, diagnostic ZIPs) should be considered dropped from
+active context. Downstream stages read the parsed JSON, not the original files.
+This keeps context windows proportional to the current stage, not cumulative across the pipeline.
+
 For each stage that needs to run, in order:
 
 1. **Announce the stage:** `🔄 Running: demo-discovery-parser...`
@@ -313,7 +358,8 @@ For each stage that needs to run, in order:
    `{demobuilder_repo}/skills/<skill>/SKILL.md` from the repo root instead.
 3. **Execute the stage** using the loaded instructions and available inputs.
 4. **Write outputs** to `{engagement_dir}` with the slug prefix.
-5. **Announce completion:** `✅ demo-discovery-parser complete → {slug}-discovery.json`
+5. **Update `{slug}-pipeline-state.json`** — mark the stage `complete`, record the output filename and input hash. This keeps the next session's inventory instant.
+6. **Announce completion:** `✅ demo-discovery-parser complete → {slug}-discovery.json`
 6. **Surface any blockers:** If a stage produces a RED platform audit or critical gaps, pause
    and report before continuing:
    ```
