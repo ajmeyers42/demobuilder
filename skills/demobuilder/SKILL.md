@@ -229,11 +229,32 @@ engagement_dir = "${DEMOBUILDER_ENGAGEMENTS_ROOT:-$HOME/engagements}/{slug}/"
 > relative to the demobuilder repo root. The repo holds skills only; all customer
 > artifacts live outside it under `{engagement_dir}`.
 
-Create the directory if it doesn’t exist. Only per-demo artifacts belong in
-`{engagement_dir}/`; pipeline code stays in the demobuilder clone (`skills/`, `docs/`).
+Create the directory and its four audience-scoped subfolders if they don’t exist:
 
-All output files for this engagement live in `{engagement_dir}`. Use the slug as a prefix
-for every file: `{slug}-discovery.json`, `{slug}-demo-script.md`, etc.
+```bash
+mkdir -p "{engagement_dir}/opportunity"   # AE / SDR / SA — sales alignment, customer-facing docs
+mkdir -p "{engagement_dir}/demo"          # SA — discovery intel, platform audit, scripts
+mkdir -p "{engagement_dir}/data"          # SA / engineer — data model, ML config, Vulcan, seed data
+mkdir -p "{engagement_dir}/deploy"        # SA — bootstrap, teardown, Kibana objects, readiness
+```
+
+Only per-demo artifacts belong in `{engagement_dir}/`; pipeline code stays in the
+demobuilder clone (`skills/`, `docs/`).
+
+**Folder → audience mapping:**
+| Folder | Primary audience | What lives here |
+|--------|----------------|----------------|
+| `opportunity/` | AE, SDR, SA | Opportunity summary, qualification profile, customer confirmation, gaps, demo brief |
+| `demo/` | SA | Ideation contract, discovery JSON, diagnostic outputs, platform audit, demo script, agent spec |
+| `data/` | SA, engineer | Data model, ML config, Vulcan outputs, `mappings/`, `pipelines/`, `seed/` |
+| `deploy/` | SA | `bootstrap.py`, `teardown.py`, provision log, deploy log, checklist, risks, Kibana objects |
+
+`.env` and `.env.example` remain at the **engagement root** (not inside any subfolder) — they
+are sourced directly by scripts and shell workflows using the root path convention.
+
+All output files for this engagement live under the appropriate subfolder. Each skill writes
+to the correct folder; the slug prefix is still used on each file so files remain identifiable
+when shared individually (e.g. `opportunity/{slug}-confirmation.md` sent to the customer).
 
 ## Step 2: Take Inventory
 
@@ -252,19 +273,19 @@ Pipeline-state schema (write and update this after every stage completes):
   "engagement_dir": "{engagement_dir}",
   "last_updated": "ISO-8601 timestamp",
   "stages": {
-    "ideation":            { "status": "complete|skipped|pending", "output": "{slug}-ideation.md",           "input_hash": "…" },
-    "discovery-parser":    { "status": "complete|skipped|pending", "output": "{slug}-discovery.json",        "input_hash": "…" },
-    "diagnostic-analyzer": { "status": "complete|skipped|pending", "output": "{slug}-current-state.json",    "input_hash": "…" },
-    "opportunity-review":  { "status": "complete|skipped|pending", "output": "{slug}-opportunity-summary.md","input_hash": "…" },
-    "platform-audit":      { "status": "complete|skipped|pending", "output": "{slug}-platform-audit.json",   "input_hash": "…" },
-    "script-template":     { "status": "complete|skipped|pending", "output": "{slug}-demo-script.md",        "input_hash": "…" },
-    "agent-design":        { "status": "complete|skipped|pending", "output": "{slug}-agent-builder-spec.md", "input_hash": "…" },
-    "vulcan-generate":     { "status": "complete|skipped|pending", "output": "{slug}-vulcan-queries.json",   "input_hash": "…" },
-    "data-modeler":        { "status": "complete|skipped|pending", "output": "{slug}-data-model.json",       "input_hash": "…" },
-    "ml-designer":         { "status": "complete|skipped|pending", "output": "{slug}-ml-config.json",        "input_hash": "…" },
-    "validator":           { "status": "complete|skipped|pending", "output": "{slug}-demo-checklist.md",     "input_hash": "…" },
+    "ideation":            { "status": "complete|skipped|pending", "output": "demo/{slug}-ideation.md",           "input_hash": "…" },
+    "discovery-parser":    { "status": "complete|skipped|pending", "output": "demo/{slug}-discovery.json",        "input_hash": "…" },
+    "diagnostic-analyzer": { "status": "complete|skipped|pending", "output": "demo/{slug}-current-state.json",    "input_hash": "…" },
+    "opportunity-review":  { "status": "complete|skipped|pending", "output": "opportunity/{slug}-opportunity-summary.md","input_hash": "…" },
+    "platform-audit":      { "status": "complete|skipped|pending", "output": "demo/{slug}-platform-audit.json",   "input_hash": "…" },
+    "script-template":     { "status": "complete|skipped|pending", "output": "demo/{slug}-demo-script.md",        "input_hash": "…" },
+    "agent-design":        { "status": "complete|skipped|pending", "output": "demo/{slug}-agent-builder-spec.md", "input_hash": "…" },
+    "vulcan-generate":     { "status": "complete|skipped|pending", "output": "data/{slug}-vulcan-queries.json",   "input_hash": "…" },
+    "data-modeler":        { "status": "complete|skipped|pending", "output": "data/{slug}-data-model.json",       "input_hash": "…" },
+    "ml-designer":         { "status": "complete|skipped|pending", "output": "data/{slug}-ml-config.json",        "input_hash": "…" },
+    "validator":           { "status": "complete|skipped|pending", "output": "deploy/{slug}-demo-checklist.md",     "input_hash": "…" },
     "cloud-provision":     { "status": "complete|skipped|pending", "output": ".env",                         "input_hash": "…" },
-    "deploy":              { "status": "complete|skipped|pending", "output": "bootstrap.py",                 "input_hash": "…" }
+    "deploy":              { "status": "complete|skipped|pending", "output": "deploy/bootstrap.py",                 "input_hash": "…" }
   }
 }
 ```
@@ -281,17 +302,17 @@ populate it, then write it.
 ```
 Stage                    | Output file                     | Re-run if...
 -------------------------|----------------------------------|---------------------------
-demo-ideation            | {slug}-ideation.md              | No discovery notes; SA needs direction
-demo-discovery-parser    | {slug}-discovery.json           | New/changed discovery notes
-demo-diagnostic-analyzer | {slug}-current-state.json       | New/changed diagnostic file
-demo-opportunity-review  | {slug}-opportunity-summary.md   | discovery or diagnostic changed; follow-up notes added
-demo-platform-audit      | {slug}-platform-audit.json      | opportunity-profile or current-state changed
-demo-script-template     | {slug}-demo-script.md           | platform-audit or ideation changed or user requested
-demo-kibana-agent-design | {slug}-agent-builder-spec.md    | script includes Agent Builder and script/audit changed
-demo-vulcan-generate     | {slug}-vulcan-queries.json      | ES|QL-heavy script; RAG/semantic search in scope; integrations needed
-demo-data-modeler        | {slug}-data-model.json          | script changed or Vulcan outputs changed
-demo-ml-designer         | {slug}-ml-config.json           | data-model changed and ML scenes in script
-demo-validator           | {slug}-demo-checklist.md        | always run last — regenerate each time
+demo-ideation            | demo/{slug}-ideation.md                    | No discovery notes; SA needs direction
+demo-discovery-parser    | demo/{slug}-discovery.json                 | New/changed discovery notes
+demo-diagnostic-analyzer | demo/{slug}-current-state.json             | New/changed diagnostic file
+demo-opportunity-review  | opportunity/{slug}-opportunity-summary.md  | discovery or diagnostic changed; follow-up notes added
+demo-platform-audit      | demo/{slug}-platform-audit.json            | opportunity-profile or current-state changed
+demo-script-template     | demo/{slug}-demo-script.md                 | platform-audit or ideation changed or user requested
+demo-kibana-agent-design | demo/{slug}-agent-builder-spec.md          | script includes Agent Builder and script/audit changed
+demo-vulcan-generate     | data/{slug}-vulcan-queries.json            | ES|QL-heavy script; RAG/semantic search in scope; integrations needed
+demo-data-modeler        | data/{slug}-data-model.json                | script changed or Vulcan outputs changed
+demo-ml-designer         | data/{slug}-ml-config.json                 | data-model changed and ML scenes in script
+demo-validator           | deploy/{slug}-demo-checklist.md            | always run last — regenerate each time
 ```
 
 Conditional skills without a standalone required file (`token-visibility`, Security-specific
@@ -382,20 +403,20 @@ For each stage that needs to run, in order:
 - Outputs: `{slug}-ideation.md` (frozen contract: archetype, wow moments, capability map, data strategy)
 
 **Stage 1 — demo-discovery-parser**
-- Skip if: `{slug}-discovery.json` exists in workspace AND no new discovery notes provided
+- Skip if: `demo/{slug}-discovery.json` exists AND no new discovery notes provided
 - Read: `../demo-discovery-parser/SKILL.md`
 - Inputs: discovery notes (PDF/text/markdown); optionally `{slug}-ideation.md` for narrative validation
 - Outputs: `{slug}-discovery.json`, `{slug}-confirmation.md`, `{slug}-gaps.md`
 
 **Stage 2 — demo-diagnostic-analyzer** *(optional)*
-- Skip if: no diagnostic file provided OR `{slug}-current-state.json` already exists
+- Skip if: no diagnostic file provided OR `demo/{slug}-current-state.json` already exists
 - Read: `../demo-diagnostic-analyzer/SKILL.md`
 - Inputs: diagnostic ZIP or API exports
 - Outputs: `{slug}-current-state.json`, `{slug}-architecture.md`, `{slug}-findings.md`
 
 **Stage 2b — demo-opportunity-review**
 - Skip if **all** of the following are true:
-  1. `{slug}-opportunity-summary.md` AND `{slug}-opportunity-profile.json` both exist
+  1. `opportunity/{slug}-opportunity-summary.md` AND `opportunity/{slug}-opportunity-profile.json` both exist
   2. `{slug}-discovery.json` and `{slug}-gaps.md` have not changed since the last run
   3. `{slug}-current-state.json` and `{slug}-findings.md` have not changed (or were absent before and remain absent)
   4. **No new raw notes, follow-up text, or supplemental files have been provided in this session**
@@ -421,7 +442,7 @@ For each stage that needs to run, in order:
   building or wait for answers.
 
 **Stage 3 — demo-platform-audit**
-- Skip if: `{slug}-platform-audit.json` exists AND neither discovery, current-state, nor
+- Skip if: `demo/{slug}-platform-audit.json` exists AND neither discovery, current-state, nor
   opportunity-profile have changed
 - Read: `../demo-platform-audit/SKILL.md`
 - Inputs: `{slug}-discovery.json`, `{slug}-current-state.json` (if available),
@@ -431,14 +452,14 @@ For each stage that needs to run, in order:
   proceeding. Auto-adjust scope: remove blocked features from the script brief, continue.
 
 **Stage 4 — demo-script-template**
-- Skip if: `{slug}-demo-script.md` exists AND platform-audit hasn't changed AND ideation hasn't changed
+- Skip if: `demo/{slug}-demo-script.md` exists AND platform-audit hasn't changed AND ideation hasn't changed
 - Read: `../demo-script-template/SKILL.md`
 - Inputs: `{slug}-discovery.json`, `{slug}-platform-audit.json`, `{slug}-ideation.md` (if exists — takes priority for wow moments and archetype)
 - Outputs: `{slug}-demo-script.md`, `{slug}-demo-brief.md`
 
 **Stage 4b — demo-kibana-agent-design** *(conditional — Agent Builder only)*
-- Skip if: `{slug}-demo-script.md` does not include Agent Builder / custom agents / tools /
-  workflows, OR `{slug}-agent-builder-spec.md` exists AND the script and audit have not changed
+- Skip if: `demo/{slug}-demo-script.md` does not include Agent Builder / custom agents / tools /
+  workflows, OR `demo/{slug}-agent-builder-spec.md` exists AND the script and audit have not changed
 - Read: `../demo-kibana-agent-design/SKILL.md`
 - Inputs: `{slug}-demo-script.md`, `{slug}-discovery.json`, `{slug}-platform-audit.json`
 - Outputs: `{slug}-agent-builder-spec.md`
@@ -455,7 +476,7 @@ For each stage that needs to run, in order:
 
 **Stage 4.5 — demo-vulcan-generate** *(conditional — ES|QL / RAG / integration-grounded data)*
 - Skip if **all** of the following are true:
-  1. `{slug}-vulcan-queries.json` exists AND the script hasn't changed
+  1. `data/{slug}-vulcan-queries.json` exists AND the script hasn't changed
   2. Vulcan is not installed at `../vulcan` and the SA does not want to install it now
   3. No integration-grounded data is needed (no Fleet/Beats integrations in scope)
 - Run if **any** of the following are true:
@@ -469,7 +490,7 @@ For each stage that needs to run, in order:
   `{slug}-vulcan-query-results.json`, `{engagement_dir}/vulcan-data/*.csv`
 
 **Stage 5 — demo-data-modeler**
-- Skip if: `{slug}-data-model.json` exists AND script hasn't changed AND Vulcan outputs unchanged
+- Skip if: `data/{slug}-data-model.json` exists AND script hasn't changed AND Vulcan outputs unchanged
 - Read: `../demo-data-modeler/SKILL.md` and `../demo-data-modeler/references/mapping-patterns.md`
 - Inputs: `{slug}-demo-script.md`, `{slug}-discovery.json`, `{slug}-agent-builder-spec.md`
   (if present), `{slug}-vulcan-queries.json` (if present — fast path for ES|QL + seed data),
@@ -477,7 +498,7 @@ For each stage that needs to run, in order:
 - Outputs: `{slug}-data-model.json`, `{slug}-data-model.md`, individual mapping files
 
 **Stage 6 — demo-ml-designer** *(conditional)*
-- Skip if: no ML scenes detected in `{slug}-demo-script.md`, OR `{slug}-ml-config.json`
+- Skip if: no ML scenes detected in `demo/{slug}-demo-script.md`, OR `data/{slug}-ml-config.json`
   exists AND data model hasn't changed
 - Detect ML scenes: look for terms like "ML anomaly", "anomaly detection", "swimlane",
   "anomaly_score" in the script
@@ -494,7 +515,7 @@ For each stage that needs to run, in order:
 **Stage 8 — demo-cloud-provision** *(optional — new cluster path only)*
 - **Requires explicit SA approval** to spend resources / create infrastructure (unless
   the user already clearly requested provisioning this session)
-- Skip if: `{engagement_dir}/.env` already exists and credentials are valid
+- Skip if: `{engagement_dir}/.env` already exists at the engagement root and credentials are valid
 - Run if: user requests "create a new cluster", "spin up a serverless project", or no `.env`
   exists and deployment was requested
 - Read: `../demo-cloud-provision/SKILL.md`
@@ -538,39 +559,39 @@ When all stages are complete, produce a structured handoff:
 
 ARTIFACT SUMMARY
 ────────────────
-Discovery & Context
-  ✅  {slug}-discovery.json            — structured customer profile
-  ✅  {slug}-confirmation.md           — send to customer before demo
-  ✅  {slug}-gaps.md                   — internal follow-up questions
+opportunity/  (AE / SDR / SA — team alignment gate)
+  ✅  opportunity/{slug}-opportunity-summary.md   — living team review doc (SDR/AE/SA)
+  ✅  opportunity/{slug}-opportunity-profile.json — MEDDPIC + technical landscape (machine-readable)
+  ✅  opportunity/{slug}-confirmation.md          — send to customer before demo
+  ✅  opportunity/{slug}-gaps.md                  — internal follow-up questions
+  ✅  opportunity/{slug}-demo-brief.md            — one-page AE brief
 
-Qualification
-  ✅  {slug}-opportunity-summary.md    — living team review doc (SDR/AE/SA)
-  ✅  {slug}-opportunity-profile.json  — MEDDPIC + technical landscape (machine-readable)
+demo/  (SA — planning & design intelligence)
+  ✅  demo/{slug}-ideation.md          — frozen demo direction contract (if run)
+  ✅  demo/{slug}-discovery.json       — structured customer profile
+  ⏭   or ✅  demo/{slug}-current-state.json  — diagnostic (optional)
+  ✅  demo/{slug}-platform-audit.json  — feature feasibility matrix
+  ✅  demo/{slug}-platform-audit.md    — SE briefing
+  ✅  demo/{slug}-demo-script.md       — full SE script with scenes and queries
+  ⏭   or ✅  demo/{slug}-agent-builder-spec.md — Agent Builder spec (if agent scenes exist)
 
-Platform & Feasibility
-  ⏭   or ✅  {slug}-current-state.json  — diagnostic (optional)
-  ✅  {slug}-platform-audit.json       — feature feasibility matrix
-  ✅  {slug}-platform-audit.md        — SE briefing
+data/  (SA / engineer — data model & generation)
+  ✅  data/{slug}-data-model.json      — index mappings, build order, seed data spec
+  ✅  data/{slug}-data-model.md        — human-readable build overview
+  ⏭   data/{slug}-ml-config.json      — skipped if no ML scenes in script
+  ⏭   data/{slug}-vulcan-queries.json — Vulcan ES|QL outputs (if Vulcan ran)
 
-Demo Script
-  ✅  {slug}-demo-script.md            — full SE script with scenes and queries
-  ✅  {slug}-demo-brief.md             — one-page AE brief
-  ⏭   or ✅  {slug}-agent-builder-spec.md — Agent Builder spec (if agent scenes exist)
-
-Build Artifacts
-  ✅  {slug}-data-model.json           — index mappings, build order, seed data spec
-  ✅  {slug}-data-model.md             — human-readable build overview
-  ⏭   {slug}-ml-config.json           — skipped if no ML scenes in script
-
-Readiness
-  ✅  {slug}-demo-checklist.md         — pre-demo checklist (timed)
-  ✅  {slug}-risks.md                  — risks and fallbacks
-
-Deploy *(if cluster provisioned)*
-  ✅  {slug}-provision-log.md          — cluster info (if provisioned)
-  ✅  bootstrap.py                     — generated deployment (15 steps; step 13 = scoped Kibana/platform APIs)
-  ✅  {slug}-deploy-log.md             — what was created for this engagement
+deploy/  (SA — cluster assets & readiness)
+  ✅  deploy/{slug}-demo-checklist.md  — pre-demo checklist (timed)
+  ✅  deploy/{slug}-risks.md           — risks and fallbacks
+  ✅  deploy/{slug}-provision-log.md   — cluster info (if provisioned)
+  ✅  deploy/bootstrap.py              — generated deployment (15 steps; step 13 = scoped Kibana/platform APIs)
+  ✅  deploy/{slug}-deploy-log.md      — what was created for this engagement
   ⏭   (skipped — no cluster target provided)
+
+root/  (credentials — never in a subfolder)
+  ✅  .env                             — cluster credentials (never committed)
+  ✅  .env.example                     — safe template for sharing
 
 PLATFORM STATUS: [Green / Amber / Red from platform audit]
   Ready now:     [list features verified]

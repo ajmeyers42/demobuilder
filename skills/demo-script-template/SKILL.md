@@ -36,11 +36,11 @@ SA for guidance** before locking scene order — do not invent primary goals.
 ## Step 1: Read the Inputs
 
 Read all available files in this order:
-- `{slug}-discovery.json` — required. This is your primary source.
-- `{slug}-platform-audit.json` — use this to constrain which features can be scripted.
+- `demo/{slug}-discovery.json` — required. This is your primary source.
+- `demo/{slug}-platform-audit.json` — use this to constrain which features can be scripted.
   Any feature marked `upgrade_required` or `blocked` must not appear as a live scene.
   Features marked `setup_required` can appear but must include a setup note.
-- `{slug}-current-state.json` — optional context for migration or existing-customer demos.
+- `demo/{slug}-current-state.json` — optional context for migration or existing-customer demos.
 
 **Stack version:** If the audit or current-state includes `cluster.version` (or equivalent),
 the script must **name the target Elasticsearch/Kibana versions** in an upfront “Environment”
@@ -58,7 +58,7 @@ what you need to proceed.
 
 ## Step 1b: Apply Demo Archetype (from ideation or archetype gallery)
 
-If `{slug}-ideation.md` exists in the workspace, read it first. The ideation contract
+If `demo/{slug}-ideation.md` exists in the workspace, read it first. The ideation contract
 provides frozen wow moments, capability map, and audience context that should drive
 the script structure directly — do not re-derive these from discovery JSON alone.
 
@@ -150,7 +150,7 @@ Scene design rules:
 
 ## Step 4: Write the Script
 
-### Output 1: `{slug}-demo-script.md`
+### Output 1: `demo/{slug}-demo-script.md`
 
 Use this structure. Adapt section names to fit the customer's context — don't be mechanical.
 
@@ -258,7 +258,7 @@ associates, or shrink anomaly monitoring for supply chain?"]
 If no audit was run: "Platform audit not completed — run demo-platform-audit before build."]
 ```
 
-### Output 2: `{slug}-demo-brief.md`
+### Output 2: `opportunity/{slug}-demo-brief.md`
 
 One page. This is what the AE reads before the meeting. No queries, no config details.
 

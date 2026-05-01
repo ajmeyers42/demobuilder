@@ -41,11 +41,11 @@ the deploy log documents the exception.
 **Scenario-driven — not a fixed stack:** No engagement is required to use SLOs, Agent Builder,
 Security rules, or any other specific feature. **Derive** bootstrap contents from:
 
-- `{slug}-demo-script.md` and `{slug}-demo-checklist.md` — what scenes and clicks must work
-- `{slug}-platform-audit.json` — what is licensed, version-supported, and enabled
-- `{slug}-data-model.json` — indices, pipelines, seed data
-- `{slug}-ml-config.json` (if any) — ML and anomaly injection
-- Optional specs (`{slug}-*-dashboards-spec.md`, `{slug}-agent-builder-spec.md`, etc.)
+- `demo/{slug}-demo-script.md` and `deploy/{slug}-demo-checklist.md` — what scenes and clicks must work
+- `demo/{slug}-platform-audit.json` — what is licensed, version-supported, and enabled
+- `data/{slug}-data-model.json` — indices, pipelines, seed data
+- `data/{slug}-ml-config.json` (if any) — ML and anomaly injection
+- Optional specs (`demo/{slug}-*-dashboards-spec.md`, `demo/{slug}-agent-builder-spec.md`, etc.)
 
 Skip entire subsystems when out of scope (e.g. pure Elasticsearch relevance demos may only
 need data views + saved searches + dashboards; a SIEM demo may emphasize detection rules
@@ -69,7 +69,7 @@ Use these specialists to **author** payloads, NDJSON, and API bodies before or w
 | Alerting rules (including SLO burn rate) | `kibana-alerting-rules` | Rule types vary by use case |
 | Connectors | `kibana-connectors` | Before Workflows that notify |
 | **Security / SIEM** | `security-detection-rule-management`, `security-alert-triage`, `security-case-management`, `security-generate-security-sample-data`, other `security-*` | First-class — use when demo is Sec or hybrid; sample data for POCs |
-| Agent Builder | `elastic/kibana-agent-builder-sdk` + `{slug}-agent-builder-spec.md` | When script includes agents |
+| Agent Builder | `elastic/kibana-agent-builder-sdk` + `demo/{slug}-agent-builder-spec.md` | When script includes agents |
 | ES|QL / analytics | `elasticsearch-esql` | Query validation and panels |
 
 The deploying agent **implements** chosen payloads inside `bootstrap.py` (or loads JSON
@@ -107,9 +107,9 @@ surfacing it as a blocker and asking for the `elastic/workflows` or
 to create resources) until the SA has:
 
 1. **Reviewed** the generated **`bootstrap.py`** (what it will create or mutate).
-2. **Reviewed** analysis outputs the deploy relies on: **`{slug}-platform-audit`**, **`{slug}-risks`**,
-   **`{slug}-demo-checklist.md`**, and any committed **`kibana-objects/`**, **`kibana/`**, or
-   **`elasticsearch/`** files the script imports.
+2. **Reviewed** analysis outputs the deploy relies on: **`demo/{slug}-platform-audit`**, **`deploy/{slug}-risks`**,
+   **`deploy/{slug}-demo-checklist.md`**, and any committed **`deploy/kibana-objects/`**, **`deploy/kibana/`**, or
+   **`deploy/elasticsearch/`** files the script imports.
 3. **Explicitly approved** provision/deploy for this session (same as `AGENTS.md`).
 
 Allowed without that approval: **author** `bootstrap.py`, **`--dry-run`**, local edits to NDJSON,
@@ -139,12 +139,12 @@ tags when set (see **`references/demobuilder-tagging.md`**, **`docs/decisions.md
 ## Step 2: Read Pipeline Outputs
 
 Load all available artifacts from the workspace:
-- `{slug}-data-model.json` — required. Defines all indices, templates, pipelines, build order.
-- `{slug}-ml-config.json` — optional. ML jobs, datafeeds, injection plan.
-- `{slug}-platform-audit.json` — read `deployment_type` and feature availability to
+- `data/{slug}-data-model.json` — required. Defines all indices, templates, pipelines, build order.
+- `data/{slug}-ml-config.json` — optional. ML jobs, datafeeds, injection plan.
+- `demo/{slug}-platform-audit.json` — read `deployment_type` and feature availability to
   adapt the bootstrap to the specific platform.
-- `{slug}-demo-script.md`, `{slug}-demo-checklist.md`, and any supplemental specs
-  (`{slug}-*-dashboards-spec.md`, `{slug}-agent-builder-spec.md`, Security plans, etc.) —
+- `demo/{slug}-demo-script.md`, `deploy/{slug}-demo-checklist.md`, and any supplemental specs
+  (`demo/{slug}-*-dashboards-spec.md`, `demo/{slug}-agent-builder-spec.md`, Security plans, etc.) —
   required context for **step 13** so every scene that depends on a Kibana, Security, or
   Observability asset has a matching API step when those features are in scope.
 - Optional: `{slug}-kibana-*.json` or other sidecar JSON if earlier stages materialized
@@ -153,14 +153,14 @@ Load all available artifacts from the workspace:
 Extract the build order from the data model — this is the sequence the script must follow.
 
 **Kibana and ES collateral as files:** If the engagement workspace includes
-`kibana-objects/{slug}-*.ndjson`, `kibana/workflows/*`, `kibana/agent/*.json`, or declarative
-`elasticsearch/**` JSON, **`bootstrap.py` must load and apply them** via APIs (saved objects
+`deploy/kibana-objects/{slug}-*.ndjson`, `deploy/kibana/workflows/*`, `deploy/kibana/agent/*.json`, or declarative
+`deploy/elasticsearch/**` JSON, **`bootstrap.py` must load and apply them** via APIs (saved objects
 import, Workflows, Agent Builder, ES `PUT`s) — single script, no parallel `deploy_*.py`. Paths
 are relative to `{engagement_dir}` (**D-024**).
 
 ## Step 3: Generate `bootstrap.py`
 
-Write a complete, executable Python script to `{engagement_dir}/bootstrap.py`.
+Write a complete, executable Python script to `{engagement_dir}/deploy/bootstrap.py`.
 
 The script structure:
 
@@ -498,7 +498,7 @@ burn-rate rules are one `rule_type_id` under Alerting; the Observability SLO ref
 **`docs/references-observability-slo.md`** stays focused on SLOs + SLO burn-rate behavior (**D-025**).
 
 **13e — Agent Builder** *(when the agent spec exists and audit allows it)*  
-`PUT/POST` under `/api/agent_builder/...` per `{slug}-agent-builder-spec.md` — not a
+`PUT/POST` under `/api/agent_builder/...` per `demo/{slug}-agent-builder-spec.md` — not a
 manual “Create agent” handoff.
 
 **13f — Workflows** *(when in scope and supported)*  
@@ -612,7 +612,7 @@ corresponding skills to generate it; **do not** complete `demo-deploy` with “T
 Kibana” for an in-scope asset.
 
 **Anomaly injection (step 14)**
-Run the injection spec from `{slug}-ml-config.json`. Sleep `2 × bucket_span` after
+Run the injection spec from `data/{slug}-ml-config.json`. Sleep `2 × bucket_span` after
 injection before verifying anomaly scores:
 ```python
 for entity in injection_plan["target_entities"]:
@@ -653,7 +653,7 @@ Source the `.env` and run:
 
 ```bash
 set -a && source {engagement_dir}/.env && set +a
-python3 {engagement_dir}/bootstrap.py
+python3 {engagement_dir}/deploy/bootstrap.py
 ```
 
 Stream output to the terminal so the SE can watch progress. Each step prints:
@@ -688,9 +688,9 @@ On completion:
  ML jobs:   {N} running
  Kibana:    {N} objects imported
 
- To re-run a step:     python3 bootstrap.py --step N
- To skip data reload:  python3 bootstrap.py --skip-data
- To verify:            python3 bootstrap.py --dry-run
+ To re-run a step:     python3 deploy/bootstrap.py --step N
+ To skip data reload:  python3 deploy/bootstrap.py --skip-data
+ To verify:            python3 deploy/bootstrap.py --dry-run
 
  ⚠️  Pre-demo: clear test sessions 10 min before going live:
  POST /{slug}-sessions/_delete_by_query
@@ -700,7 +700,7 @@ On completion:
 
 ## Step 5: Write the Deploy Log
 
-`{slug}-deploy-log.md`:
+`deploy/{slug}-deploy-log.md`:
 
 ```
 # Deploy Log — {Company}
@@ -729,7 +729,7 @@ Index prefix: {PREFIX or 'none'}
 |---|---|---|
 
 ## To re-run (if something changed):
-source {engagement_dir}/.env && python3 {engagement_dir}/bootstrap.py --skip-data
+source {engagement_dir}/.env && python3 {engagement_dir}/deploy/bootstrap.py --skip-data
 ```
 
 ## Platform-Specific Adaptations
@@ -768,5 +768,5 @@ ROOT="${DEMOBUILDER_ENGAGEMENTS_ROOT:-$HOME/engagements}"
 cp "$ROOT/engagement-a/.env" "$ROOT/engagement-b/.env"
 # Edit engagement-b/.env: DEMO_SLUG, ENGAGEMENT, INDEX_PREFIX for the new customer
 set -a && source "$ROOT/engagement-b/.env" && set +a
-python3 "$ROOT/engagement-b/bootstrap.py"
+python3 "$ROOT/engagement-b/deploy/bootstrap.py"
 ```

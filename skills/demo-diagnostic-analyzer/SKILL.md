@@ -206,9 +206,9 @@ pain that Elastic's current mapping templates address.
 
 Derive the slug from the cluster name or company name if available (lowercase, hyphens).
 Example: `"prod-cluster-lowes"` → `lowes`, `"thermo-fisher-es01"` → `thermo-fisher`.
-If a `{slug}-discovery.json` already exists from demo-discovery-parser, use the same slug.
+If a `demo/{slug}-discovery.json` already exists from demo-discovery-parser, use the same slug.
 
-### Output 1: `{slug}-current-state.json`
+### Output 1: `demo/{slug}-current-state.json`
 
 The populated JSON from Step 2. Valid JSON. Every null field with meaningful impact gets a
 corresponding gaps entry. Include a `findings_summary` array at the root level:
@@ -230,7 +230,7 @@ corresponding gaps entry. Include a `findings_summary` array at the root level:
 }
 ```
 
-### Output 2: `{slug}-architecture.md`
+### Output 2: `demo/{slug}-architecture.md`
 
 A human-readable description of the customer's current Elastic deployment, written for a
 technical audience. This will be used to create an architecture diagram — write it so someone
@@ -258,7 +258,7 @@ Structure:
 [What version they're on, what the current release is, key capabilities they're missing.]
 ```
 
-### Output 3: `{slug}-findings.md`
+### Output 3: `demo/{slug}-findings.md`
 
 Internal — not sent to the customer. Organizes the findings by severity.
 

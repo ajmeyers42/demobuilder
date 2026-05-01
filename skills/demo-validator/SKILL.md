@@ -26,12 +26,12 @@ checklist item.
 ## Step 1: Read All Available Pipeline Outputs
 
 Collect everything available for this engagement:
-- `{slug}-discovery.json` — who's in the room, what we're trying to prove
-- `{slug}-platform-audit.json` — what features are ready vs. need setup
-- `{slug}-demo-script.md` — the exact scenes and queries to verify
-- `{slug}-data-model.json` — what indices and pipelines must exist
-- `{slug}-ml-config.json` — what ML jobs must be trained and anomalies must be visible
-- `{slug}-current-state.json` — if existing customer, their cluster state
+- `demo/{slug}-discovery.json` — who's in the room, what we're trying to prove
+- `demo/{slug}-platform-audit.json` — what features are ready vs. need setup
+- `demo/{slug}-demo-script.md` — the exact scenes and queries to verify
+- `data/{slug}-data-model.json` — what indices and pipelines must exist
+- `data/{slug}-ml-config.json` — what ML jobs must be trained and anomalies must be visible
+- `demo/{slug}-current-state.json` — if existing customer, their cluster state
 
 Note which files are missing — a missing data model or ML config means those items can't
 be verified automatically and must be marked as manual checks.
@@ -84,10 +84,10 @@ For each index/data stream in the data model:
 - Are screenshot fallbacks ready for every major screen?
 
 ### Version alignment check (D-025)
-- Does `{slug}-platform-audit.json` have a **verified** `platform.version`? If `version_verified`
+- Does `demo/{slug}-platform-audit.json` have a **verified** `platform.version`? If `version_verified`
   is `false` or the field is absent, flag as a **no-go blocker** — artifact deployability cannot
   be confirmed without a resolved stack version.
-- For each field type in `{slug}-data-model.json` mappings, confirm it is valid for the resolved
+- For each field type in `data/{slug}-data-model.json` mappings, confirm it is valid for the resolved
   stack version (`keyword`, `text`, `date`, `semantic_text`, etc. — not abstract or invented
   types). See `docs/decisions.md` **D-025**.
 - For each API payload in the data model or bootstrap template, confirm the parameter shapes
@@ -119,7 +119,7 @@ proceed with minor adjustments — the SE knows what to say if a scene doesn't r
 
 ## Step 4: Write the Outputs
 
-### Output 1: `{slug}-demo-checklist.md`
+### Output 1: `deploy/{slug}-demo-checklist.md`
 
 The working document the SE takes into demo prep. Organized by timing.
 
@@ -192,7 +192,7 @@ The working document the SE takes into demo prep. Organized by timing.
 **If no-go:** [specific action — reschedule, swap to recorded demo, etc.]
 ```
 
-### Output 2: `{slug}-risks.md`
+### Output 2: `deploy/{slug}-risks.md`
 
 Internal risk register — one line per risk with mitigation. Useful for post-demo retro.
 

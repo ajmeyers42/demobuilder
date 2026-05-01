@@ -34,12 +34,12 @@ assumptions and mark them as unverified. Recommend getting a diagnostic before b
 
 Read all available files:
 
-- `{slug}-discovery.json` — from demo-discovery-parser. Focus on `demo_scope.recommended_features`,
+- `demo/{slug}-discovery.json` — from demo-discovery-parser. Focus on `demo_scope.recommended_features`,
   `demo_scope.recommended_type`, `elastic_relationship`, and `deal_context`.
-- `{slug}-current-state.json` — from demo-diagnostic-analyzer (if available). Focus on
+- `demo/{slug}-current-state.json` — from demo-diagnostic-analyzer (if available). Focus on
   `cluster.version`, `cluster.license_type`, `cluster.deployment_type`, `features_in_use`,
   `resource_signals`, and `findings_summary`.
-- `{slug}-opportunity-profile.json` — from demo-opportunity-review (if available). Read
+- `opportunity/{slug}-opportunity-profile.json` — from demo-opportunity-review (if available). Read
   `demo_scope_signals` to pre-scope the feature audit to only the capabilities actually in
   play for this engagement:
 
@@ -62,7 +62,7 @@ Read all available files:
   **When opportunity-profile is absent:** run a full audit against all features in
   `demo_scope.recommended_features` from the discovery JSON, as before.
 
-If `{slug}-discovery.json` is missing, ask the user to run `demo-discovery-parser` first.
+If `demo/{slug}-discovery.json` is missing, ask the user to run `demo-discovery-parser` first.
 
 **Version anchoring:** When the target is an **existing** cluster (diagnostic present or
 the SA supplied endpoints/credentials), the audit **must** use the **observed**
@@ -144,7 +144,7 @@ should be re-scoped.
 
 ## Step 4: Write the Two Output Files
 
-### Output 1: `{slug}-platform-audit.json`
+### Output 1: `demo/{slug}-platform-audit.json`
 
 ```json
 {
@@ -207,7 +207,7 @@ should be re-scoped.
 - 🔴 **red** — one or more features are blocked or require upgrade/infra change; demo scope
   must be revised or timeline extended
 
-### Output 2: `{slug}-platform-audit.md`
+### Output 2: `demo/{slug}-platform-audit.md`
 
 A concise SE briefing — not sent to the customer. Written so an SE who hasn't read the
 discovery notes can pick this up and know exactly what to do before building.

@@ -93,9 +93,9 @@ def _load_manifest() -> dict | None:
 
 **Fallback — local pipeline outputs** (only if manifest is absent):
 
-- `{slug}-data-model.json` — indices, templates, pipelines, enrich policies
-- `{slug}-ml-config.json` — ML job IDs and datafeed IDs
-- `{slug}-deploy-log.md` — cross-reference to exclude resources the deploy log marks
+- `data/{slug}-data-model.json` — indices, templates, pipelines, enrich policies
+- `data/{slug}-ml-config.json` — ML job IDs and datafeed IDs
+- `deploy/{slug}-deploy-log.md` — cross-reference to exclude resources the deploy log marks
   as skipped or failed
 
 **Hardcoded inventory backstop:**
@@ -161,7 +161,7 @@ curl -X POST "${ELASTICSEARCH_URL}/_snapshot/{SNAPSHOT_REPO}/{slug}-pre-teardown
 
 ## Step 4: Generate `teardown.py`
 
-Write a complete, executable Python script to `{engagement_dir}/teardown.py`.
+Write a complete, executable Python script to `{engagement_dir}/deploy/teardown.py`.
 
 The script structure:
 
@@ -174,11 +174,11 @@ Cluster: {ELASTICSEARCH_URL}
 Index prefix: '{PREFIX}' ('{PREFIX}*' resources only)
 
 Usage:
-  python3 teardown.py               # delete everything, confirm before proceeding
-  python3 teardown.py --dry-run     # print what would be deleted, no API calls
-  python3 teardown.py --keep-data   # delete config/ML/Kibana but keep index data
-  python3 teardown.py --yes         # skip confirmation prompt (for automation)
-  python3 teardown.py --confirm     # required when INDEX_PREFIX is blank on a shared cluster
+  python3 deploy/teardown.py               # delete everything, confirm before proceeding
+  python3 deploy/teardown.py --dry-run     # print what would be deleted, no API calls
+  python3 deploy/teardown.py --keep-data   # delete config/ML/Kibana but keep index data
+  python3 deploy/teardown.py --yes         # skip confirmation prompt (for automation)
+  python3 deploy/teardown.py --confirm     # required when INDEX_PREFIX is blank on a shared cluster
 
 Steps:
   1.  Connectivity check
@@ -266,7 +266,7 @@ def _load_manifest() -> dict | None:
 def _hardcoded_inventory() -> dict:
     """Backstop: IDs hardcoded at teardown.py generation time. May be stale after re-deploy."""
     return {
-        "ilm_policies":        [p(x) for x in [...]],   # fill from {slug}-data-model.json
+        "ilm_policies":        [p(x) for x in [...]],   # fill from data/{slug}-data-model.json
         "ingest_pipelines":    [p(x) for x in [...]],
         "component_templates": [p(x) for x in [...]],
         "index_templates":     [p(x) for x in [...]],
@@ -658,8 +658,8 @@ Resources that would be deleted:
 
   [... all resource types ...]
 
-To execute: python3 teardown.py
-To keep index data: python3 teardown.py --keep-data
+To execute: python3 deploy/teardown.py
+To keep index data: python3 deploy/teardown.py --keep-data
 ```
 
 ### Keep-data mode
@@ -678,12 +678,12 @@ Source the `.env` and run with the appropriate flags:
 
 ```bash
 set -a && source {engagement_dir}/.env && set +a
-python3 {engagement_dir}/teardown.py
+python3 {engagement_dir}/deploy/teardown.py
 ```
 
 For dry-run first:
 ```bash
-python3 {engagement_dir}/teardown.py --dry-run
+python3 {engagement_dir}/deploy/teardown.py --dry-run
 ```
 
 Stream output to the terminal so the SE can watch progress. Each step prints:
@@ -797,7 +797,7 @@ is harmless; an accidentally deleted cluster may have other users or be needed f
 
 ## Step 7: Write the Teardown Log
 
-Write `{engagement_dir}/{slug}-teardown-log.md`:
+Write `{engagement_dir}/deploy/{slug}-teardown-log.md`:
 
 ```
 # Teardown Log — {Company}
