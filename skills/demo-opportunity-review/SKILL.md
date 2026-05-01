@@ -35,23 +35,23 @@ Read every file available for this engagement in order of recency:
 
 | Input file | Source skill | Required? |
 |---|---|---|
-| `{slug}-discovery.json` | demo-discovery-parser | Required |
-| `{slug}-confirmation.md` | demo-discovery-parser | Optional (cross-check) |
-| `{slug}-gaps.md` | demo-discovery-parser | Required |
-| `{slug}-current-state.json` | demo-diagnostic-analyzer | Optional |
-| `{slug}-architecture.md` | demo-diagnostic-analyzer | Optional |
-| `{slug}-findings.md` | demo-diagnostic-analyzer | Optional |
-| `{slug}-ideation.md` | demo-ideation | Optional |
+| `demo/{slug}-discovery.json` | demo-discovery-parser | Required |
+| `opportunity/{slug}-confirmation.md` | demo-discovery-parser | Optional (cross-check) |
+| `opportunity/{slug}-gaps.md` | demo-discovery-parser | Required |
+| `demo/{slug}-current-state.json` | demo-diagnostic-analyzer | Optional |
+| `demo/{slug}-architecture.md` | demo-diagnostic-analyzer | Optional |
+| `demo/{slug}-findings.md` | demo-diagnostic-analyzer | Optional |
+| `demo/{slug}-ideation.md` | demo-ideation | Optional |
 | Raw notes (any format) | SA/user-provided | Optional (supplement) |
 
-If `{slug}-discovery.json` is missing, stop and tell the user to run `demo-discovery-parser`
+If `demo/{slug}-discovery.json` is missing, stop and tell the user to run `demo-discovery-parser`
 first. All other inputs are additive — the richer the input, the more complete the summary.
 
 ---
 
 ## Step 2: Produce the Opportunity Summary
 
-Write `{slug}-opportunity-summary.md`. Use the structure below exactly — every section is
+Write `opportunity/{slug}-opportunity-summary.md`. Use the structure below exactly — every section is
 used by the team review. Mark any section where data is insufficient with
 `⚠️ Not yet captured` so the team knows what to ask about, rather than leaving it blank or
 inventing content.
@@ -82,7 +82,7 @@ stakeholders, timelines, technical environment. One bullet per fact, source-attr
 where possible (e.g. "CTO said...", "from post-call notes"). Keep it factual.}
 
 ### What may need clarification
-{Pull directly from {slug}-gaps.md. Group into: Business gaps | Technical gaps |
+{Pull directly from `opportunity/{slug}-gaps.md`. Group into: Business gaps | Technical gaps |
 Stakeholder gaps. This is the open question set for the next call or email.}
 
 ---
@@ -194,7 +194,7 @@ Data source = we ingest from it.}
 
 {Questions that sharpen the data model, integration plan, or demo story.
 Internal only — not for the customer-facing confirmation doc. Pull from
-`{slug}-gaps.md` and add any new questions surfaced by this review.
+`opportunity/{slug}-gaps.md` and add any new questions surfaced by this review.
 Number by priority — the top 3 are the ones to answer before the next call.}
 
 | # | Question | Why it matters downstream | Owner | Status |
@@ -218,7 +218,7 @@ Number by priority — the top 3 are the ones to answer before the next call.}
 
 ## Step 3: Produce the Qualification Profile JSON
 
-Write `{slug}-opportunity-profile.json`. This is the machine-readable version used by
+Write `opportunity/{slug}-opportunity-profile.json`. This is the machine-readable version used by
 downstream skills.
 
 ```json
@@ -348,8 +348,8 @@ Top open questions
   3. {third}
 
 Outputs written:
-  ✅  {slug}-opportunity-summary.md   (team review doc)
-  ✅  {slug}-opportunity-profile.json (machine-readable for pipeline)
+  ✅  opportunity/{slug}-opportunity-summary.md   (team review doc)
+  ✅  opportunity/{slug}-opportunity-profile.json (machine-readable for pipeline)
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Ask the team to review {slug}-opportunity-summary.md before proceeding to platform audit.
@@ -361,7 +361,7 @@ Ask the team to review {slug}-opportunity-summary.md before proceeding to platfo
 
 This skill is designed to be re-run. When re-run with updated notes or new information:
 
-1. Read the **existing** `{slug}-opportunity-summary.md` and `{slug}-opportunity-profile.json`.
+1. Read the **existing** `opportunity/{slug}-opportunity-summary.md` and `opportunity/{slug}-opportunity-profile.json`.
 2. Diff the new inputs against what was previously captured.
 3. Update only what changed — do not wipe previous team annotations (inline `[notes]` in brackets).
 4. Add a changelog entry at the top of the summary:
@@ -401,5 +401,5 @@ team can revisit if circumstances change.
 - It does **not** assess technical feasibility of Elastic features (that is `demo-platform-audit`).
 - It does **not** write the demo script or data model — those follow after qualification.
 - It does **not** send anything to the customer — `{slug}-opportunity-summary.md` is internal.
-  The customer-facing doc remains `{slug}-confirmation.md` from `demo-discovery-parser`.
+  The customer-facing doc remains `opportunity/{slug}-confirmation.md` from `demo-discovery-parser`.
 - It does **not** replace the team conversation — it provides the structure for that conversation.

@@ -19,19 +19,19 @@ from datetime import datetime
 from pathlib import Path
 
 STAGE_OUTPUTS = [
-    ("ideation",            "{slug}-ideation.md"),
-    ("discovery-parser",    "{slug}-discovery.json"),
-    ("diagnostic-analyzer", "{slug}-current-state.json"),
-    ("opportunity-review",  "{slug}-opportunity-summary.md"),
-    ("platform-audit",      "{slug}-platform-audit.json"),
-    ("script-template",     "{slug}-demo-script.md"),
-    ("agent-design",        "{slug}-agent-builder-spec.md"),
-    ("vulcan-generate",     "{slug}-vulcan-queries.json"),
-    ("data-modeler",        "{slug}-data-model.json"),
-    ("ml-designer",         "{slug}-ml-config.json"),
-    ("validator",           "{slug}-demo-checklist.md"),
+    ("ideation",            "demo/{slug}-ideation.md"),
+    ("discovery-parser",    "demo/{slug}-discovery.json"),
+    ("diagnostic-analyzer", "demo/{slug}-current-state.json"),
+    ("opportunity-review",  "opportunity/{slug}-opportunity-summary.md"),
+    ("platform-audit",      "demo/{slug}-platform-audit.json"),
+    ("script-template",     "demo/{slug}-demo-script.md"),
+    ("agent-design",        "demo/{slug}-agent-builder-spec.md"),
+    ("vulcan-generate",     "data/{slug}-vulcan-queries.json"),
+    ("data-modeler",        "data/{slug}-data-model.json"),
+    ("ml-designer",         "data/{slug}-ml-config.json"),
+    ("validator",           "deploy/{slug}-demo-checklist.md"),
     ("cloud-provision",     ".env"),
-    ("deploy",              "bootstrap.py"),
+    ("deploy",              "deploy/bootstrap.py"),
 ]
 
 STATUS_ICONS = {

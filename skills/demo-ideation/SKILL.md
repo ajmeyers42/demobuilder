@@ -200,7 +200,7 @@ Do not proceed to the contract until the SA confirms.
 Once the SA agrees, freeze the decisions in a contract document. This is the handoff
 from ideation to pipeline execution.
 
-### Output: `{slug}-ideation.md`
+### Output: `demo/{slug}-ideation.md`
 
 Write this file to the engagement workspace:
 
@@ -263,7 +263,7 @@ Steps: ...
 
 ## Handing Off to the Pipeline
 
-After writing `{slug}-ideation.md`, the orchestrator should use it as:
+After writing `demo/{slug}-ideation.md`, the orchestrator should use it as:
 - **Input to `demo-discovery-parser`** — if discovery notes are also available, the ideation
   contract gives the parser a target narrative to validate against
 - **Input to `demo-script-template`** — the contract replaces the "what should we show?" phase;
@@ -272,7 +272,7 @@ After writing `{slug}-ideation.md`, the orchestrator should use it as:
   into the modeler's planning phase
 
 If discovery notes are also provided, run `demo-discovery-parser` first to produce
-`{slug}-discovery.json`, then pass both the discovery JSON and ideation contract to
+`demo/{slug}-discovery.json`, then pass both the discovery JSON and ideation contract to
 `demo-script-template`.
 
 If no discovery notes exist (ideation only), pass the ideation contract directly to

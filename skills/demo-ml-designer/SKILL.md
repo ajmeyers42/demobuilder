@@ -23,7 +23,7 @@ wow moment first, then work backwards to the job config.
 
 ## Step 1: Identify the ML Scenes
 
-Read the demo script (`{slug}-demo-script.md`). For each scene that uses ML:
+Read the demo script (`demo/{slug}-demo-script.md`). For each scene that uses ML:
 
 - What is the **anomaly narrative**? (e.g., "inventory gap grows faster than normal sales
   velocity", "unusual authentication volume from a single source", "SLA breach rate spikes
@@ -281,7 +281,7 @@ classification on text fields, specify:
 
 ## Step 5: Write the Outputs
 
-### Output 1: `{slug}-ml-config.json`
+### Output 1: `data/{slug}-ml-config.json`
 
 Machine-readable collection of all ML artifacts:
 
@@ -299,7 +299,7 @@ Machine-readable collection of all ML artifacts:
 }
 ```
 
-### Output 2: `{slug}-ml-setup.md`
+### Output 2: `data/{slug}-ml-setup.md`
 
 Step-by-step ML setup guide for the SE:
 

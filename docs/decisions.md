@@ -818,3 +818,42 @@ individual tool IDs (custom and platform.core.*).
 ```
 
 **Date:** 2026-04-22 | **Session:** Citizens Bank 9.4 deployment
+
+---
+
+## D-037: Engagement folder reorganization — audience-scoped subfolders
+
+**Status:** Active | **Applies to:** All pipeline skills, `scripts/inventory.py`, `docs/pipeline.md`
+
+**Context:** As the demobuilder pipeline grew to 15+ output files per engagement, all artifacts
+landed flat in `{slug}/`. AEs and SDRs had to navigate technical data model files to find the
+team alignment doc. SEs looking for deployment scripts had to scroll past customer-facing docs.
+Confusion about which files to share externally vs. keep internal was increasing.
+
+**Decision:** Organize all engagement outputs into four audience-scoped subfolders under `{slug}/`:
+
+| Folder | Audience | Contents |
+|--------|----------|----------|
+| `opportunity/` | AE, SDR, SA | Customer-facing docs + team alignment gate (confirmation, gaps, brief, MEDDPIC summary) |
+| `demo/` | SA | Design intelligence: discovery JSON, diagnostic outputs, platform audit, demo script, agent spec |
+| `data/` | SA, engineer | Data model, ML config, Vulcan outputs, `mappings/`, `pipelines/`, `seed/` |
+| `deploy/` | SA | `bootstrap.py`, `teardown.py`, provision log, deploy log, checklists, risks, Kibana objects |
+
+**Exception:** `.env` and `.env.example` remain at the **engagement root** (not in a subfolder).
+They are sourced by scripts using `source {engagement_dir}/.env` which assumes the root convention.
+Moving them into a subfolder would break all shell-level sourcing patterns.
+
+**Rationale:**
+- AEs and SDRs open `opportunity/` and find exactly what they need for the team call — no scrolling past ML config files.
+- When sharing a confirmation doc externally, the SA sends `opportunity/{slug}-confirmation.md` without needing to filter.
+- `deploy/` is the boundary for scripts that touch live clusters — clearly separated from the planning artifacts.
+- `data/` groups everything an engineer needs to build or debug the data layer, including sub-directories for mappings and pipelines.
+
+**Migration for existing engagements:** Move files manually or re-run the relevant pipeline stages.
+The orchestrator will create subfolders automatically on any new engagement. `scripts/inventory.py`
+searches `{subfolder}/{filename}` patterns when falling back to file scan.
+
+**Applied to:** All 15 skill `SKILL.md` files, `skills/demobuilder/SKILL.md` (orchestrator),
+`scripts/inventory.py` `STAGE_OUTPUTS`, `docs/pipeline.md` workspace layout section.
+
+**Date:** 2026-05-01 | **Session:** Engagement folder reorganization

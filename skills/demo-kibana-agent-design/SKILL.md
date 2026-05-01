@@ -29,7 +29,7 @@ You are specifying how the SE implements **Elastic Agent Builder** in Kibana for
 
 ## Step 1: Confirm scope
 
-From `{slug}-platform-audit.json` and cluster version: Agent Builder must be **available** (e.g. Elastic Stack **9.3+** GA per docs; Serverless as documented). If not green, say so and point to audit remediation — do not write a full agent spec that cannot run.
+From `demo/{slug}-platform-audit.json` and cluster version: Agent Builder must be **available** (e.g. Elastic Stack **9.3+** GA per docs; Serverless as documented). If not green, say so and point to audit remediation — do not write a full agent spec that cannot run.
 
 ## Step 2: Name and role
 
@@ -76,7 +76,7 @@ Do **not** specify **MCP tools** unless the SA explicitly asks — default demob
 
 ## Step 5: Workflow linkage
 
-- Name the **workflow** as scripted in `{slug}-demo-script.md`.
+- Name the **workflow** as scripted in `demo/{slug}-demo-script.md`.
 - Create workflow first → capture **`id`** from POST response → attach as **Workflow tool** in Agent Builder per `workflow-patterns.md`.
 - Do NOT re-fetch workflow ID after creation — use the value directly from POST response (stale-read risk).
 - Reference `hive-mind/patterns/agent-builder/WORKFLOW_INTEGRATION.md` for the exact API wiring pattern.
@@ -103,7 +103,7 @@ Reference: `hive-mind/patterns/agent-builder/AGENT_BUILDER_API_MANAGEMENT.md`.
 
 ## Step 6: Output
 
-Write **`{slug}-agent-builder-spec.md`** in the engagement workspace (`$DEMOBUILDER_ENGAGEMENTS_ROOT/{slug}/`) containing:
+Write **`demo/{slug}-agent-builder-spec.md`** in the engagement `demo/` subfolder (`$DEMOBUILDER_ENGAGEMENTS_ROOT/{slug}/demo/`) containing:
 
 - Prerequisites (Kibana URL, privileges — link [permissions doc](https://www.elastic.co/docs/explore-analyze/ai-features/agent-builder/permissions) if needed).
 - Navigation (Agents, **AI Agent** button — per get-started doc for the deployment type).
@@ -111,7 +111,7 @@ Write **`{slug}-agent-builder-spec.md`** in the engagement workspace (`$DEMOBUIL
 - **Tools** table + test prompts for each tool.
 - **Demo prompts** (3–5) copied from or aligned with the demo script scenes.
 
-If the SA only wants an inline section inside `{slug}-demo-script.md`, merge the same content there instead of a separate file — but prefer a **spec file** when tools/workflows are non-trivial so `demo-deploy` / SA handoff stays traceable.
+If the SA only wants an inline section inside `{slug}-demo-script.md`, merge the same content there instead of a separate file — but prefer a **spec file** in `demo/` when tools/workflows are non-trivial so `demo-deploy` / SA handoff stays traceable.
 
 ## Handoff
 

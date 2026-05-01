@@ -213,12 +213,12 @@ the focus (ELSER, Agent Builder, ML anomaly detection, etc.). Most common type.
 Derive the company slug from the company name (lowercase, hyphens, no special chars).
 Example: "Citizens Bank" → `citizens-bank`, "Holiday Inn Club Vacations" → `ihg-club`.
 
-### Output 1: `{slug}-discovery.json`
+### Output 1: `demo/{slug}-discovery.json`
 
 The populated JSON from Step 2. Must be valid JSON. Every null field must have a corresponding
 entry in `gaps`.
 
-### Output 2: `{slug}-confirmation.md`
+### Output 2: `opportunity/{slug}-confirmation.md`
 
 This goes TO THE CUSTOMER. Write it as if you're handing it to them the day after the
 discovery call. Tone: collaborative, specific, technically credible. Not marketing copy.
@@ -267,7 +267,7 @@ If you have everything you need: "We have everything we need to get started."]
 [Fill from the next steps in the notes]
 ```
 
-### Output 3: `{slug}-gaps.md`
+### Output 3: `opportunity/{slug}-gaps.md`
 
 Internal use only — not sent to the customer. For each gap in the JSON:
 - The field that's missing

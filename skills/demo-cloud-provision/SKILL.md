@@ -103,10 +103,9 @@ Capture (from the compose file, for the .env):
 
 ## Step 3: Write the Per-Engagement .env
 
-Write `.env` to `{engagement_dir}/.env` (the engagement directory is `{engagement_dir}`, e.g.
-`$DEMOBUILDER_ENGAGEMENTS_ROOT/{slug}/`). This file is the single source of truth for all cluster
+Write `.env` to `{engagement_dir}/.env` (at the **engagement root** — not in a subfolder). This file is the single source of truth for all cluster
 credentials for this engagement. Every subsequent skill (demo-deploy, `bootstrap.py`)
-sources this file.
+sources this file from the root path.
 
 ```bash
 # Demo environment — {company}
@@ -269,7 +268,7 @@ Record the feature flag state in the provision log.
 
 ## Step 5: Write the Provision Log
 
-`{slug}-provision-log.md`:
+`deploy/{slug}-provision-log.md`:
 
 ```
 # Provision Log — {Company}
@@ -279,7 +278,7 @@ Record the feature flag state in the provision log.
 **Cluster/Project:** {name}
 
 ## Credentials
-Written to: `{engagement_dir}/.env` (engagement directory = `{engagement_dir}`, e.g. `$DEMOBUILDER_ENGAGEMENTS_ROOT/{slug}/`)
+Written to: `{engagement_dir}/.env` (engagement root — not in a subfolder)
 ES URL: {url} ✅
 Kibana URL: {url} ✅
 API Key: configured ✅
