@@ -47,7 +47,7 @@ Run this skill when **at least one** of the following is true for the current en
 **Skip this skill if:**
 - The demo has no ES|QL scenes and no semantic search
 - The data model is already complete (`{slug}-data-model.json` exists and script hasn't changed)
-- `{slug}-vulcan-queries.json` already exists and the script hasn't changed
+- `data/{slug}-vulcan-queries.json` already exists and the script hasn't changed
 - Vulcan is not installed at `../vulcan` and the SA does not want to install it now
 
 If skipping, note it in the Stage inventory and proceed to demo-data-modeler directly.
@@ -153,19 +153,19 @@ After Vulcan completes, locate the generated module directory:
 VULCAN_MODULE="../vulcan/demos/<module_name>"
 ENGAGEMENT_DIR="${DEMOBUILDER_ENGAGEMENTS_ROOT:-$HOME/engagements}/{slug}"
 
-cp "$VULCAN_MODULE/all_queries.json"           "$ENGAGEMENT_DIR/{slug}-vulcan-queries.json"
-cp "$VULCAN_MODULE/query_testing_results.json" "$ENGAGEMENT_DIR/{slug}-vulcan-query-results.json"
-cp "$VULCAN_MODULE/data_profile.json"          "$ENGAGEMENT_DIR/{slug}-vulcan-data-profile.json"
-cp "$VULCAN_MODULE/config.json"                "$ENGAGEMENT_DIR/{slug}-vulcan-config.json"
-mkdir -p "$ENGAGEMENT_DIR/vulcan-data"
-cp "$VULCAN_MODULE/data/"*.csv                 "$ENGAGEMENT_DIR/vulcan-data/"
+cp "$VULCAN_MODULE/all_queries.json"           "$ENGAGEMENT_DIR/data/{slug}-vulcan-queries.json"
+cp "$VULCAN_MODULE/query_testing_results.json" "$ENGAGEMENT_DIR/data/{slug}-vulcan-query-results.json"
+cp "$VULCAN_MODULE/data_profile.json"          "$ENGAGEMENT_DIR/data/{slug}-vulcan-data-profile.json"
+cp "$VULCAN_MODULE/config.json"                "$ENGAGEMENT_DIR/data/{slug}-vulcan-config.json"
+mkdir -p "$ENGAGEMENT_DIR/data/seed"
+cp "$VULCAN_MODULE/data/"*.csv                 "$ENGAGEMENT_DIR/data/seed/"
 ```
 
 ---
 
 ## Step 4: Review Query Test Results
 
-Read `{slug}-vulcan-query-results.json`. For each query:
+Read `data/{slug}-vulcan-query-results.json`. For each query:
 
 - **PASS** — query ran against the cluster and returned results. Safe to include in `bootstrap.py`.
 - **FAIL** — query did not return results or had syntax errors. Document the failure and either
@@ -181,11 +181,11 @@ Vulcan query validation — {slug}
   Failed queries: [list names + error snippets]
 ```
 
-Surface any FAIL/SKIP counts as a risk item in `{slug}-risks.md` (demo-validator will pick this up).
+Surface any FAIL/SKIP counts as a risk item in `deploy/{slug}-risks.md` (demo-validator will pick this up).
 
 ---
 
-## Step 5: Write `{slug}-vulcan-queries.json`
+## Step 5: Write `data/{slug}-vulcan-queries.json`
 
 This file is the contract passed to demo-data-modeler. Structure:
 
@@ -236,12 +236,12 @@ Map each Vulcan query back to the demo script scene it serves (use scene heading
 Queries generated: N (N passed, N failed, N skipped)
 Integration grounded: yes/no (integrations: ...)
 RAG pipeline: yes/no
-CSVs under: {engagement_dir}/vulcan-data/
+CSVs under: {engagement_dir}/data/seed/
 
-→ {slug}-vulcan-queries.json     (feed to demo-data-modeler)
-→ {slug}-vulcan-data-profile.json
-→ {slug}-vulcan-query-results.json
-→ vulcan-data/*.csv               (seed data for bootstrap.py)
+→ data/{slug}-vulcan-queries.json     (feed to demo-data-modeler)
+→ data/{slug}-vulcan-data-profile.json
+→ data/{slug}-vulcan-query-results.json
+→ data/seed/*.csv                       (seed data for bootstrap.py)
 ```
 
 Proceed to **demo-data-modeler** — the next stage will consume these outputs.

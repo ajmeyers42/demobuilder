@@ -33,13 +33,13 @@ until the cluster is updated.
 
 **Confirm the live version** before authoring any mapping, template, or pipeline:
 
-1. **`{slug}-platform-audit.json`** — read `platform.version` and `platform.version_verified`
-2. **`{slug}-current-state.json`** — read `version` (from diagnostic analyzer output)
+1. **`demo/{slug}-platform-audit.json`** — read `platform.version` and `platform.version_verified`
+2. **`demo/{slug}-current-state.json`** — read `version` (from diagnostic analyzer output)
 3. **`.env`** — read `ELASTIC_VERSION` (informational; treat as unverified unless also in audit)
 4. **Ask the SA** — if none of the above are available, ask before proceeding
 
 If the version is unverified (no live `GET /` or diagnostic), state this explicitly in the
-data model output header and flag it as a risk in `{slug}-risks.md`.
+data model output header and flag it as a risk in `deploy/{slug}-risks.md`.
 
 **9.4 API shapes to use (D-033):**
 - **Inference endpoints:** EIS (`service: "elastic"`, `model_id: ".elser-2"`) for ECH;
@@ -55,13 +55,13 @@ See `docs/decisions.md` **D-025**, **D-033** and `skills/demo-deploy/references/
 ## Step 0b: Check for Vulcan Outputs (optional fast path)
 
 Before extracting requirements from scratch, check whether `demo-vulcan-generate` has
-already run for this engagement. If **`{slug}-vulcan-queries.json`** exists, use it as a
+already run for this engagement. If **`data/{slug}-vulcan-queries.json`** exists, use it as a
 pre-built input — it contains cluster-validated ES|QL queries, parameter shapes, and a
 data profile summary that saves significant hand-authoring work.
 
 **When Vulcan outputs are present:**
 
-1. Read `{slug}-vulcan-queries.json` — extract `queries[]`, `index_name_map`,
+1. Read `data/{slug}-vulcan-queries.json` — extract `queries[]`, `index_name_map`,
    `data_profile_summary`, `integration_grounded`, and `include_rag`.
 2. For each query, confirm the referenced index names and fields match what the demo script
    expects. Flag any mismatches as a data model risk.
@@ -69,7 +69,7 @@ data profile summary that saves significant hand-authoring work.
    tool ES|QL bodies — copy them into the index specs and agent-builder-spec section.
 4. Use the RAG pipeline spec (if `include_rag: true`) to drive `semantic_text` field
    placement and inference endpoint wiring.
-5. If `vulcan-data/*.csv` files exist under `{engagement_dir}/vulcan-data/`, reference them
+5. If `data/seed/*.csv` files exist under `{engagement_dir}/data/seed/`, reference them
    as the `seed_data_source` for each dataset in the build manifest rather than generating
    synthetic docs from scratch.
 
@@ -85,9 +85,9 @@ compatibility with shipped integration dashboards.
 
 ## Step 1: Extract the Data Requirements
 
-Read the demo script (`{slug}-demo-script.md`) and discovery JSON (`{slug}-discovery.json`).
+Read the demo script (`demo/{slug}-demo-script.md`) and discovery JSON (`demo/{slug}-discovery.json`).
 If Vulcan outputs were present (Step 0b), use the `data_profile_summary` and `index_name_map`
-from `{slug}-vulcan-queries.json` to seed the index list rather than re-deriving it.
+from `data/{slug}-vulcan-queries.json` to seed the index list rather than re-deriving it.
 
 From the script, identify every index, data stream, pipeline, and data element referenced:
 
@@ -199,14 +199,14 @@ bulk action. For the scripted_upsert pattern:
 
 ## Step 4: Define the Sample Data Specification
 
-**If Vulcan CSVs exist** (`{engagement_dir}/vulcan-data/*.csv`), use them as the seed data
+**If Vulcan CSVs exist** (`{engagement_dir}/data/seed/*.csv`), use them as the seed data
 source for each matching dataset. In the build manifest, set:
 
 ```json
 {
   "index": "<index-name>",
   "seed_data_source": "vulcan-csv",
-  "seed_csv": "vulcan-data/<dataset_name>.csv",
+  "seed_csv": "data/seed/<dataset_name>.csv",
   "seed_document_count": "<row count from data_profile_summary>",
   "demo_critical_docs": [ ... ]
 }
@@ -249,7 +249,7 @@ scenario to work.
 
 ## Step 5: Write the Outputs
 
-### Output 1: `{slug}-data-model.json`
+### Output 1: `data/{slug}-data-model.json`
 
 Master manifest — one document describing everything that needs to be built:
 
@@ -274,7 +274,7 @@ Master manifest — one document describing everything that needs to be built:
 }
 ```
 
-### Output 2: `{slug}-data-model.md`
+### Output 2: `data/{slug}-data-model.md`
 
 Human-readable build overview for the SE:
 
@@ -300,7 +300,7 @@ Human-readable build overview for the SE:
 [Which artifacts block which — drawn in text if no diagram tool]
 ```
 
-### Output 3: Individual artifact files in `mappings/` and `pipelines/`
+### Output 3: Individual artifact files in `data/mappings/` and `data/pipelines/`
 
 For each index: a standalone JSON file with the complete mapping, settings, and aliases.
 For each pipeline: a standalone JSON file with the complete processor chain.
@@ -371,7 +371,7 @@ When the demo includes **Elastic Agent Builder**, include a `{prefix}agent-sessi
 in the data model. This index powers the AI Cost + Usage dashboard (D-036).
 
 Read `skills/token-visibility/SKILL.md` for the full mapping, seed data spec, and ES|QL
-query patterns. Add the index to the `build_order` in `{slug}-data-model.json` as the
+query patterns. Add the index to the `build_order` in `data/{slug}-data-model.json` as the
 last standard index step (before ML config if present):
 
 ```json
@@ -388,7 +388,7 @@ Set to `false` if the demo scope does not include Agent Builder or AI features.
 
 ## Step 5d: Embed Vulcan-Validated Queries (conditional)
 
-When `{slug}-vulcan-queries.json` exists, embed the validated queries directly into the data
+When `data/{slug}-vulcan-queries.json` exists, embed the validated queries directly into the data
 model JSON under each index spec. This ensures bootstrap.py has tested ES|QL without re-authoring:
 
 ```json

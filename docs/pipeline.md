@@ -133,56 +133,73 @@ For a quick lookup of when to invoke a specific skill without running the full p
 | Skill | Input | Output | Version |
 |---|---|---|---|
 | `demobuilder` | Any combination of inputs | Runs full pipeline, delivers handoff summary | v2 |
-| `demo-ideation` | SA goals, customer vertical (optional) | `{slug}-ideation.md` — frozen archetype + value contract | v2 |
-| `demo-discovery-parser` | Discovery notes (PDF, markdown, raw text) | `{slug}-discovery.json`, `{slug}-confirmation.md`, `{slug}-gaps.md` | v1 |
-| `demo-diagnostic-analyzer` | Elastic diagnostic ZIP or API exports | `{slug}-current-state.json`, `{slug}-architecture.md`, `{slug}-findings.md` | v1 |
-| `demo-opportunity-review` | All parsed discovery + diagnostic outputs | `{slug}-opportunity-summary.md` (team review), `{slug}-opportunity-profile.json` | v1 |
-| `demo-platform-audit` | Discovery JSON + opportunity profile (pre-scopes audit) + optional diagnostic | `{slug}-platform-audit.json`, `{slug}-platform-audit.md` | v1 |
-| `demo-script-template` | Discovery JSON + platform audit | `{slug}-demo-script.md`, `{slug}-demo-brief.md` | v2 |
-| `demo-vulcan-generate` | Demo script (ES\|QL / RAG / integration-grounded demos) | `{slug}-vulcan-queries.json`, `{slug}-vulcan-data-profile.json`, `vulcan-data/*.csv` | v1 |
-| `demo-data-modeler` | Demo script + discovery JSON + optional Vulcan outputs | `{slug}-data-model.json`, `{slug}-data-model.md`, mapping files | v2 |
-| `demo-ml-designer` | Demo script + data model | `{slug}-ml-config.json`, `{slug}-ml-setup.md` | v1 |
-| `demo-validator` | All pipeline outputs | `{slug}-demo-checklist.md`, `{slug}-risks.md` | v1 |
-| `demo-kibana-agent-design` | Demo script + discovery (Agent Builder in scope) | `{slug}-agent-builder-spec.md` | v2 |
+| `demo-ideation` | SA goals, customer vertical (optional) | `demo/{slug}-ideation.md` — frozen archetype + value contract | v2 |
+| `demo-discovery-parser` | Discovery notes (PDF, markdown, raw text) | `demo/{slug}-discovery.json`, `opportunity/{slug}-confirmation.md`, `opportunity/{slug}-gaps.md` | v1 |
+| `demo-diagnostic-analyzer` | Elastic diagnostic ZIP or API exports | `demo/{slug}-current-state.json`, `demo/{slug}-architecture.md`, `demo/{slug}-findings.md` | v1 |
+| `demo-opportunity-review` | All parsed discovery + diagnostic outputs | `opportunity/{slug}-opportunity-summary.md` (team review), `opportunity/{slug}-opportunity-profile.json` | v1 |
+| `demo-platform-audit` | Discovery JSON + opportunity profile (pre-scopes audit) + optional diagnostic | `demo/{slug}-platform-audit.json`, `demo/{slug}-platform-audit.md` | v1 |
+| `demo-script-template` | Discovery JSON + platform audit | `demo/{slug}-demo-script.md`, `opportunity/{slug}-demo-brief.md` | v2 |
+| `demo-vulcan-generate` | Demo script (ES\|QL / RAG / integration-grounded demos) | `data/{slug}-vulcan-queries.json`, `data/{slug}-vulcan-data-profile.json`, `data/seed/*.csv` | v1 |
+| `demo-data-modeler` | Demo script + discovery JSON + optional Vulcan outputs | `data/{slug}-data-model.json`, `data/{slug}-data-model.md`, `data/mappings/`, `data/pipelines/` | v2 |
+| `demo-ml-designer` | Demo script + data model | `data/{slug}-ml-config.json`, `data/{slug}-ml-setup.md` | v1 |
+| `demo-validator` | All pipeline outputs | `deploy/{slug}-demo-checklist.md`, `deploy/{slug}-risks.md` | v1 |
+| `demo-kibana-agent-design` | Demo script + discovery (Agent Builder in scope) | `demo/{slug}-agent-builder-spec.md` | v2 |
 | `token-visibility` | Engagement slug + `.env` | Token tracking index + AI Cost dashboard (auto-included in Agent Builder demos) | v2 |
-| `demo-cloud-provision` | Deployment type, region, slug | `{slug}/.env`, `{slug}/.env.example`, `{slug}-provision-log.md` | v1 |
-| `demo-deploy` | `.env` + pipeline outputs | `bootstrap.py`, `{slug}-deploy-log.md` | v2 |
+| `demo-cloud-provision` | Deployment type, region, slug | `{slug}/.env`, `{slug}/.env.example`, `deploy/{slug}-provision-log.md` | v1 |
+| `demo-deploy` | `.env` + pipeline outputs | `deploy/bootstrap.py`, `deploy/{slug}-deploy-log.md` | v2 |
 | `demo-status` | `.env` | Terminal readiness report (✅/❌ per resource, fix commands) | v1 |
-| `demo-teardown` | `.env` | `teardown.py`, `{slug}-teardown-log.md` | v1 |
+| `demo-teardown` | `.env` | `deploy/teardown.py`, `deploy/{slug}-teardown-log.md` | v1 |
 
 ## Engagement workspace layout
 
-Every engagement produces a folder under `$DEMOBUILDER_ENGAGEMENTS_ROOT/{slug}/` (default `~/engagements/{slug}/`):
+Every engagement produces a folder under `$DEMOBUILDER_ENGAGEMENTS_ROOT/{slug}/` (default `~/engagements/{slug}/`). Artifacts are organized into four audience-scoped subfolders (D-037):
 
 ```
 {slug}/
-├── .env                              ← cluster credentials (never commit)
+├── .env                              ← cluster credentials (never commit — always at root)
 ├── .env.example                      ← template, safe to copy
-├── {slug}-ideation.md                ← archetype + value contract (if ideation ran)
-├── {slug}-discovery.json             ← structured customer profile
-├── {slug}-confirmation.md            ← customer-facing confirmation
-├── {slug}-gaps.md                    ← internal follow-up questions
-├── {slug}-opportunity-summary.md     ← living team review doc (SDR/AE/SA)
-├── {slug}-opportunity-profile.json   ← structured qualification data
-├── {slug}-platform-audit.json        ← feature feasibility matrix
-├── {slug}-platform-audit.md          ← SE briefing
-├── {slug}-demo-script.md             ← full SE script with scenes + timing
-├── {slug}-demo-brief.md              ← one-page AE brief
-├── {slug}-agent-builder-spec.md      ← Agent Builder spec (if applicable)
-├── {slug}-vulcan-queries.json        ← validated ES|QL queries from Vulcan (if ran)
-├── {slug}-vulcan-data-profile.json   ← data profile summary from Vulcan (if ran)
-├── {slug}-vulcan-query-results.json  ← query pass/fail results from Vulcan (if ran)
-├── vulcan-data/                      ← synthetic CSV datasets from Vulcan (if ran)
-├── {slug}-data-model.json            ← index mappings + build order
-├── {slug}-ml-config.json             ← ML job configs (if applicable)
-├── {slug}-demo-checklist.md          ← timed pre-demo checklist
-├── {slug}-risks.md                   ← risks and fallbacks
-├── bootstrap.py                      ← single deploy driver
-├── teardown.py                       ← generated on first teardown run
-├── {slug}-deploy-log.md              ← what was created, doc counts
-├── kibana-objects/                   ← optional: committed .ndjson exports
-├── kibana/                           ← optional: Workflows YAML, agent JSON
-└── elasticsearch/                    ← optional: declarative ES JSON
+│
+├── opportunity/                      ← AE / SDR / SA: team alignment gate
+│   ├── {slug}-opportunity-summary.md   ← living team review doc (SDR/AE/SA)
+│   ├── {slug}-opportunity-profile.json ← structured MEDDPIC + qualification data
+│   ├── {slug}-confirmation.md          ← customer-facing confirmation (send after discovery)
+│   ├── {slug}-gaps.md                  ← internal follow-up questions
+│   └── {slug}-demo-brief.md            ← one-page AE brief (hand to AE before demo)
+│
+├── demo/                             ← SA: design & planning intelligence
+│   ├── {slug}-ideation.md              ← archetype + value contract (if ideation ran)
+│   ├── {slug}-discovery.json           ← structured customer profile
+│   ├── {slug}-current-state.json       ← diagnostic profile (if diagnostic ran)
+│   ├── {slug}-architecture.md          ← current architecture summary (if diagnostic ran)
+│   ├── {slug}-findings.md              ← diagnostic findings + demo readiness (if diagnostic ran)
+│   ├── {slug}-platform-audit.json      ← feature feasibility matrix
+│   ├── {slug}-platform-audit.md        ← SE briefing
+│   ├── {slug}-demo-script.md           ← full SE script with scenes + timing
+│   └── {slug}-agent-builder-spec.md    ← Agent Builder spec (if applicable)
+│
+├── data/                             ← SA / engineer: data model + generation
+│   ├── {slug}-data-model.json          ← index mappings + build order
+│   ├── {slug}-data-model.md            ← human-readable build overview
+│   ├── {slug}-ml-config.json           ← ML job configs (if applicable)
+│   ├── {slug}-ml-setup.md              ← ML setup guide (if applicable)
+│   ├── {slug}-vulcan-queries.json      ← validated ES|QL queries from Vulcan (if ran)
+│   ├── {slug}-vulcan-data-profile.json ← data profile summary from Vulcan (if ran)
+│   ├── {slug}-vulcan-query-results.json← query pass/fail results from Vulcan (if ran)
+│   ├── seed/                           ← synthetic CSV datasets from Vulcan (if ran)
+│   ├── mappings/                       ← per-index mapping JSON files
+│   └── pipelines/                      ← per-pipeline JSON files
+│
+└── deploy/                           ← SA: cluster assets + readiness
+    ├── bootstrap.py                    ← single deploy driver
+    ├── teardown.py                     ← generated on first teardown run
+    ├── {slug}-provision-log.md         ← cluster provisioning record
+    ├── {slug}-demo-checklist.md        ← timed pre-demo checklist
+    ├── {slug}-risks.md                 ← risks and fallbacks
+    ├── {slug}-deploy-log.md            ← what was created, doc counts
+    ├── {slug}-teardown-log.md          ← what was deleted + when
+    ├── kibana-objects/                 ← optional: committed .ndjson exports
+    ├── kibana/                         ← optional: Workflows YAML, agent JSON
+    └── elasticsearch/                  ← optional: declarative ES JSON
 ```
 
 See [docs/engagements-path.md](engagements-path.md) for the env-var override and multi-customer isolation patterns.
