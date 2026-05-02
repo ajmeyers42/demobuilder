@@ -63,18 +63,16 @@ isolated per-project; proceed without warning.
 
 ## Step 2: Build the Resource Inventory
 
-**Primary source — cluster-resident manifest (D-031):**
+**Primary source — cluster-resident manifest (D-039):**
 
-Try to read the asset manifest from the cluster before falling back to local files. The
-manifest is written by `bootstrap.py` after each step and is the most accurate record of
-what was actually created (including Kibana-assigned IDs that are unknown at generation
-time). See `skills/demo-deploy/references/asset-manifest.md` for the full schema.
+Read the dynamic asset manifest from the cluster. The manifest schema uses open-list
+format grouped by `space_id` for Kibana assets. See `skills/demo-deploy/references/asset-manifest.md`
+for the full schema and Python helpers.
 
 ```python
-MANIFEST_INDEX = "demobuilder-manifests"
+MANIFEST_INDEX = "demobuilder-manifests"   # see pipeline-constants.md
 
 def _load_manifest() -> dict | None:
-    """Read the cluster-resident asset manifest. Returns None if not found."""
     eng_id = _engagement_id_for_tag()
     try:
         resp = es("GET", f"/{MANIFEST_INDEX}/_doc/{eng_id}", ok=(200,))
@@ -89,28 +87,29 @@ def _load_manifest() -> dict | None:
         else:
             print(f"  Manifest read error ({e}) — falling back to hardcoded inventory")
         return None
+
+def _build_inventory(manifest: dict | None) -> dict:
+    if not manifest:
+        return _hardcoded_inventory()
+    assets = manifest.get("assets", {})
+    return {
+        "elasticsearch": assets.get("elasticsearch", []),
+        "kibana": assets.get("kibana", {"by_space": {}}),
+    }
 ```
 
-**Fallback — local pipeline outputs** (only if manifest is absent):
+The inventory is an open list of `{"type": "...", "id": "..."}` records for ES assets
+and a `by_space` dict for Kibana assets. Teardown dispatches on `type` — see below.
 
+**Fallback — local pipeline outputs** (only if manifest is absent):
 - `data/{slug}-data-model.json` — indices, templates, pipelines, enrich policies
 - `data/{slug}-ml-config.json` — ML job IDs and datafeed IDs
-- `deploy/{slug}-deploy-log.md` — cross-reference to exclude resources the deploy log marks
-  as skipped or failed
 
 **Hardcoded inventory backstop:**
+When neither manifest nor local files are available, `teardown.py` includes a
+hardcoded `_hardcoded_inventory()` returning the same `{"elasticsearch": [], "kibana": {"by_space": {}}}` shape.
 
-When neither the manifest nor local files are available, `teardown.py` includes a
-hardcoded `_hardcoded_inventory()` function populated at generation time. This is the
-least reliable option (IDs may be stale from a re-deploy) — always prefer the manifest.
-
-Extract the full resource inventory — one flat list of every named artifact by type:
-`ml_job`, `ml_datafeed`, `kibana_dashboard`, `kibana_connector`, `kibana_agent`,
-`kibana_workflow`, `elser_endpoint`, `data_stream`, `index`, `index_template`,
-`component_template`, `ingest_pipeline`, `enrich_policy`, `ilm_policy`.
-
-Apply the prefix function to every name: `p(name) = f"{PREFIX}{name}"` where PREFIX is
-the value of INDEX_PREFIX from `.env` (may be empty string).
+Apply the prefix function to every name: `p(name) = f"{PREFIX}{name}"` where PREFIX is the value of `INDEX_PREFIX` from `.env` (may be empty string).
 
 ## Step 3: Check for Snapshot Option
 
@@ -180,20 +179,19 @@ Usage:
   python3 deploy/teardown.py --yes         # skip confirmation prompt (for automation)
   python3 deploy/teardown.py --confirm     # required when INDEX_PREFIX is blank on a shared cluster
 
-Steps:
-  1.  Connectivity check
-  2.  Stop ML datafeeds
-  3.  Delete ML jobs
-  4.  Delete Kibana saved objects
-  5.  Delete ELSER inference endpoint
-  6.  Delete data streams (and backing indices)
-  7.  Delete static indices
-  8.  Delete index templates
-  9.  Delete component templates
-  10. Delete ingest pipelines
-  11. Delete enrich policies
-  12. Delete ILM / DSL policies
-  13. Confirm all resources removed
+Steps (see teardown-dispatch.md for full ordering and dispatch table):
+  1.  Connectivity check + manifest load
+  2.  Stop ML datafeeds → delete ML jobs
+  3.  Delete Kibana objects (by_space: workflows→agents→tools→dashboards→connectors→SLOs→rules→data_views→tags→space)
+  4.  Delete inference endpoints
+  5.  Delete data streams and indices
+  6.  Delete index templates → component templates
+  7.  Delete ingest pipelines → enrich policies
+  8.  Delete ILM policies (ECH/self-managed only)
+  9.  Confirm all resources removed
+
+Dispatch: asset deletion is driven by type field in manifest records.
+See: skills/demo-deploy/references/teardown-dispatch.md
 """
 
 import os, sys, json, time, argparse
@@ -404,42 +402,55 @@ for job in ML_JOBS:
 
 Do NOT use wildcard ML job deletes — only delete the specific job IDs from the data model.
 
-**Delete Kibana saved objects (step 4)**
+**Delete Kibana objects (step 3) — dispatch-table driven**
 
-Each saved object type is deleted individually by ID using the Kibana Saved Objects API.
+Deletion uses the type-keyed dispatch table from `teardown-dispatch.md`. Assets are grouped
+by `space_id` (D-039 manifest schema) and iterated in the canonical sub-order.
+
 ```python
-# Delete in dependency order: workflows → agents → dashboards → connectors
-# (agents may reference connectors; dashboards may reference agents)
-for wf_id in KIBANA_WORKFLOWS:
-    try:
-        kb("DELETE", f"/api/saved_objects/workflow/{wf_id}")
-        deleted(f"workflow/{wf_id}")
-    except:
-        skipped(f"workflow/{wf_id}")
+# Canonical Kibana deletion order — see teardown-dispatch.md
+_KB_DELETE_ORDER = [
+    "workflow", "agent", "agent_tool",
+    "dashboard", "connector",
+    "slo", "alerting_rule", "siem_rule",
+    "data_view", "tag",
+]
 
-for agent_id in KIBANA_AGENTS:
-    try:
-        kb("DELETE", f"/api/saved_objects/agent/{agent_id}")
-        deleted(f"agent/{agent_id}")
-    except:
-        skipped(f"agent/{agent_id}")
+# Dispatch table — API path per asset type
+# Full table in teardown-dispatch.md; replicated here for script self-containment
+KB_TEARDOWN = {
+    "workflow":       lambda sp, a: kb(sp, "DELETE", f"/api/workflows/{a['id']}"),
+    "agent":          lambda sp, a: kb(sp, "DELETE", f"/api/agent_builder/agents/{a['id']}"),
+    "agent_tool":     lambda sp, a: kb(sp, "DELETE", f"/api/agent_builder/tools/{a['id']}"),
+    "dashboard":      lambda sp, a: kb(sp, "DELETE", f"/api/saved_objects/dashboard/{a['id']}"),
+    "connector":      lambda sp, a: kb(sp, "DELETE", f"/api/actions/connector/{a['id']}"),
+    "slo":            lambda sp, a: kb(sp, "DELETE", f"/api/observability/slos/{a['id']}"),
+    "alerting_rule":  lambda sp, a: kb(sp, "DELETE", f"/api/alerting/rule/{a['id']}"),
+    "siem_rule":      lambda sp, a: kb(sp, "DELETE", f"/api/detection_engine/rules?rule_id={a['id']}"),
+    "data_view":      lambda sp, a: kb(sp, "DELETE", f"/api/data_views/data_view/{a['id']}"),
+    "tag":            lambda sp, a: kb(sp, "DELETE", f"/api/saved_objects/tag/{a['id']}"),
+}
 
-for dash_id in KIBANA_DASHBOARDS:
-    try:
-        kb("DELETE", f"/api/saved_objects/dashboard/{dash_id}")
-        deleted(f"dashboard/{dash_id}")
-    except:
-        skipped(f"dashboard/{dash_id}")
-
-for conn_id in KIBANA_CONNECTORS:
-    try:
-        kb("DELETE", f"/api/actions/connector/{conn_id}")
-        deleted(f"connector/{conn_id}")
-    except:
-        skipped(f"connector/{conn_id}")
+for space_id, assets in INVENTORY["kibana"]["by_space"].items():
+    for asset_type in _KB_DELETE_ORDER:
+        handler = KB_TEARDOWN.get(asset_type)
+        if not handler:
+            continue
+        for asset in [a for a in assets if a["type"] == asset_type]:
+            attempt_or_skip(
+                f"delete {asset_type} {asset['id']} (space: {space_id})",
+                lambda sp=space_id, a=asset: handler(sp, a)
+            )
+    # Delete space itself after all objects in it are gone
+    if space_id != "default":
+        attempt_or_skip(
+            f"delete space {space_id}",
+            lambda sp=space_id: kb("", "DELETE", f"/api/spaces/space/{sp}")
+        )
 ```
 
-Never use a wildcard or bulk Kibana delete — only the saved object IDs imported by bootstrap.
+The `kb(space_id, method, path)` helper prepends `/s/{space_id}` to paths when `space_id != ""`.
+Never use wildcard or bulk Kibana delete — only IDs from the manifest.
 
 **Delete ELSER inference endpoint (step 5)**
 
@@ -457,7 +468,7 @@ def _inference_exists(task_type: str, endpoint_id: str) -> bool:
     except RuntimeError:
         return False
 
-for ep in INVENTORY.get("inference_endpoints", []):
+for ep in [a for a in INVENTORY["elasticsearch"] if a["type"] == "inference_endpoint"]:
     task_type   = ep["task_type"]
     endpoint_id = ep["id"]
     if _inference_exists(task_type, endpoint_id):

@@ -7,6 +7,8 @@
 
 Use *this* file for demobuilder-specific API wiring (Agent Builder `workflow_id`, idempotency patterns, known issues).
 
+**Authentication:** All Kibana Workflow API calls must use `KIBANA_API_KEY`, not `ES_API_KEY` (D-016). See `kibana-api-registry.md`.
+
 Patterns below are derived from live 9.4 ECH deployments. Use this as a lookup, not a tutorial.
 
 ---
@@ -50,9 +52,9 @@ def _workflow_id_by_name(name):
 
 ```bash
 curl -s -X POST "${KIBANA_URL}/api/workflows" \
-  -H "Authorization: ApiKey ${ES_API_KEY}" \
+  -H "Authorization: ApiKey ${KIBANA_API_KEY}" \
   -H "Content-Type: application/yaml" \
-  -H "kbn-xsrf: true" \
+  -H "kbn-xsrf: demobuilder" \
   -H "x-elastic-internal-origin: kibana" \
   --data-binary @my-workflow.yaml
 # Response: {"id": "wf-...", "name": "...", "valid": true}
@@ -62,8 +64,8 @@ curl -s -X POST "${KIBANA_URL}/api/workflows" \
 
 ```bash
 curl -s -X GET "${KIBANA_URL}/api/workflows/${WORKFLOW_ID}" \
-  -H "Authorization: ApiKey ${ES_API_KEY}" \
-  -H "kbn-xsrf: true" \
+  -H "Authorization: ApiKey ${KIBANA_API_KEY}" \
+  -H "kbn-xsrf: demobuilder" \
   | jq '{id, name, valid, validationErrors}'
 ```
 
@@ -71,9 +73,9 @@ curl -s -X GET "${KIBANA_URL}/api/workflows/${WORKFLOW_ID}" \
 
 ```bash
 curl -s -X PUT "${KIBANA_URL}/api/workflows/${WORKFLOW_ID}" \
-  -H "Authorization: ApiKey ${ES_API_KEY}" \
+  -H "Authorization: ApiKey ${KIBANA_API_KEY}" \
   -H "Content-Type: application/yaml" \
-  -H "kbn-xsrf: true" \
+  -H "kbn-xsrf: demobuilder" \
   -H "x-elastic-internal-origin: kibana" \
   --data-binary @my-workflow.yaml
 ```
@@ -82,8 +84,8 @@ curl -s -X PUT "${KIBANA_URL}/api/workflows/${WORKFLOW_ID}" \
 
 ```bash
 curl -s -X DELETE "${KIBANA_URL}/api/workflows/${WORKFLOW_ID}" \
-  -H "Authorization: ApiKey ${ES_API_KEY}" \
-  -H "kbn-xsrf: true"
+  -H "Authorization: ApiKey ${KIBANA_API_KEY}" \
+  -H "kbn-xsrf: demobuilder"
 # Returns 200 {} on success; 404 if already deleted (treat as success in teardown)
 ```
 
@@ -91,9 +93,9 @@ curl -s -X DELETE "${KIBANA_URL}/api/workflows/${WORKFLOW_ID}" \
 
 ```bash
 curl -s -X POST "${KIBANA_URL}/api/workflows/search" \
-  -H "Authorization: ApiKey ${ES_API_KEY}" \
+  -H "Authorization: ApiKey ${KIBANA_API_KEY}" \
   -H "Content-Type: application/json" \
-  -H "kbn-xsrf: true" \
+  -H "kbn-xsrf: demobuilder" \
   -d '{"query": "my-workflow-name", "limit": 1}'
 # Response: {"results": [...], "total": N}  (note: key is "results", not "items")
 ```
@@ -102,8 +104,8 @@ curl -s -X POST "${KIBANA_URL}/api/workflows/search" \
 
 ```bash
 curl -s -X GET "${KIBANA_URL}/api/workflows" \
-  -H "Authorization: ApiKey ${ES_API_KEY}" \
-  -H "kbn-xsrf: true" \
+  -H "Authorization: ApiKey ${KIBANA_API_KEY}" \
+  -H "kbn-xsrf: demobuilder" \
   | jq '.items[] | {id, name, valid}'
 ```
 
@@ -340,9 +342,9 @@ source .env
 
 ```bash
 curl -s -X POST "${KIBANA_URL}/api/workflows" \
-  -H "Authorization: ApiKey ${ES_API_KEY}" \
+  -H "Authorization: ApiKey ${KIBANA_API_KEY}" \
   -H "Content-Type: application/yaml" \
-  -H "kbn-xsrf: true" \
+  -H "kbn-xsrf: demobuilder" \
   -H "x-elastic-internal-origin: kibana" \
   --data-binary @nearby-store-transfer.yaml
 ```
@@ -361,9 +363,9 @@ Response includes `id` — capture it immediately; do not re-fetch.
 
 ```bash
 curl -s -X POST "${KIBANA_URL}/api/workflows/search" \
-  -H "Authorization: ApiKey ${ES_API_KEY}" \
+  -H "Authorization: ApiKey ${KIBANA_API_KEY}" \
   -H "Content-Type: application/json" \
-  -H "kbn-xsrf: true" \
+  -H "kbn-xsrf: demobuilder" \
   -d '{"query": "nearby-store-transfer", "limit": 1}'
 # Response key is "results", not "items"
 ```
@@ -374,8 +376,8 @@ curl -s -X POST "${KIBANA_URL}/api/workflows/search" \
 WORKFLOW_ID="wf-a1b2c3d4"
 
 curl -s -X GET "${KIBANA_URL}/api/workflows/${WORKFLOW_ID}" \
-  -H "Authorization: ApiKey ${ES_API_KEY}" \
-  -H "kbn-xsrf: true" \
+  -H "Authorization: ApiKey ${KIBANA_API_KEY}" \
+  -H "kbn-xsrf: demobuilder" \
   | jq '{id, name, valid, validationErrors}'
 ```
 
@@ -383,8 +385,8 @@ curl -s -X GET "${KIBANA_URL}/api/workflows/${WORKFLOW_ID}" \
 
 ```bash
 curl -s -X DELETE "${KIBANA_URL}/api/workflows/${WORKFLOW_ID}" \
-  -H "Authorization: ApiKey ${ES_API_KEY}" \
-  -H "kbn-xsrf: true"
+  -H "Authorization: ApiKey ${KIBANA_API_KEY}" \
+  -H "kbn-xsrf: demobuilder"
 # 200: deleted; 404: already gone — both are OK during teardown
 ```
 

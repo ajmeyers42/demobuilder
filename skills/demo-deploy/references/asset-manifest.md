@@ -1,22 +1,24 @@
 # Asset Manifest Reference
 
-Per **`docs/decisions.md` D-031** — `bootstrap.py` writes a manifest document to the
-target cluster so `teardown.py` has a fresh, authoritative inventory of every created
-resource. The manifest is **cluster-resident** and survives local file loss or re-generation.
+Per **`docs/decisions.md` D-039** — `bootstrap.py` / `bootstrap-data.py` writes a manifest document to the target cluster so `teardown.py` has a fresh, authoritative inventory of every created resource. The manifest is **cluster-resident** and survives local file loss or re-generation.
+
+**Teardown ordering and dispatch:** See `teardown-dispatch.md` for the canonical deletion order and asset-type → API path table.
 
 ---
 
 ## Manifest index
 
 | Field | Value |
-|---|---|
-| Index name | `demobuilder-manifests` |
+|-------|-------|
+| Index name | `demobuilder-manifests` (never prefixed — see `pipeline-constants.md`) |
 | Document ID | normalized engagement ID (same as `demobuilder:<id>` tag value) |
 | Prefix applied? | No — shared registry index; never prefixed, never deleted by teardown |
 
 ---
 
-## Document schema
+## Document Schema (D-039 — dynamic open-list format)
+
+The schema uses **open lists** of typed asset records rather than hardcoded category keys. New asset types are added as `{"type": "...", "id": "..."}` entries — no schema migration required. Kibana assets are grouped by `space_id` so teardown can scope deletes correctly.
 
 ```json
 {
@@ -27,135 +29,122 @@ resource. The manifest is **cluster-resident** and survives local file loss or r
   "es_version":         "9.4.0",
   "es_url":             "https://demo-447f06.es.us-west2.gcp.elastic-cloud.com",
   "assets": {
-    "ilm_policies":        ["cb-fraud-claims-ilm"],
-    "ingest_pipelines":    ["cb-fraud-enrich"],
-    "component_templates": ["cb-fraud-claims-mappings", "cb-fraud-claims-settings"],
-    "index_templates":     ["cb-fraud-claims-template"],
-    "indices":             ["cb-fraud-claims", "cb-fraud-escalations"],
-    "data_streams":        [],
-    "inference_endpoints": [
-      {"task_type": "sparse_embedding", "id": "cb-elser"}
+    "elasticsearch": [
+      {"type": "ilm_policy",          "id": "cb-fraud-claims-ilm"},
+      {"type": "ingest_pipeline",     "id": "cb-fraud-enrich"},
+      {"type": "component_template",  "id": "cb-fraud-claims-mappings"},
+      {"type": "component_template",  "id": "cb-fraud-claims-settings"},
+      {"type": "index_template",      "id": "cb-fraud-claims-template"},
+      {"type": "index",               "id": "cb-fraud-claims"},
+      {"type": "index",               "id": "cb-fraud-escalations"},
+      {"type": "data_stream",         "id": "cb-fraud-transactions"},
+      {"type": "enrich_policy",       "id": "cb-fraud-enrich-policy"},
+      {"type": "inference_endpoint",  "id": "cb-elser", "task_type": "sparse_embedding"},
+      {"type": "ml_job",              "id": "cb-fraud-volume-anomaly"},
+      {"type": "ml_datafeed",         "id": "datafeed-cb-fraud-volume-anomaly"},
+      {"type": "fleet_package",       "id": "kubernetes", "version": "1.62.0"},
+      {"type": "fleet_agent_policy",  "id": "abc123-policy-id"}
     ],
-    "ml_jobs":             ["cb-fraud-volume-anomaly"],
-    "ml_datafeeds":        ["datafeed-cb-fraud-volume-anomaly"],
-    "enrich_policies":     [],
-    "fleet_integrations": {
-      "packages": [
-        {"name": "kubernetes", "version": "1.62.0"}
-      ],
-      "agent_policy_ids": ["abc123-policy-id"]
-    },
     "kibana": {
-      "space_id":      "2026citizens-ai",
-      "data_views":    ["cb-fraud-claims-*"],
-      "slos": [
-        {"id": "a1b2c3d4-...", "name": "cb-slo-debit-ack-rate"}
-      ],
-      "alerting_rules": [
-        {"id": "e5f6a7b8-...", "name": "Citizens — Debit SLO Burn Rate"}
-      ],
-      "dashboards": [
-        {"id": "cb-fraud-ops-dashboard", "title": "Citizens Fraud Operations"}
-      ],
-      "connectors": [
-        {"id": "f9g0h1i2-...", "name": "cb-fraud-index-connector"}
-      ],
-      "tags": [
-        {"id": "j3k4l5m6-...", "name": "demobuilder:cbfraud"}
-      ],
-      "workflows": [
-        {"id": "n7o8p9q0-...", "name": "citizens-open-fraud-case"}
-      ],
-      "agent_tools": [
-        {"id": "citizens-claims-search",   "name": "citizens-claims-search"},
-        {"id": "citizens-esql-debit-at-risk", "name": "citizens-esql-debit-at-risk"}
-      ],
-      "agents": [
-        {"id": "citizens-fraud-assistant-poc", "name": "Fraud Assistant"}
-      ],
-      "siem_rules": [
-        {"rule_id": "demo-citizens-wire-transfer-ml-anomaly", "name": "Citizens POC — Wire Transfer Volume Anomaly"}
-      ]
+      "by_space": {
+        "2026citizens-ai": [
+          {"type": "data_view",      "id": "cb-fraud-claims-*"},
+          {"type": "dashboard",      "id": "a1b2c3d4-...", "name": "Citizens Fraud Operations"},
+          {"type": "slo",            "id": "e5f6a7b8-...", "name": "cb-slo-debit-ack-rate"},
+          {"type": "alerting_rule",  "id": "f9g0h1i2-...", "name": "Citizens — Debit SLO Burn Rate"},
+          {"type": "connector",      "id": "j3k4l5m6-...", "name": "cb-fraud-index-connector"},
+          {"type": "workflow",       "id": "n7o8p9q0-...", "name": "citizens-open-fraud-case"},
+          {"type": "agent_tool",     "id": "citizens-claims-search",        "name": "citizens-claims-search"},
+          {"type": "agent_tool",     "id": "citizens-esql-debit-at-risk",   "name": "citizens-esql-debit-at-risk"},
+          {"type": "agent",          "id": "citizens-fraud-assistant-poc",  "name": "Fraud Assistant"},
+          {"type": "siem_rule",      "id": "demo-citizens-wire-transfer-ml-anomaly", "name": "Citizens POC — Wire Transfer Volume Anomaly"}
+        ],
+        "default": [
+          {"type": "tag", "id": "r1s2t3u4-...", "name": "demobuilder:cbfraud"}
+        ]
+      }
     }
   }
 }
 ```
 
+**Key properties:**
+- **Open by design** — any new asset type is just a new `{"type": "...", "id": "..."}` entry with optional extra fields; no schema migration needed
+- **Space-grouped Kibana assets** — `by_space` key makes multi-space engagements first-class; teardown iterates spaces and scopes each delete correctly
+- **Extra metadata optional** — `name`, `task_type`, `version` etc. are carried as extra keys; no required envelope changes
+- **Elasticsearch assets** — flat list (not space-grouped); ordered by creation sequence in bootstrap
+
 ---
 
-## Bootstrap — writing the manifest
-
-### Helper functions in `bootstrap.py`
+## Python Helpers
 
 ```python
-MANIFEST_INDEX = "demobuilder-manifests"
+MANIFEST_INDEX = "demobuilder-manifests"   # see pipeline-constants.md
 _manifest: dict = {}   # in-memory accumulator — written to cluster after each step
 
 def _manifest_init():
-    """Seed the in-memory manifest with identity fields."""
     global _manifest
     _manifest = {
-        "engagement_id":     _engagement_id_for_tag(),
-        "slug":               SLUG,
-        "bootstrap_version":  BOOTSTRAP_VERSION,
-        "deployed_at":        __import__("datetime").datetime.utcnow().isoformat() + "Z",
-        "es_version":         "",    # filled in step 1
-        "es_url":             ES_URL,
+        "engagement_id":    _engagement_id_for_tag(),
+        "slug":             SLUG,
+        "bootstrap_version": BOOTSTRAP_VERSION,
+        "deployed_at":      __import__("datetime").datetime.utcnow().isoformat() + "Z",
+        "es_version":       "",    # filled in step 1
+        "es_url":           ES_URL,
         "assets": {
-            "ilm_policies": [], "ingest_pipelines": [], "component_templates": [],
-            "index_templates": [], "indices": [], "data_streams": [],
-            "inference_endpoints": [], "ml_jobs": [], "ml_datafeeds": [],
-            "enrich_policies": [],
-            "fleet_integrations": {"packages": [], "agent_policy_ids": []},
-            "kibana": {
-                "space_id": "", "data_views": [], "slos": [],
-                "alerting_rules": [], "dashboards": [], "connectors": [],
-                "tags": [], "workflows": [], "agent_tools": [],
-                "agents": [], "siem_rules": []
-            }
+            "elasticsearch": [],
+            "kibana": {"by_space": {}}
         }
     }
+
+def _manifest_add_es(asset_type: str, asset_id: str, **meta):
+    """Append an Elasticsearch asset record. Extra kwargs become extra fields."""
+    entry = {"type": asset_type, "id": asset_id, **meta}
+    lst = _manifest["assets"]["elasticsearch"]
+    if entry not in lst:
+        lst.append(entry)
+    _manifest_push()
+
+def _manifest_add_kibana(space_id: str, asset_type: str, asset_id: str, **meta):
+    """Append a Kibana asset record under its space."""
+    entry = {"type": asset_type, "id": asset_id, **meta}
+    by_space = _manifest["assets"]["kibana"]["by_space"]
+    if space_id not in by_space:
+        by_space[space_id] = []
+    if entry not in by_space[space_id]:
+        by_space[space_id].append(entry)
+    _manifest_push()
 
 def _manifest_push():
     """Upsert the current in-memory manifest to the cluster."""
     eng_id = _engagement_id_for_tag()
     try:
-        es("POST", f"/{MANIFEST_INDEX}/_doc/{eng_id}",
-           _manifest, ok=(200, 201))
+        es("POST", f"/{MANIFEST_INDEX}/_doc/{eng_id}", _manifest, ok=(200, 201))
     except Exception as exc:
         print(f"  ⚠  manifest write failed (non-fatal): {exc}")
-
-def _manifest_add(section: str, value):
-    """Append value to an assets list and push to cluster."""
-    target = _manifest["assets"]
-    if section in target:
-        lst = target[section]
-        if value not in lst:
-            lst.append(value)
-    elif section in target.get("kibana", {}):
-        lst = target["kibana"][section]
-        if value not in lst:
-            lst.append(value)
-    _manifest_push()
 ```
 
-### Usage pattern — call `_manifest_add` after each successful resource creation
+### Usage — call after each successful resource creation
 
 ```python
-# After step 2 ILM:
-_manifest_add("ilm_policies", p("fraud-claims-ilm"))
+# Elasticsearch assets
+_manifest_add_es("ilm_policy",         p("fraud-claims-ilm"))
+_manifest_add_es("ingest_pipeline",    p("fraud-enrich"))
+_manifest_add_es("inference_endpoint", p("elser"), task_type="sparse_embedding")
+_manifest_add_es("ml_job",             p("fraud-volume-anomaly"))
+_manifest_add_es("ml_datafeed",        f"datafeed-{p('fraud-volume-anomaly')}")
 
-# After step 8 ELSER:
-_manifest_add("inference_endpoints", {"task_type": "sparse_embedding", "id": p("elser")})
-
-# After Kibana workflow creation:
-_manifest_add("workflows", {"id": wf_id, "name": workflow_name})
-
-# After Agent Builder tool creation:
-_manifest_add("agent_tools", {"id": tool_id, "name": tool_name})
+# Kibana assets (always pass space_id)
+_manifest_add_kibana(SPACE_ID, "dashboard",   dashboard_id, name="Citizens Fraud Operations")
+_manifest_add_kibana(SPACE_ID, "slo",         slo_id,       name="cb-slo-debit-ack-rate")
+_manifest_add_kibana(SPACE_ID, "agent",       agent_id,     name="Fraud Assistant")
+_manifest_add_kibana(SPACE_ID, "workflow",    workflow_id,  name="citizens-open-fraud-case")
+_manifest_add_kibana("default", "tag",        tag_id,       name=f"demobuilder:{_engagement_id_for_tag()}")
 ```
 
-### Ensure `demobuilder-manifests` index exists (idempotent — call in step 1)
+---
+
+## Ensure Manifest Index Exists (call in step 1)
 
 ```python
 def _ensure_manifest_index():
@@ -173,13 +162,10 @@ def _ensure_manifest_index():
 
 ---
 
-## Teardown — reading the manifest
+## Teardown — Reading the Manifest
 
 ```python
-MANIFEST_INDEX = "demobuilder-manifests"
-
 def _load_manifest() -> dict | None:
-    """Try to read the asset manifest from the cluster. Returns None if not found."""
     eng_id = _engagement_id_for_tag()
     try:
         resp = es("GET", f"/{MANIFEST_INDEX}/_doc/{eng_id}", ok=(200,))
@@ -195,53 +181,24 @@ def _load_manifest() -> dict | None:
             print(f"  ⚠  Manifest read error ({e}) — falling back to hardcoded inventory")
         return None
 
-def _build_inventory(manifest: dict | None):
-    """Build the teardown resource lists from the manifest, or fall back to hardcoded."""
+def _build_inventory(manifest: dict | None) -> dict:
+    """Build the teardown inventory from the manifest, or fall back to hardcoded."""
     if not manifest:
-        return _hardcoded_inventory()  # defined at module level as a backstop
+        return _hardcoded_inventory()
     assets = manifest.get("assets", {})
-    kb_assets = assets.get("kibana", {})
     return {
-        "ilm_policies":        assets.get("ilm_policies", []),
-        "ingest_pipelines":    assets.get("ingest_pipelines", []),
-        "component_templates": assets.get("component_templates", []),
-        "index_templates":     assets.get("index_templates", []),
-        "indices":             assets.get("indices", []),
-        "data_streams":        assets.get("data_streams", []),
-        "inference_endpoints": assets.get("inference_endpoints", []),
-        "ml_jobs":             assets.get("ml_jobs", []),
-        "ml_datafeeds":        assets.get("ml_datafeeds", []),
-        "enrich_policies":     assets.get("enrich_policies", []),
-        "fleet_integrations":  assets.get("fleet_integrations", {"packages": [], "agent_policy_ids": []}),
-        "kibana_space_id":     kb_assets.get("space_id", ""),
-        "kibana_data_views":   kb_assets.get("data_views", []),
-        "slos":                kb_assets.get("slos", []),             # list of {"id":..,"name":..}
-        "alerting_rules":      kb_assets.get("alerting_rules", []),   # list of {"id":..,"name":..}
-        "dashboards":          kb_assets.get("dashboards", []),
-        "connectors":          kb_assets.get("connectors", []),
-        "tags":                kb_assets.get("tags", []),
-        "workflows":           kb_assets.get("workflows", []),
-        "agent_tools":         kb_assets.get("agent_tools", []),
-        "agents":              kb_assets.get("agents", []),
-        "siem_rules":          kb_assets.get("siem_rules", []),
+        "elasticsearch": assets.get("elasticsearch", []),
+        "kibana": assets.get("kibana", {"by_space": {}}),
     }
 ```
 
----
-
-## What the manifest does NOT replace
-
-- **`INDEX_PREFIX`** safety gate on shared clusters — still required in teardown
-- **`DEMO_SLUG`** and `.env` credential fields — still required for connectivity
-- **`demobuilder:<id>` tag** — still applied to all tagged assets; the manifest complements
-  it by providing IDs, not tag-only discovery
+See `teardown-dispatch.md` for the dispatch loop that consumes this inventory.
 
 ---
 
 ## Notes
 
-- The `demobuilder-manifests` index should be excluded from ILM and snapshot policies.
-- Multiple engagements on the same cluster each have their own document (document ID =
-  engagement_id). The index accumulates a record of every engagement deployed there.
-- If bootstrap is re-run (idempotent re-deploy), the manifest is overwritten with the
-  latest state. Old IDs from a previous partial run are replaced cleanly.
+- The `demobuilder-manifests` index is excluded from ILM, snapshot policies, and teardown.
+- Multiple engagements on the same cluster each have their own document (document ID = engagement_id).
+- If bootstrap is re-run (idempotent re-deploy), the manifest is overwritten with the latest state. Old IDs from a previous partial run are replaced cleanly.
+- **What the manifest does NOT replace:** `INDEX_PREFIX` safety gate, `DEMO_SLUG` and `.env` credential fields, `demobuilder:<id>` tags (the manifest complements tag-based discovery by providing IDs directly).

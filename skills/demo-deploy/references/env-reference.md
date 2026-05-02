@@ -1,9 +1,12 @@
 # Demo Environment Reference
 
-## .env File — Required Fields
+**Canonical source of truth** for all `.env` variables. All fields listed here are read by `bootstrap.py` / `bootstrap-data.py` at runtime — never hardcoded in scripts.
 
-Every engagement workspace needs a `.env` file before `demo-deploy` can run.
-All fields are read by `bootstrap.py` at runtime — never hardcoded.
+**Two paths to a populated `.env`:**
+- **New deployment** — `demo-cloud-provision` writes all available endpoints directly from the provisioning API response.
+- **Existing deployment** — `demo-cloud-provision` generates a pre-filled `.env-sample` scoped to your `DEPLOYMENT_TYPE`. Fill in values and save as `.env`.
+
+## .env File — All Fields
 
 ```bash
 # ── Identity ──────────────────────────────────────────────
@@ -11,16 +14,42 @@ DEMO_SLUG=citizens-bank          # slug used for file naming throughout pipeline
 ENGAGEMENT=Citizens Bank         # human-readable company name
 DEPLOYMENT_TYPE=serverless       # serverless | ech | self_managed | docker
 
-# ── Cluster Credentials ───────────────────────────────────
+# ── Cluster Endpoints (written by demo-cloud-provision) ──────────────────────────
+# New deployment: written automatically from provisioning API response.
+# Existing deployment: see "Found at" comments for each field.
 ELASTICSEARCH_URL=https://abc123.es.io:443
+# Found at (existing): Cloud console → deployment → Copy endpoint → Elasticsearch
 KIBANA_URL=https://abc123.kb.io:443
+# Found at (existing): Cloud console → deployment → Copy endpoint → Kibana
+
+# APM Server URL — Serverless Oblt / ECH with APM server
+# Found at (existing): Cloud console → deployment → APM & Fleet → APM endpoint
+# APM_SERVER_URL=
+
+# Managed OTLP endpoint — Serverless (all types) / ECH 8.16+
+# Use as OTEL_EXPORTER_OTLP_ENDPOINT for EDOT agents and OTel SDKs.
+# Found at (existing Serverless): Cloud console → project → Endpoints → OpenTelemetry endpoint
+# Found at (existing ECH 8.16+): Kibana → Observability → Add Data → OpenTelemetry
+# MANAGED_OTLP_URL=
+
+# Fleet Server URL — Serverless Oblt/Security / ECH with Fleet
+# Found at (existing): Kibana → Fleet → Settings → Fleet Server hosts
+# FLEET_SERVER_URL=
+
+# Fleet Enrollment Token — Serverless Oblt/Security / ECH with Fleet
+# Found at (existing): Kibana → Fleet → Enrollment tokens → create or copy existing
+# FLEET_ENROLLMENT_TOKEN=
+
+# Logstash URL — ECH with Logstash only
+# Found at (existing): Cloud console → deployment → Copy endpoint → Logstash
+# LOGSTASH_URL=
+
+# ── Cluster Credentials ───────────────────────────────────
 ES_API_KEY=VuaCfGcBCdbkQm...     # base64-encoded API key or ApiKey header value
 
-# ── Kibana API Key ────────────────────────────────────────────────────────
-# Use KIBANA_API_KEY for all Kibana asset operations: Agent Builder, Workflows,
-# Dashboards, Connectors, Saved Objects import. API key privilege requirements
-# for Kibana vs Elasticsearch are under active product change — keeping separate
-# keys is the safe default until product confirms a unified approach.
+# ── Kibana API Key (D-016) ────────────────────────────────────────────────────────
+# Use KIBANA_API_KEY for ALL Kibana asset operations: Agent Builder, Workflows,
+# Dashboards, Connectors, Saved Objects import. Do NOT use ES_API_KEY for Kibana APIs.
 # Set this at provisioning time alongside ES_API_KEY.
 KIBANA_API_KEY=
 
@@ -29,6 +58,10 @@ KIBANA_API_KEY=
 # All bootstrap Kibana API calls (saved objects, SLOs, Agent Builder, Workflows) target this Space.
 # demo-status checks the space exists and warns if KIBANA_SPACE_PATH is unset.
 KIBANA_SPACE_PATH=
+
+# Kibana solution type — used when creating the Kibana space.
+# es | oblt | security — match to the engagement's primary solution area.
+KIBANA_SOLUTION=es
 
 # ── ECH Deployment Pre-flight (Step 0) ───────────────────
 # Optional. If set, bootstrap.py patches Kibana user_settings_json via the ECH
@@ -42,7 +75,13 @@ KIBANA_SPACE_PATH=
 # KIBANA_REF_ID=main-kibana
 
 # ── Version (informational, set by demo-cloud-provision) ──
-ELASTIC_VERSION=9.3.1
+# Must match live cluster version (D-020). Run: curl -s -H "Authorization: ApiKey $ES_API_KEY" $ELASTICSEARCH_URL | python3 -m json.tool | grep '"number"'
+ELASTIC_VERSION=9.4.0
+
+# ── Deploy Mode (D-038) ────────────────────────────────────
+# python (default) — generated bootstrap.py drives all resource creation
+# terraform — generated main.tf + bootstrap-data.py; requires terraform CLI
+DEPLOY_MODE=python
 
 # ── Index Namespace ───────────────────────────────────────
 # Leave blank for isolated clusters (default — recommended)
@@ -55,11 +94,36 @@ INDEX_PREFIX=
 # Agent Builder, etc. If unset, the id is derived from INDEX_PREFIX (normalized) or DEMO_SLUG.
 # DEMO_ASSET_TAG=
 
+# ── Token Visibility (D-036) ───────────────────────────────
+# Set to false to skip AI Cost + Usage dashboard in Agent Builder demos.
+# INCLUDE_TOKEN_VISIBILITY=true
+
+# ── Reference Repo Path Overrides (optional) ──────────────
+# Override default local clone paths for reference repos. See reference-repos.md.
+# HIVE_MIND_PATH=../hive-mind
+# WORKFLOWS_REPO_PATH=~/Documents/GitHub/workflows
+# AGENT_BUILDER_SDK_PATH=~/Documents/GitHub/kibana-agent-builder-sdk
+# VULCAN_PATH=../vulcan
+
 # ── Cluster Metadata (informational) ──────────────────────
 CLUSTER_NAME=demobuilder-citizens-bank-20260415
 REGION=us-east-1
 PROVISIONED_BY=demobuilder
 ```
+
+---
+
+## Endpoint Availability by Deployment Type
+
+| Endpoint var | Serverless ES | Serverless Oblt | Serverless Security | ECH 8.16+ |
+|---|:---:|:---:|:---:|:---:|
+| `ELASTICSEARCH_URL` | ✅ | ✅ | ✅ | ✅ |
+| `KIBANA_URL` | ✅ | ✅ | ✅ | ✅ |
+| `APM_SERVER_URL` | — | ✅ | — | ✅ if APM node |
+| `MANAGED_OTLP_URL` | ✅ | ✅ | ✅ | ✅ (8.16+) |
+| `FLEET_SERVER_URL` | — | ✅ | ✅ | ✅ if Fleet node |
+| `FLEET_ENROLLMENT_TOKEN` | — | ✅ | ✅ | ✅ if Fleet node |
+| `LOGSTASH_URL` | — | — | — | ✅ if Logstash node |
 
 ## Multi-Customer Workflow
 
@@ -106,29 +170,56 @@ patches the query strings in the Kibana saved objects before import.
 ## .env.example Template
 
 This file is safe to commit — it documents requirements without exposing credentials.
+`demo-cloud-provision` generates a deployment-type-scoped version automatically.
 Every workspace should have one alongside the `.env`:
 
 ```bash
 # .env.example — copy to .env and fill in values
 # See: skills/demo-deploy/references/env-reference.md
+# Generated by: demo-cloud-provision
 
 DEMO_SLUG=<slug-e.g.-citizens-bank>
 ENGAGEMENT=<company-name>
 DEPLOYMENT_TYPE=<serverless|ech|self_managed|docker>
-# D-020: must match live cluster version — run: curl -s -H "Authorization: ApiKey $ES_API_KEY" $ELASTICSEARCH_URL | python3 -m json.tool | grep '"number"'
-ELASTIC_VERSION=<e.g.-9.3.1>
+DEPLOY_MODE=python   # python | terraform
 
+# D-020: must match live cluster version
+# Run: curl -s -H "Authorization: ApiKey $ES_API_KEY" $ELASTICSEARCH_URL | python3 -m json.tool | grep '"number"'
+ELASTIC_VERSION=<e.g.-9.4.0>
+
+# ── Required endpoints ────────────────────────────────────
 ELASTICSEARCH_URL=<https://your-cluster.es.io:443>
+# Found at: Cloud console → deployment → Copy endpoint → Elasticsearch
 KIBANA_URL=<https://your-kibana.kb.io:443>
-ES_API_KEY=<your-api-key>
-# KIBANA_API_KEY=<separate-kibana-key-if-required>
+# Found at: Cloud console → deployment → Copy endpoint → Kibana
 
-# Kibana Space — written by demo-cloud-provision / bootstrap.py ensure_kibana_space().
-# Set to /s/{DEMO_SLUG} for per-engagement asset isolation; leave blank for default Space.
+# ── Optional endpoints (populated for relevant deployment types) ──────────
+# APM_SERVER_URL=<https://...>
+# Found at: Cloud console → deployment → APM & Fleet → APM endpoint  [Serverless Oblt / ECH with APM]
+
+# MANAGED_OTLP_URL=<https://...>
+# Found at: Cloud console → project → Endpoints → OpenTelemetry endpoint  [Serverless]
+#           Kibana → Observability → Add Data → OpenTelemetry  [ECH 8.16+]
+
+# FLEET_SERVER_URL=<https://...>
+# Found at: Kibana → Fleet → Settings → Fleet Server hosts  [Serverless Oblt/Security / ECH with Fleet]
+
+# FLEET_ENROLLMENT_TOKEN=<token>
+# Found at: Kibana → Fleet → Enrollment tokens  [Serverless Oblt/Security / ECH with Fleet]
+
+# LOGSTASH_URL=<https://...>
+# Found at: Cloud console → deployment → Copy endpoint → Logstash  [ECH with Logstash only]
+
+# ── Credentials ──────────────────────────────────────────
+ES_API_KEY=<your-es-api-key>
+KIBANA_API_KEY=<your-kibana-api-key>   # Required — do NOT use ES_API_KEY for Kibana APIs (D-016)
+
 KIBANA_SPACE_PATH=/s/<DEMO_SLUG>
+KIBANA_SOLUTION=es   # es | oblt | security
 
 INDEX_PREFIX=<optional-e.g.-cb->
 # DEMO_ASSET_TAG=<optional-override-for-demobuilder:-tags>
+# INCLUDE_TOKEN_VISIBILITY=true
 
 CLUSTER_NAME=<demobuilder-slug-YYYYMMDD>
 REGION=<e.g.-us-east-1>

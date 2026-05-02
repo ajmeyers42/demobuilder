@@ -103,64 +103,115 @@ Capture (from the compose file, for the .env):
 
 ## Step 3: Write the Per-Engagement .env
 
-Write `.env` to `{engagement_dir}/.env` (at the **engagement root** — not in a subfolder). This file is the single source of truth for all cluster
-credentials for this engagement. Every subsequent skill (demo-deploy, `bootstrap.py`)
-sources this file from the root path.
+Write `.env` to `{engagement_dir}/.env` (at the **engagement root** — not in a subfolder).
+This is the single source of truth for all cluster credentials. See `skills/demo-deploy/references/env-reference.md` for the full variable reference and the endpoint availability table by deployment type.
+
+**Two branches — choose based on whether the cluster is new or existing:**
+
+### Branch A: New deployment (provisioned in Step 2)
+
+Write all available endpoints directly from the provisioning API response. Blank-comment
+endpoint vars that are not available for this deployment type.
 
 ```bash
 # Demo environment — {company}
-# Provisioned: {date}
-# Deployment type: {type}
+# Provisioned: {date} | Type: {type} | Region: {region}
 # ⚠️  Do not commit to version control — contains credentials
 
 DEMO_SLUG={slug}
+ENGAGEMENT={company}
 DEPLOYMENT_TYPE={serverless|ech|self_managed|docker}
-ELASTIC_VERSION={version}       # from provisioning response or platform audit
+DEPLOY_MODE=python
+ELASTIC_VERSION={version}        # from provisioning response
 
-ELASTICSEARCH_URL={url}
-KIBANA_URL={url}
+# ── Cluster endpoints ─────────────────────────────────────
+ELASTICSEARCH_URL={es_url}
+KIBANA_URL={kibana_url}
+
+# APM_SERVER_URL={apm_url}       # populated: Serverless Oblt / ECH with APM
+# MANAGED_OTLP_URL={otlp_url}    # populated: all Serverless / ECH 8.16+
+# FLEET_SERVER_URL={fleet_url}   # populated: Serverless Oblt/Security / ECH with Fleet
+# FLEET_ENROLLMENT_TOKEN={token} # populated: Serverless Oblt/Security / ECH with Fleet
+# LOGSTASH_URL={logstash_url}    # populated: ECH with Logstash only
+
+# ── Credentials ──────────────────────────────────────────
 ES_API_KEY={api_key}
-KIBANA_API_KEY={kibana_api_key}   # used for all Kibana asset operations
+KIBANA_API_KEY={kibana_api_key}
 
-# Index namespace (blank = no prefix, indices use default names from data model)
-# Set this if running multiple demos on the same cluster to avoid collisions
-INDEX_PREFIX=
-
-# Kibana Space — written by Step 4.1 (ensure_kibana_space); /s/{DEMO_SLUG} for isolation
 KIBANA_SPACE_PATH=/s/{slug}
+KIBANA_SOLUTION={es|oblt|security}
 
-# Optional: override demobuilder:<id> tag suffix (D-026); see demo-deploy/references/demobuilder-tagging.md
+INDEX_PREFIX=
 # DEMO_ASSET_TAG=
+# INCLUDE_TOKEN_VISIBILITY=true
 
-# Cluster metadata (informational)
 CLUSTER_NAME={name}
 REGION={region}
 PROVISIONED_BY=demobuilder
-ENGAGEMENT={company}
 ```
 
-Also write `.env.example` with the same keys but values replaced by `<your-value-here>`.
-This is safe to share or commit — it documents what's needed without exposing credentials.
+Remove the `#` comment prefix for each endpoint that was returned by provisioning.
+Leave unavailable endpoints commented so the file is always complete for the type.
+
+### Branch B: Existing deployment (SA connecting to a pre-existing cluster)
+
+Generate and write `{engagement_dir}/.env-sample` scoped to the declared `DEPLOYMENT_TYPE`.
+Show only the endpoint slots relevant to that type, each with a `# Found at:` comment.
+The SA fills in values and saves as `.env`.
 
 ```bash
-# .env.example — copy to .env and fill in values
-DEMO_SLUG=<slug>
-DEPLOYMENT_TYPE=<serverless|ech|self_managed|docker>
-# D-020: must match live cluster version (run: curl ... GET / | grep '"number"')
-ELASTIC_VERSION=<e.g., 9.3.1>
+# .env-sample — fill in values and save as .env
+# See: skills/demo-deploy/references/env-reference.md
+
+DEMO_SLUG={slug}
+ENGAGEMENT={company}
+DEPLOYMENT_TYPE={type}
+DEPLOY_MODE=python
+# D-020: validate live version — run: curl -s -H "Authorization: ApiKey $ES_API_KEY" $ELASTICSEARCH_URL | python3 -m json.tool | grep '"number"'
+ELASTIC_VERSION=<e.g.-9.4.0>
+
 ELASTICSEARCH_URL=<https://your-cluster.es.io:443>
+# Found at: Cloud console → deployment → Copy endpoint → Elasticsearch
+
 KIBANA_URL=<https://your-kibana.kb.io:443>
+# Found at: Cloud console → deployment → Copy endpoint → Kibana
+
+# ── Conditional endpoints — uncomment and fill in what applies for {type} ────────────────
+# APM_SERVER_URL=<https://...>
+# Found at: Cloud console → deployment → APM & Fleet → APM endpoint  [Serverless Oblt / ECH with APM]
+
+# MANAGED_OTLP_URL=<https://...>
+# Found at: Cloud console → project → Endpoints → OpenTelemetry endpoint  [Serverless]
+#           Kibana → Observability → Add Data → OpenTelemetry  [ECH 8.16+]
+
+# FLEET_SERVER_URL=<https://...>
+# Found at: Kibana → Fleet → Settings → Fleet Server hosts  [Serverless Oblt/Security / ECH with Fleet]
+
+# FLEET_ENROLLMENT_TOKEN=<token>
+# Found at: Kibana → Fleet → Enrollment tokens  [Serverless Oblt/Security / ECH with Fleet]
+
+# LOGSTASH_URL=<https://...>
+# Found at: Cloud console → deployment → Copy endpoint → Logstash  [ECH with Logstash only]
+
 ES_API_KEY=<your-es-api-key>
-KIBANA_API_KEY=<your-kibana-api-key>
-KIBANA_SPACE_PATH=/s/<slug>
-INDEX_PREFIX=<optional-e.g., cb->
-# DEMO_ASSET_TAG=<optional-override-for-demobuilder-tags>
+KIBANA_API_KEY=<your-kibana-api-key>   # Required — do NOT use ES_API_KEY for Kibana APIs (D-016)
+
+KIBANA_SPACE_PATH=/s/{slug}
+KIBANA_SOLUTION={es|oblt|security}
+
+INDEX_PREFIX=<optional-e.g.-cb->
+# DEMO_ASSET_TAG=
+
+CLUSTER_NAME=<demobuilder-{slug}-YYYYMMDD>
+REGION=<e.g.-us-east-1>
+PROVISIONED_BY=demobuilder
 ```
+
+After the SA saves `.env`, proceed to Step 4 (validate connectivity).
 
 **To reuse a cluster for a new engagement:** Copy the `.env` from an existing workspace
 to the new workspace and update `DEMO_SLUG`, `ENGAGEMENT`, and optionally `INDEX_PREFIX`.
-No re-provisioning needed. The new demo's indices will coexist with existing ones, namespaced
-by prefix if set.
+No re-provisioning needed. The new demo's indices coexist, namespaced by prefix if set.
 
 ## Step 4: Validate Connectivity
 
@@ -212,11 +263,15 @@ def ensure_kibana_space(kb_url, kb_api_key, demo_slug, engagement):
     except urllib.error.HTTPError as e:
         if e.code != 404:
             raise
-    # Create the space
+    # Create the space — include solution and disabledFeatures per demobuilder rules
+    import os
+    kibana_solution = os.environ.get("KIBANA_SOLUTION", "es")  # es | oblt | security
     body = json.dumps({
         "id": space_id,
         "name": engagement,
         "description": f"Demobuilder engagement {space_id}",
+        "solution": kibana_solution,
+        "disabledFeatures": [],
     }).encode()
     req = urllib.request.Request(url, data=body, method="POST", headers=headers)
     try:
