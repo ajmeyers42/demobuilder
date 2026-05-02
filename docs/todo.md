@@ -98,10 +98,11 @@ Re-injects anomaly data T-2h before a demo. Separate from `deploy/bootstrap.py -
 ### 9. `demo-fleet-integrations`
 Installs and configures Elastic Fleet integration packages (EPM) for demo environments. Provides managed assets — ingest pipelines, index templates, ILM policies, dashboards — from the Integrations catalog rather than hand-rolled equivalents. Supports both agent-based collection and synthetic bulk ingest into integration-managed indices.
 
-**Priority:** Medium — originated from 2026lenovoGAIaaS engagement.
-**Status:** Stub SKILL.md exists at `skills/demo-fleet-integrations/SKILL.md` — implementation pending.
-**Inputs:** `demo/{slug}-demo-script.md`, `data/{slug}-data-model.json`, `.env`
-**Outputs:** Fleet policy JSON, integration package install steps, integration-managed index templates
+**Status: Spec complete and implemented** — see `skills/demo-fleet-integrations/SKILL.md`.
+Wired into the pipeline as Stage 5.5 (after data-modeler, before ml-designer).
+Includes asset catalog review with shared `use_as_is` / `clone_and_modify` / `storyline_enhancement` taxonomy.
+
+**Remaining:** Validate against a live cluster (part of item #3 first-deploy gate).
 
 ### 10. `demo-ingest-pipeline-design`
 Designs and generates Elasticsearch ingest pipeline definitions from a field mapping specification. Produces deployment-ready pipeline JSON artifacts consumed by `kibana-streams-manage` (for Streams wiring) or directly deployed by `deploy/bootstrap.py` step 4.
@@ -118,21 +119,41 @@ Creates, configures, and wires Kibana Streams with ingest pipelines for demo env
 **Status:** Stub SKILL.md exists at `skills/kibana-streams-manage/SKILL.md` — implementation pending.
 **Depends on:** `demo-ingest-pipeline-design` (pipelines must exist before wiring)
 
+### 12. `demo-platform-audit` — Asset Discovery pass
+
+Add a cluster-resident asset discovery pass to `demo-platform-audit` (Stage 3) that catalogs
+existing Agent Builder agents (including RCA), deployed ML jobs, pre-built dashboards,
+detection rules, SLOs, and workflows already on the cluster. Classifies each using the
+shared asset taxonomy (`use_as_is` / `clone_and_modify` / `storyline_enhancement`) defined
+in `skills/demo-fleet-integrations/SKILL.md`.
+
+**Why:** `demo-fleet-integrations` (Stage 5.5) handles package-install-time assets after the
+script is written. The platform audit handles cluster-resident assets *before* the script —
+so the SA can script around what already exists rather than building from scratch.
+
+**Priority:** Medium — high value for engagements where the customer's cluster has existing
+Agent Builder agents (e.g. Elastic's own RCA agent) or pre-deployed integrations that could
+be cloned into the demo.
+**Status:** Design complete — see generalization note in `skills/demo-fleet-integrations/SKILL.md`.
+**Inputs:** `demo/{slug}-current-state.json`, optional live cluster queries (`GET /api/saved_objects/_find`, etc.)
+**Outputs:** `demo/{slug}-platform-assets.md` (shared entry format — same taxonomy as fleet-integrations)
+**Feeds into:** `demo-script-template` as optional context before script is finalized
+
 ---
 
 ## ⚪ Process / Infrastructure
 
-### 12. Add `read:org` scope to GitHub token
+### 13. Add `read:org` scope to GitHub token
 The current keychain token has `repo` scope but not `read:org`, which blocks `gh auth login` and the gh CLI. Not blocking for demobuilder usage, but limits automation.
 
 **Action:** Regenerate the GitHub PAT at `github.com/settings/tokens` and include `read:org`.
 
-### 13. Run evals for demo-cloud-provision and demo-deploy
+### 14. Run evals for demo-cloud-provision and demo-deploy
 Both skills have `evals/evals.json` written but the eval loop (run → grade → benchmark) hasn't been executed. These evals require a real cluster to be meaningful.
 
 **Action:** After completing items 1–3 above, run the evals for these two skills using the skill-creator eval loop.
 
-### 14. Provide reference repos before any Workflow or Agent Builder build
+### 15. Provide reference repos before any Workflow or Agent Builder build
 
 Before any demo that includes Kibana Workflows or Agent Builder, load these repos into context:
 - `https://github.com/elastic/workflows` — authoritative Workflow YAML examples
@@ -140,7 +161,7 @@ Before any demo that includes Kibana Workflows or Agent Builder, load these repo
 
 **How:** Either clone locally and reference by path, or provide the URL and ask Claude to fetch the README and examples before starting. Without these, Workflow builds will require multiple debugging cycles.
 
-### 15. Validate `.ml-anomalies-*` field names on first Serverless ML build
+### 16. Validate `.ml-anomalies-*` field names on first Serverless ML build
 
 On first use of ML anomaly detection on Serverless, run this before writing any query or dashboard:
 ```
@@ -148,7 +169,7 @@ GET .ml-anomalies-*/_mapping
 ```
 The Serverless field names differ from documentation: use `record_score`, `timestamp`, `partition_field_value`, `by_field_value`. See `skills/demo-deploy/references/serverless-differences.md`.
 
-### 16. Update `skills/demo-status/demo_status.py` for D-037 subfolder layout
+### 17. Update `skills/demo-status/demo_status.py` for D-037 subfolder layout
 
 The `demo_status.py` helper script still resolves Kibana saved objects from `kibana-objects/*.ndjson`
 (old flat layout). After D-037, those files live under `deploy/kibana-objects/`. The script will

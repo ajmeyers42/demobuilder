@@ -141,6 +141,10 @@ tags when set (see **`references/demobuilder-tagging.md`**, **`docs/decisions.md
 Load all available artifacts from the workspace:
 - `data/{slug}-data-model.json` — required. Defines all indices, templates, pipelines, build order.
 - `data/{slug}-ml-config.json` — optional. ML jobs, datafeeds, injection plan.
+- `deploy/{slug}-integrations-manifest.json` — optional. Fleet integration packages to install
+  at step 1c. If present, include step 1c in the generated bootstrap; if absent, omit step 1c
+  entirely (no stub, no comment). Also read `demo/{slug}-integration-assets.md` for any
+  `use_as_is` or `clone_and_modify` assets that should be imported in step 13.
 - `demo/{slug}-platform-audit.json` — read `deployment_type` and feature availability to
   adapt the bootstrap to the specific platform.
 - `demo/{slug}-demo-script.md`, `deploy/{slug}-demo-checklist.md`, and any supplemental specs
@@ -184,6 +188,8 @@ Usage:
 Steps:
   1.  Connectivity check (includes version validation vs ELASTIC_VERSION)
   1b. Kibana Space — ensure /s/{DEMO_SLUG} exists (create if absent, idempotent)
+  1c. Fleet integration packages — install EPM packages from `deploy/{slug}-integrations-manifest.json`
+      (idempotent; skipped automatically if manifest absent; must run before ILM/templates)
   2.  ILM / Data Stream Lifecycle policies
   3.  Enrich policies (create + execute)
   4.  Ingest pipelines

@@ -39,6 +39,12 @@ resource. The manifest is **cluster-resident** and survives local file loss or r
     "ml_jobs":             ["cb-fraud-volume-anomaly"],
     "ml_datafeeds":        ["datafeed-cb-fraud-volume-anomaly"],
     "enrich_policies":     [],
+    "fleet_integrations": {
+      "packages": [
+        {"name": "kubernetes", "version": "1.62.0"}
+      ],
+      "agent_policy_ids": ["abc123-policy-id"]
+    },
     "kibana": {
       "space_id":      "2026citizens-ai",
       "data_views":    ["cb-fraud-claims-*"],
@@ -100,6 +106,7 @@ def _manifest_init():
             "index_templates": [], "indices": [], "data_streams": [],
             "inference_endpoints": [], "ml_jobs": [], "ml_datafeeds": [],
             "enrich_policies": [],
+            "fleet_integrations": {"packages": [], "agent_policy_ids": []},
             "kibana": {
                 "space_id": "", "data_views": [], "slos": [],
                 "alerting_rules": [], "dashboards": [], "connectors": [],
@@ -205,6 +212,7 @@ def _build_inventory(manifest: dict | None):
         "ml_jobs":             assets.get("ml_jobs", []),
         "ml_datafeeds":        assets.get("ml_datafeeds", []),
         "enrich_policies":     assets.get("enrich_policies", []),
+        "fleet_integrations":  assets.get("fleet_integrations", {"packages": [], "agent_policy_ids": []}),
         "kibana_space_id":     kb_assets.get("space_id", ""),
         "kibana_data_views":   kb_assets.get("data_views", []),
         "slos":                kb_assets.get("slos", []),             # list of {"id":..,"name":..}

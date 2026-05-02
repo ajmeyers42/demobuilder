@@ -280,9 +280,10 @@ Pipeline-state schema (write and update this after every stage completes):
     "platform-audit":      { "status": "complete|skipped|pending", "output": "demo/{slug}-platform-audit.json",   "input_hash": "…" },
     "script-template":     { "status": "complete|skipped|pending", "output": "demo/{slug}-demo-script.md",        "input_hash": "…" },
     "agent-design":        { "status": "complete|skipped|pending", "output": "demo/{slug}-agent-builder-spec.md", "input_hash": "…" },
-    "vulcan-generate":     { "status": "complete|skipped|pending", "output": "data/{slug}-vulcan-queries.json",   "input_hash": "…" },
-    "data-modeler":        { "status": "complete|skipped|pending", "output": "data/{slug}-data-model.json",       "input_hash": "…" },
-    "ml-designer":         { "status": "complete|skipped|pending", "output": "data/{slug}-ml-config.json",        "input_hash": "…" },
+    "vulcan-generate":     { "status": "complete|skipped|pending", "output": "data/{slug}-vulcan-queries.json",        "input_hash": "…" },
+    "data-modeler":        { "status": "complete|skipped|pending", "output": "data/{slug}-data-model.json",             "input_hash": "…" },
+    "fleet-integrations":  { "status": "complete|skipped|pending", "output": "deploy/{slug}-integrations-manifest.json","input_hash": "…" },
+    "ml-designer":         { "status": "complete|skipped|pending", "output": "data/{slug}-ml-config.json",              "input_hash": "…" },
     "validator":           { "status": "complete|skipped|pending", "output": "deploy/{slug}-demo-checklist.md",     "input_hash": "…" },
     "cloud-provision":     { "status": "complete|skipped|pending", "output": ".env",                         "input_hash": "…" },
     "deploy":              { "status": "complete|skipped|pending", "output": "deploy/bootstrap.py",                 "input_hash": "…" }
@@ -311,6 +312,7 @@ demo-script-template     | demo/{slug}-demo-script.md                 | platform
 demo-kibana-agent-design | demo/{slug}-agent-builder-spec.md          | script includes Agent Builder and script/audit changed
 demo-vulcan-generate     | data/{slug}-vulcan-queries.json            | ES|QL-heavy script; RAG/semantic search in scope; integrations needed
 demo-data-modeler        | data/{slug}-data-model.json                | script changed or Vulcan outputs changed
+demo-fleet-integrations  | deploy/{slug}-integrations-manifest.json   | integration index patterns in data model or discovery mentions Fleet
 demo-ml-designer         | data/{slug}-ml-config.json                 | data-model changed and ML scenes in script
 demo-validator           | deploy/{slug}-demo-checklist.md            | always run last — regenerate each time
 ```
@@ -496,6 +498,24 @@ For each stage that needs to run, in order:
   (if present), `{slug}-vulcan-queries.json` (if present — fast path for ES|QL + seed data),
   and token-visibility guidance if Agent Builder / AI is in scope
 - Outputs: `{slug}-data-model.json`, `{slug}-data-model.md`, individual mapping files
+
+**Stage 5.5 — demo-fleet-integrations** *(conditional — Fleet/integration packages in scope)*
+- Skip if **all** of the following are true:
+  1. `deploy/{slug}-integrations-manifest.json` exists AND data model and script are unchanged
+  2. No `logs-*.*` or `metrics-*.*` integration index patterns appear in `data/{slug}-data-model.json`
+  3. Discovery does not mention Kubernetes, Fleet, integration packages, or agent-based collection
+- Run if **any** of the following are true:
+  - Data model contains `logs-<integration>.*` or `metrics-<integration>.*` index patterns
+  - `data/{slug}-vulcan-queries.json` has `integration_grounded: true`
+  - Discovery mentions Kubernetes, NVIDIA GPU, APM, synthetics, or other named integrations
+  - SA says "install the X integration", "use Fleet for log collection", "EPM package install",
+    "I want the out-of-the-box dashboards", "set up the integration"
+- Read: `../demo-fleet-integrations/SKILL.md`
+- Inputs: `data/{slug}-data-model.json`, `demo/{slug}-discovery.json`, `demo/{slug}-demo-script.md`,
+  `data/{slug}-vulcan-queries.json` (if present), `{engagement_dir}/.env` (for mode detection)
+- Outputs: `deploy/{slug}-integrations-manifest.json`, `demo/{slug}-integration-assets.md`
+- **Human gate:** if Step 3 finds `storyline_enhancement` assets, skill pauses and asks SA
+  whether to re-run `demo-script-template` before proceeding
 
 **Stage 6 — demo-ml-designer** *(conditional)*
 - Skip if: no ML scenes detected in `demo/{slug}-demo-script.md`, OR `data/{slug}-ml-config.json`

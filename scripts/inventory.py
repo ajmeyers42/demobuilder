@@ -28,6 +28,7 @@ STAGE_OUTPUTS = [
     ("agent-design",        "demo/{slug}-agent-builder-spec.md"),
     ("vulcan-generate",     "data/{slug}-vulcan-queries.json"),
     ("data-modeler",        "data/{slug}-data-model.json"),
+    ("fleet-integrations",  "deploy/{slug}-integrations-manifest.json"),
     ("ml-designer",         "data/{slug}-ml-config.json"),
     ("validator",           "deploy/{slug}-demo-checklist.md"),
     ("cloud-provision",     ".env"),

@@ -141,6 +141,7 @@ For a quick lookup of when to invoke a specific skill without running the full p
 | `demo-script-template` | Discovery JSON + platform audit | `demo/{slug}-demo-script.md`, `opportunity/{slug}-demo-brief.md` | v2 |
 | `demo-vulcan-generate` | Demo script (ES\|QL / RAG / integration-grounded demos) | `data/{slug}-vulcan-queries.json`, `data/{slug}-vulcan-data-profile.json`, `data/seed/*.csv` | v1 |
 | `demo-data-modeler` | Demo script + discovery JSON + optional Vulcan outputs | `data/{slug}-data-model.json`, `data/{slug}-data-model.md`, `data/mappings/`, `data/pipelines/` | v2 |
+| `demo-fleet-integrations` | Data model + discovery + demo script | `deploy/{slug}-integrations-manifest.json`, `demo/{slug}-integration-assets.md` | v1 |
 | `demo-ml-designer` | Demo script + data model | `data/{slug}-ml-config.json`, `data/{slug}-ml-setup.md` | v1 |
 | `demo-validator` | All pipeline outputs | `deploy/{slug}-demo-checklist.md`, `deploy/{slug}-risks.md` | v1 |
 | `demo-kibana-agent-design` | Demo script + discovery (Agent Builder in scope) | `demo/{slug}-agent-builder-spec.md` | v2 |
