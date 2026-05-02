@@ -85,21 +85,29 @@ Agent Builder ES|QL tool `params.*.type` values must match what the Kibana serve
 (typically ES-style: `keyword`, `text`, `integer`, `date`, … — verify per stack). Security
 rules, SLOs, and saved objects follow **product** schemas for the target version.
 
-**Before building Workflows or Agent Builder configs** — read these reference files first:
-- `references/serverless-differences.md` — Serverless-specific behaviors, feature flags,
-  ML field names, Liquid array syntax, ELSER service names, saved objects quirks
-- `references/workflow-patterns.md` — working Workflow YAML patterns, `| first` syntax,
-  template variables, step types, stale-read warning, DELETE endpoint, search-by-name, deploy API commands
-- `references/asset-manifest.md` — manifest index schema, `_manifest_add()` helpers,
-  teardown read pattern (D-031)
-- `hive-mind/patterns/agent-builder/AGENT_BUILDER_API_MANAGEMENT.md` — API management guide
-  for Agent Builder (CRUD, tool types, system prompts, agent cloning) — D-034
-- `hive-mind/patterns/dashboards/DASHBOARD_NDJSON_FORMAT.md` — Kibana dashboard NDJSON reference
-  (Lens panel types, stable UUIDs, common pitfalls) — D-034
+**Reference files — read before building:**
+
+| File | When to read |
+|------|-------------|
+| `references/feature-compatibility.md` | Version gates, ILM vs DSL, feature availability by deployment type |
+| `references/inference-config.md` | ELSER/reranker service names and model IDs by deployment type |
+| `references/kibana-api-registry.md` | Kibana API paths, probe endpoints, auth requirements |
+| `references/pipeline-constants.md` | Seed thresholds, UUID5 namespace, manifest index name, kbn-xsrf value |
+| `references/terraform-patterns.md` | HCL patterns when `DEPLOY_MODE=terraform` |
+| `references/serverless-differences.md` | Serverless behavioral quirks, ML field names, Liquid syntax, saved objects |
+| `references/workflow-patterns.md` | Working Workflow YAML patterns, stale-read warning, DELETE endpoint, search-by-name |
+| `references/asset-manifest.md` | Dynamic manifest schema, `_manifest_add_es` / `_manifest_add_kibana` helpers (D-039) |
+| `references/teardown-dispatch.md` | Deletion ordering and dispatch table (referenced by generated teardown.py) |
+| `hive-mind/patterns/agent-builder/AGENT_BUILDER_API_MANAGEMENT.md` | Agent Builder CRUD, tool types, system prompts (D-034) |
+| `hive-mind/patterns/dashboards/DASHBOARD_NDJSON_FORMAT.md` | Dashboard NDJSON format, Lens panel types, stable UUIDs (D-034) |
 
 Do not iterate past 30 minutes on an undocumented Workflow or Agent Builder API without
 surfacing it as a blocker and asking for the `elastic/workflows` or
-`elastic/kibana-agent-builder-sdk` reference repos.
+`elastic/kibana-agent-builder-sdk` reference repos (paths in `references/reference-repos.md`).
+
+**Deploy mode:** Check `DEPLOY_MODE` from `.env` before generating:
+- `python` (default) — generate `deploy/bootstrap.py` as a full Python deployment driver
+- `terraform` — generate `deploy/main.tf` + `deploy/providers.tf` + `deploy/{slug}.tfvars` + `deploy/bootstrap-data.py` (data/ops only). See `references/terraform-patterns.md`.
 
 ## Step 0: Review gate (before any live cluster changes)
 
@@ -325,7 +333,8 @@ if (major, minor) < (9, 4):
         print(f"     Set SKIP_VERSION_CHECK=true in .env to override (unsupported).")
         sys.exit(1)
     print(f"  ⚠  Version {version} below 9.4 baseline — SKIP_VERSION_CHECK override active")
-# D-031: initialise and ensure manifest index exists
+# D-039: initialise dynamic manifest and ensure manifest index exists
+# See references/asset-manifest.md for schema and helpers
 _manifest_init()
 _ensure_manifest_index()
 _manifest["es_version"] = version
@@ -400,7 +409,7 @@ try:
     expected  = "elser" if DEP_TYPE == "serverless" else "elastic"
     if svc == expected:
         print(f"  ELSER endpoint '{endpoint_id}': exists on correct service='{svc}' — skipping")
-        _manifest_add("inference_endpoints", {"task_type": task_type, "id": endpoint_id})
+        _manifest_add_es("inference_endpoint", endpoint_id, task_type=task_type)
         return
     elif svc:
         print(f"  ELSER endpoint '{endpoint_id}': found but service='{svc}' != expected '{expected}' — deleting to recreate")
@@ -410,15 +419,17 @@ except RuntimeError as e:
         raise
 
 if DEP_TYPE == "serverless":
-    # Serverless: managed endpoint — use "elser" service, no model_id (D-028)
-    body = {"service": "elser", "service_settings": {}}
+    # Serverless: managed endpoint — use "elser" service, no model_id
+    # See references/inference-config.md for canonical config (D-028, D-042)
+    body = {"service": "elser", "service_settings": {"num_allocations": 1, "num_threads": 1}}
 else:
     # ECH 9.4+: use Elastic Inference Service — do NOT deploy on ML node (D-028)
-    body = {"service": "elastic", "service_settings": {"model_id": ".elser-2"}}
+    # See references/inference-config.md for canonical config (D-042)
+    body = {"service": "elastic", "service_settings": {"model_id": ".elser-2", "num_allocations": 1, "num_threads": 1}}
 
 es("PUT", f"/_inference/{task_type}/{endpoint_id}", body)
 print(f"  ELSER endpoint '{endpoint_id}': deploying via {'Serverless managed' if DEP_TYPE == 'serverless' else 'EIS'}...")
-_manifest_add("inference_endpoints", {"task_type": task_type, "id": endpoint_id})
+_manifest_add_es("inference_endpoint", endpoint_id, task_type=task_type)  # D-039
 # EIS endpoints are ready immediately; Serverless managed may need a warm-up call
 if DEP_TYPE != "serverless":
     print("  EIS endpoint ready (no model allocation needed)")
@@ -540,7 +551,7 @@ try:
 except RuntimeError as e:
     if "404" not in str(e): raise
     kb("POST", "/api/detection_engine/rules", clone, ok=(200, 201))
-    _manifest_add("siem_rules", {"rule_id": clone["rule_id"], "name": clone["name"]})
+        _manifest_add_kibana(SPACE_ID, "siem_rule", clone["rule_id"], name=clone["name"])  # D-039
     print(f"  SIEM rule '{clone['rule_id']}': created")
 ```
 
@@ -641,7 +652,11 @@ print(f"  ELSER warm: {latency}ms {'✅' if latency < 2000 else '⚠️ slow —
 **Asset manifest — final write (step 16)**
 
 After all steps complete successfully, do a final upsert of the manifest so it reflects
-the full deployed state. This is the definitive copy teardown will read (D-031).
+the full deployed state. This is the definitive copy teardown will read (D-039).
+
+The manifest uses the **dynamic open-list schema** from `references/asset-manifest.md`.
+Helpers `_manifest_add_es()` and `_manifest_add_kibana()` were called after each
+resource creation step. The final write stamps `deployed_at`.
 
 ```python
 def write_final_manifest():
@@ -650,12 +665,71 @@ def write_final_manifest():
     print(f"  Manifest written: demobuilder-manifests/{_engagement_id_for_tag()}")
 ```
 
-The manifest is also written incrementally after each step, so a partial deploy leaves a
-valid manifest for partial teardown. The final write closes out the `deployed_at` timestamp.
+The manifest is written incrementally after each step (partial deploys leave a valid
+manifest for partial teardown). The final write closes out the `deployed_at` timestamp.
+
+## Step 3b: Terraform Mode Generation (when `DEPLOY_MODE=terraform`)
+
+When `.env` contains `DEPLOY_MODE=terraform`, generate HCL + `bootstrap-data.py` instead
+of a single `bootstrap.py`. Read `references/terraform-patterns.md` for all HCL patterns.
+
+**File layout:**
+```
+{slug}/deploy/
+  providers.tf          # validated provider pins (elasticstack + ec)
+  variables.tf          # variable declarations
+  main.tf               # all Terraform resources (ILM/DSL, templates, indices, ML, Kibana, Agent Builder, Workflows)
+  {slug}.tfvars         # engagement-specific values; no credentials
+  bootstrap-data.py     # enrich execute, bulk ingest, ELSER warm, anomaly injection, manifest write
+  .terraform.lock.hcl   # committed
+```
+
+**Step 0b — provider version validation (D-041):**
+Before generating any HCL, check the latest provider releases via GitHub API and compare
+against the planned pins. Report result. Confirm with SA before proceeding if a newer
+version is available.
+
+**Generate `providers.tf`:**
+See `references/terraform-patterns.md#providers-tf` for the template.
+
+**Generate `main.tf`:**
+All Terraform-manageable resources from the data model, scoped to the engagement:
+- ILM (ECH) or DSL block (Serverless) via `locals.use_dsl`
+- Component templates, index templates, indices, data streams
+- Ingest pipelines, enrich policies (create only — execution in `bootstrap-data.py`)
+- ML jobs, datafeeds, job state
+- ELSER inference endpoint (service conditional on deployment type)
+- Kibana space, data views, connectors, alerting rules, SLOs, saved objects import
+- Agent Builder tools, workflows, agents (`kibana_agentbuilder_*` resources — confirmed in provider)
+- D-026 tagging via `locals.common_tags`
+- Stable UUIDs via `uuidv5` for Kibana objects
+
+**Generate `bootstrap-data.py`:**
+Python for operations Terraform cannot perform:
+1. Enrich policy execution + polling
+2. Bulk seed data ingestion
+3. ELSER warm-up inference call
+4. Anomaly injection
+5. D-039 manifest write (`_manifest_add_es` / `_manifest_add_kibana`)
+
+**Terraform approval gate (D-024 compliant):**
+`terraform plan` output is the approval artifact — cleaner and more auditable than reading Python.
+Present the plan to the SA before running `terraform apply`.
+
+**Execution:**
+```bash
+set -a && source {engagement_dir}/.env && set +a
+cd {engagement_dir}/deploy
+terraform init
+terraform plan -var-file="{slug}.tfvars" -out="{slug}.tfplan"
+# SA reviews plan ← D-024 gate
+terraform apply "{slug}.tfplan"
+python3 bootstrap-data.py
+```
 
 ## Step 4: Execute the Script
 
-Source the `.env` and run:
+Source the `.env` and run (Python mode):
 
 ```bash
 set -a && source {engagement_dir}/.env && set +a

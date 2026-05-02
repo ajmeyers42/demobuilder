@@ -857,3 +857,104 @@ searches `{subfolder}/{filename}` patterns when falling back to file scan.
 `scripts/inventory.py` `STAGE_OUTPUTS`, `docs/pipeline.md` workspace layout section.
 
 **Date:** 2026-05-01 | **Session:** Engagement folder reorganization
+
+---
+
+## D-038: Terraform deploy mode via `DEPLOY_MODE` env var
+
+**Status:** Active | **Applies to:** `skills/demo-deploy/SKILL.md`, `skills/demo-teardown/SKILL.md`, `skills/demo-cloud-provision/SKILL.md`
+
+**Decision:** `bootstrap.py` generation is augmented with a **Terraform path** selected by `DEPLOY_MODE=terraform` in `.env`. When active:
+
+- **Layer 1 (cloud provisioning):** `ec_deployment` / `ec_elasticsearch_project` via `terraform-provider-ec` replaces the Elastic Cloud API calls in `demo-cloud-provision`.
+- **Layer 2 (stack resources):** Generated `deploy/main.tf` + `deploy/{slug}.tfvars` + `deploy/providers.tf` cover all Terraform-manageable resources: ILM/DSL, ingest pipelines, component templates, index templates, indices, data streams, enrich policies (create only), ML jobs/datafeeds, inference endpoints, Kibana spaces, connectors, alerting rules, NDJSON saved objects import, Agent Builder agents/tools, Workflows (`kibana_agentbuilder_agent`, `kibana_agentbuilder_tool`, `kibana_agentbuilder_workflow` are confirmed resources in `elasticstack` provider as of 2026-05).
+- **Layer 3 (data + ops):** `deploy/bootstrap-data.py` (Python) handles what Terraform cannot: enrich policy execution + polling, bulk seed data ingestion, ELSER warm-up, anomaly injection, and D-039 manifest write.
+- `terraform plan` serves as the reviewable deployment artifact at the D-024 approval gate.
+- `terraform destroy` is the primary teardown mechanism; `teardown.py` handles data indices + manifest cleanup.
+- Terraform state stored in `deploy/terraform.tfstate` (local default; configurable to S3/GCS). State file is gitignored.
+- `DEPLOY_MODE=python` (default) keeps existing `bootstrap.py` behavior unchanged. New engagements should use `terraform` once the path is validated end-to-end.
+
+**Provider currency:** Before generating HCL, validate `elasticstack` and `ec` provider versions against latest GitHub releases (D-041).
+
+**Reference:** `skills/demo-deploy/references/terraform-patterns.md`
+
+**Date:** 2026-05-02 | **Session:** Bootstrap to Terraform investigation
+
+---
+
+## D-039: Dynamic asset manifest replaces D-031 static schema
+
+**Status:** Active — supersedes D-031 | **Applies to:** `skills/demo-deploy/SKILL.md`, `skills/demo-teardown/SKILL.md`, `skills/demo-fleet-integrations/SKILL.md`
+
+**Decision:** The D-031 manifest schema used fixed category keys (`ilm_policies`, `ingest_pipelines`, etc.). This schema is replaced with an **open-list format**:
+
+- **`assets.elasticsearch`**: flat list of `{"type": "...", "id": "..."}` records; any new asset type is a new entry, no schema migration needed.
+- **`assets.kibana.by_space`**: dict keyed by `space_id`, each value a list of `{"type": "...", "id": "..."}` records. Multi-space engagements work naturally; teardown iterates spaces to scope deletes.
+- Extra fields (`name`, `task_type`, `version`, etc.) are carried as additional keys on the same record object.
+
+New Python helpers: `_manifest_add_es(type, id, **meta)` and `_manifest_add_kibana(space_id, type, id, **meta)` replace the old `_manifest_add()`.
+
+Teardown uses a **dispatch table** keyed on `type` (see `skills/demo-deploy/references/teardown-dispatch.md`) rather than iterating hardcoded inventory lists. New asset types require only a handler entry in the dispatch table.
+
+**Reference:** `skills/demo-deploy/references/asset-manifest.md`, `skills/demo-deploy/references/teardown-dispatch.md`
+
+**Date:** 2026-05-02 | **Session:** Bootstrap to Terraform investigation
+
+---
+
+## D-040: Agent Builder and Workflows are supported in Terraform mode
+
+**Status:** Active | **Applies to:** `skills/demo-deploy/SKILL.md`
+
+**Decision:** As of 2026-05, `elastic/terraform-provider-elasticstack` includes confirmed resources for Agent Builder and Workflows:
+- `elasticstack_kibana_agentbuilder_agent`
+- `elasticstack_kibana_agentbuilder_tool`
+- `elasticstack_kibana_agentbuilder_workflow`
+
+When `DEPLOY_MODE=terraform`, Agent Builder agents/tools and Workflows are generated as Terraform resources in `main.tf`. This supersedes the earlier assumption that these would require Python. Skills still use Python for complex agent configuration that cannot be expressed declaratively (e.g. probe-based skip logic, conditional tool wiring based on runtime feature detection).
+
+**Date:** 2026-05-02 | **Session:** Bootstrap to Terraform investigation
+
+---
+
+## D-041: Pipeline-wide Reference Currency Gate replaces D-034
+
+**Status:** Active — supersedes D-034 | **Applies to:** `skills/demobuilder/SKILL.md` Step 0
+
+**Decision:** The narrow D-034 currency check (demobuilder + hive-mind only) is replaced by a **pipeline-wide Reference Currency Gate** covering all 8 external repositories used by the pipeline. The gate runs at **Step 0 of the orchestrator** before any pipeline stage starts.
+
+**Registry:** `skills/demo-deploy/references/reference-repos.md` is the authoritative list of all repos, their default paths, env var overrides, check methods, scope conditions, and blocking rules.
+
+**Rules:**
+- **Blocking**: Only `elastic/demobuilder` itself causes a pipeline halt if stale (ask SA before continuing).
+- **Warn-and-continue**: All other repos (hive-mind, agent-skills, workflows, kibana-agent-builder-sdk, vulcan, Terraform providers). Note stale state, recommend pull/update, proceed unless SA objects.
+- **Scope-conditional**: Terraform providers only checked when `DEPLOY_MODE=terraform`; `workflows` and `kibana-agent-builder-sdk` repos only when those features are in demo scope; vulcan only when demo-vulcan-generate is in scope.
+- **Missing optional repo**: Log `⏭ not installed — skipping`. Never error.
+
+Individual skills invoked directly (not via orchestrator) run a scoped subset covering their specific repo dependencies at minimum.
+
+**Date:** 2026-05-02 | **Session:** Bootstrap to Terraform investigation
+
+---
+
+## D-042: Reference file authority — canonical sources for pipeline constants and configuration
+
+**Status:** Active | **Applies to:** All skills and generated scripts
+
+**Decision:** The following files under `skills/demo-deploy/references/` are the **canonical sources** for their respective domains. Skills and generated scripts cite them rather than hardcoding values. Updates to these files propagate automatically to all downstream consumers.
+
+| File | Domain |
+|------|--------|
+| `reference-repos.md` | External repo registry (paths, check methods, scope conditions) |
+| `pipeline-constants.md` | Numeric thresholds, special index names, UUID5 namespace, header values, token visibility defaults |
+| `feature-compatibility.md` | Version gates, feature availability by deployment type, ILM vs DSL rules |
+| `inference-config.md` | ELSER/reranker service names, model IDs, task types by deployment type |
+| `kibana-api-registry.md` | Kibana API paths, feature probe endpoints, auth requirements |
+| `teardown-dispatch.md` | Deletion ordering, asset-type → API path dispatch table |
+| `terraform-patterns.md` | HCL patterns for Terraform mode generation |
+| `env-reference.md` | All `.env` variable definitions and the `.env-sample` template |
+| `asset-manifest.md` | Manifest schema, Python helpers, and teardown inventory pattern |
+
+When a value in these files conflicts with text in a `SKILL.md` or `docs/decisions.md`, the reference file wins. Update the SKILL or decision text to point to the reference file.
+
+**Date:** 2026-05-02 | **Session:** Bootstrap to Terraform investigation

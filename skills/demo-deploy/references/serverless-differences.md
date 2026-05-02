@@ -4,6 +4,9 @@ Loaded by: demo-deploy, demo-ml-designer, demo-platform-audit, demo-validator
 
 Source: Lowe's "Store That Knows" demo first-gen postmortem. Every item below caused real rework.
 
+**Version gates and feature availability:** See `feature-compatibility.md` — not repeated here.
+**Inference config (ELSER/reranker service names/model IDs):** See `inference-config.md` — authoritative; this file only documents behavioral quirks.
+
 Most sections apply to Serverless. Feature flags (first section) apply to **both Serverless and ECH** until those features reach GA.
 
 ---
@@ -129,19 +132,9 @@ The YAML uses `if` step type with nested steps (not `condition` type with `runIf
 
 ## ELSER on Serverless
 
-Use `"service": "elser"` (managed endpoint). Do NOT specify `model_id` or use `"service": "elasticsearch"`:
+**Configuration:** See `inference-config.md` for the canonical service/model/task-type by deployment type.
 
-```json
-{
-  "service": "elser",
-  "service_settings": {
-    "num_allocations": 1,
-    "num_threads": 1
-  }
-}
-```
-
-Cold ELSER inference on Serverless can take 30+ seconds on first call. Always warm before demo.
+Cold ELSER inference on Serverless can take 30+ seconds on first call. Always warm before demo (warm-up threshold: see `pipeline-constants.md`).
 
 ---
 
@@ -199,9 +192,9 @@ Do not fall back to `ES_API_KEY` for Kibana API calls — keep the keys separate
 
 Use the **Elastic Guide** for behavior (what the UI does, burn-rate alert concepts, reset /
 troubleshooting) and **Kibana OpenAPI** for exact JSON on `POST /api/observability/slos` and
-`POST /api/alerting/rule/{id}` (`slo.rules.burnRate`). Demobuilder collects versioned links in
-**`docs/references-observability-slo.md`** — for **8.x** use the stack minor in the path; for
-**9.0+** use the **`9.0`** Observability Guide branch (or **`current`**) and re-read when upgrading.
+`POST /api/alerting/rule/{id}` (`slo.rules.burnRate`). See `kibana-api-registry.md` for the
+canonical SLO and alerting rule API paths. For doc branch: use `current` for 9.0+ and re-read
+when upgrading major versions.
 
 ---
 

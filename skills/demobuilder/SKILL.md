@@ -141,41 +141,51 @@ demobuilder-specific decisions; use hive-mind for upstream pattern reference.
 - `demo-status` — quick pre-demo readiness pulse check (connectivity, doc counts, ML state, ELSER latency)
 - `demo-teardown` — post-demo cleanup; removes all demo resources prefix-aware
 
-## Step 0: Currency Check (before any pipeline work)
+## Step 0: Reference Currency Gate (D-041 — before any pipeline work)
 
-Before starting or continuing any pipeline for an engagement, verify that the demobuilder
-repo and the hive-mind reference library are current. This ensures all skill guidance,
-workflow patterns, and agent-builder patterns reflect the latest known-good implementations.
+Before starting or continuing any pipeline for an engagement, verify that all external
+reference repositories are current. The full repo registry and check methods live in
+**`skills/demo-deploy/references/reference-repos.md`** — read it for paths, env var
+overrides, scope conditions, and blocking rules. Summary below.
 
-```bash
-# Run from the demobuilder repo root
-cd /path/to/demobuilder && git fetch origin && git status
-# If behind: git pull --ff-only
+### Repos to check
+
+| Repo | Check | Scope | Blocking? |
+|------|-------|-------|-----------|
+| `elastic/demobuilder` (this repo) | `git fetch origin && git status` | Always | **Yes** |
+| `elastic/hive-mind` | `git fetch origin && git status` on `../hive-mind` or `HIVE_MIND_PATH` | Always | Warn only |
+| `elastic/agent-skills` | Plugin version vs latest GitHub release | Always | Warn only |
+| `elastic/workflows` | `git fetch origin && git status` on `WORKFLOWS_REPO_PATH` | Agent Builder / Workflows in scope | Warn only |
+| `elastic/kibana-agent-builder-sdk` | `git fetch origin && git status` on `AGENT_BUILDER_SDK_PATH` | Agent Builder in scope | Warn only |
+| `elastic/vulcan` | `git fetch origin && git status` on `VULCAN_PATH` | demo-vulcan-generate in scope | Skip if not installed |
+| `terraform-provider-elasticstack` | GitHub Releases API vs `providers.tf` pin | `DEPLOY_MODE=terraform` | Warn only |
+| `terraform-provider-ec` | GitHub Releases API vs `providers.tf` pin | `DEPLOY_MODE=terraform` | Warn only |
+
+### Report format
+
+```
+🔄  Reference Currency Gate (Step 0)
+  demobuilder                      ✅  up to date (main, rev abc1234)
+  hive-mind                        ⚠️   2 commits behind — run: git pull --ff-only
+  agent-skills                     ✅  v2.4.1 (latest)
+  elastic/workflows                ✅  up to date (main, rev 9f3a21c)
+  elastic/kibana-agent-builder-sdk ✅  up to date (main, rev c77d802)
+  elastic/vulcan                   ⏭   not installed — skipping
+  terraform-provider-elasticstack  ⚠️   pinned v0.11.4 → latest v0.11.9 (changelog: https://github.com/elastic/terraform-provider-elasticstack/releases/tag/v0.11.9)
+  terraform-provider-ec            ✅  pinned v0.14.1 = latest
 ```
 
-If a **hive-mind** local clone is available (default: check `../hive-mind` relative to
-demobuilder root, or `HIVE_MIND_PATH` env var), run:
+### Rules
 
-```bash
-cd /path/to/hive-mind && git fetch origin && git status
-```
-
-Report the result before continuing:
-```
-🔄 Currency check
-  demobuilder:  ✅ up to date (main, rev abc1234)
-  hive-mind:    ✅ up to date (main, rev def5678)
-  agent-skills: ⚠️  not found — install per docs/todo.md
-```
-
-If the demobuilder repo has unpulled commits and the SA wants to proceed anyway, note
-the version being used and continue. Do not block on `hive-mind` — it is a reference
-library, not a hard dependency.
+- **demobuilder stale:** ask the SA before continuing. If they proceed, record the rev.
+- **All other repos stale/missing:** note stale state, recommend pull/update, continue unless SA objects.
+- **Missing optional repo (vulcan):** log `⏭ not installed — skipping`; never error.
+- **Scope-conditional:** only check Terraform providers when `DEPLOY_MODE=terraform`; only check `workflows` / `kibana-agent-builder-sdk` when those features are in demo scope.
 
 **Why:** New pattern adoptions (workflow DELETE, search-by-name, probe-based detection,
-dashboard stable UUIDs) are documented in `hive-mind/patterns/`. Running against a stale
-clone means the agent works from outdated guidance. This check adds ~10 seconds and
-prevents hours of debugging.
+dashboard stable UUIDs, inference config changes) are documented in reference repos.
+Running against a stale clone means the agent works from outdated guidance. This check
+adds ~10 seconds and prevents hours of debugging.
 
 ## Step 0b: Ideation Gate (optional — precedes discovery when direction is unclear)
 
