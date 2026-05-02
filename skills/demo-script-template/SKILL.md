@@ -2,11 +2,13 @@
 name: demo-script-template
 description: >
   Generates a structured Elastic demo script from a discovery profile and optional platform
-  audit. Produces two files: a full SE-facing script with scenes, timing, talking points,
-  on-screen steps, and wow moments; and a one-page audience brief the AE can use to follow
-  along. The script is personalized to the customer's language, industry, and pain points —
-  not a generic feature showcase. Default narrative: **solution first** (key asks and outcomes,
-  then supporting capabilities); ask the SA if goals are unclear.
+  audit. Produces three files: a full SE-facing narrative script with scenes, timing, talking
+  points, on-screen steps, and wow moments; a one-page audience brief the AE can use to follow
+  along; and a tabular live-delivery script (`{slug}-live-script.md`) the SE keeps on a second
+  monitor during the call — numbered rows, Say/Do/Expect columns, and a Dev Tools Quick
+  Reference paste buffer. The script is personalized to the customer's language, industry, and
+  pain points — not a generic feature showcase. Default narrative: **solution first** (key asks
+  and outcomes, then supporting capabilities); ask the SA if goals are unclear.
 
   ALWAYS use this skill when the user asks to "write the demo script", "build the script",
   "create the demo outline", "what should we show them", or provides a discovery JSON and
@@ -256,7 +258,57 @@ associates, or shrink anomaly monitoring for supply chain?"]
 ## Platform Notes
 [Summary of any setup_required features and their pre-demo tasks, pulled from platform audit.
 If no audit was run: "Platform audit not completed — run demo-platform-audit before build."]
+
 ```
+
+### Output 3: `demo/{slug}-live-script.md`
+
+The live delivery script. SE keeps this on the second monitor during the call. It is a
+**standalone file** — compact header, the At-a-Glance table, and the Dev Tools Quick
+Reference. No narrative prose. No scene context paragraphs. Everything the SE needs to
+execute, nothing they need to read.
+
+```
+# [Demo Title] — LIVE SCRIPT
+**Customer:** [Company] | **Date:** [date] | **Runtime:** [N] min
+**Presenters:** [Names] | **Audience:** [Names and roles]
+
+---
+
+## At-a-Glance Run of Show
+
+| # | Time | Say | Do | Expect |
+|---|------|-----|----|--------|
+| **[Scene name]** | | | | |
+| 1 | 0:00 | [One sentence talking point] | [Exact action or `single-line command` or [Q1] for multi-line] | [Observable result] |
+...
+```
+
+**Table rules:**
+- Row numbers are flat and sequential — scene separator rows (bold, no number) do not break the sequence.
+- **Say**: one tight sentence only. No narrative. If two sentences are needed, use two rows.
+- **Do**: single-line commands inline as `` `code` ``; multi-line Dev Tools queries use a `[Qn]` reference that matches the Dev Tools Quick Reference below.
+- **Expect**: a brief observable fact ("Count > 50 k", "Ranked list with claim IDs", "Red SLA band visible"). Not an explanation.
+- Include one row per "On screen — Step N" from the narrative script. Opening and Close get rows too.
+
+**Dev Tools Quick Reference — block format** (included at the bottom of `{slug}-live-script.md`; omit section entirely if no scene uses multi-line Dev Tools queries):
+
+Each `[Qn]` referenced in the At-a-Glance table gets a labeled code block here. Use this format:
+
+```
+**[Q1] — Scene 1: Sample claims**
+
+GET fraud-claims/_search
+{
+  "size": 3,
+  "_source": ["claim_id", "source_system", "sla_deadline"],
+  "query": { "match_all": {} }
+}
+```
+
+Blocks are in scene order, numbered to match the table. The full section is meant to be one
+continuous paste buffer — an SE can scroll to this section and copy each block directly into
+Kibana Dev Tools without referring back to the narrative scenes.
 
 ### Output 2: `opportunity/{slug}-demo-brief.md`
 
