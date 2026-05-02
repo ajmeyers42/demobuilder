@@ -24,7 +24,7 @@ You are specifying how the SE implements **Elastic Agent Builder** in Kibana for
   - `hive-mind/patterns/agent-builder/AGENT_BUILDER_API_MANAGEMENT.md` — CRUD API for agents and tools (tool types, system prompt design, agent cloning pattern)
   - `hive-mind/patterns/agent-builder/WORKFLOW_INTEGRATION.md` — wiring workflows as agent tools
   - `hive-mind/patterns/agent-builder/A2A_COORDINATOR_PATTERN.md` — multi-agent orchestration (for stretch scenarios)
-- **Elastic org:** **[elastic/workflows](https://github.com/elastic/workflows)** — Elastic Workflow Library (YAML examples, docs). Prefer this for workflow *authoring*; use `workflow-patterns.md` for Kibana API + agent handoff.
+- **Elastic org:** **[elastic/workflows](https://github.com/elastic/workflows)** — Elastic Workflow Library (YAML examples, docs). Local clone: `~/Documents/GitHub/workflows`. Prefer this for workflow *authoring*; use `workflow-patterns.md` for Kibana API + agent handoff.
 - **Elastic Docs:** [Agent Builder get started](https://www.elastic.co/docs/explore-analyze/ai-features/agent-builder/get-started), [custom agents](https://www.elastic.co/docs/explore-analyze/ai-features/agent-builder/custom-agents), [custom tools](https://www.elastic.co/docs/explore-analyze/ai-features/agent-builder/tools/custom-tools).
 
 ## Step 1: Confirm scope

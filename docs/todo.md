@@ -153,15 +153,7 @@ Both skills have `evals/evals.json` written but the eval loop (run → grade →
 
 **Action:** After completing items 1–3 above, run the evals for these two skills using the skill-creator eval loop.
 
-### 15. Provide reference repos before any Workflow or Agent Builder build
-
-Before any demo that includes Kibana Workflows or Agent Builder, load these repos into context:
-- `https://github.com/elastic/workflows` — authoritative Workflow YAML examples
-- `https://github.com/elastic/kibana-agent-builder-sdk` — Agent Builder tool/agent API schema
-
-**How:** Either clone locally and reference by path, or provide the URL and ask Claude to fetch the README and examples before starting. Without these, Workflow builds will require multiple debugging cycles.
-
-### 16. Validate `.ml-anomalies-*` field names on first Serverless ML build
+### 15. Validate `.ml-anomalies-*` field names on first Serverless ML build
 
 On first use of ML anomaly detection on Serverless, run this before writing any query or dashboard:
 ```
@@ -169,7 +161,7 @@ GET .ml-anomalies-*/_mapping
 ```
 The Serverless field names differ from documentation: use `record_score`, `timestamp`, `partition_field_value`, `by_field_value`. See `skills/demo-deploy/references/serverless-differences.md`.
 
-### 17. Update `skills/demo-status/demo_status.py` for D-037 subfolder layout
+### 16. Update `skills/demo-status/demo_status.py` for D-037 subfolder layout
 
 The `demo_status.py` helper script still resolves Kibana saved objects from `kibana-objects/*.ndjson`
 (old flat layout). After D-037, those files live under `deploy/kibana-objects/`. The script will
@@ -186,4 +178,4 @@ silently find zero saved objects on any engagement created after the reorganizat
 - **Engagement folder reorganization (D-037)** — All pipeline outputs are now organized into audience-scoped subfolders: `opportunity/` (AE/SDR), `demo/` (SA design), `data/` (data model / ML / seed), `deploy/` (bootstrap, teardown, Kibana objects). `.env` remains at the engagement root. All skill SKILL.md files, `scripts/inventory.py`, `docs/pipeline.md`, and `docs/decisions.md` updated accordingly. Merged to main via PR #5.
 - **Cloud-synced engagement root** — Google Drive (and OneDrive) documented as a valid `DEMOBUILDER_ENGAGEMENTS_ROOT` with pathing, sync latency, and credential security guidance. See `docs/engagements-path.md`.
 - **Pipeline efficiency layer** — Pipeline state file, context pruning strategy, model routing guidance, subagent parallelization map, and `scripts/inventory.py` zero-AI CLI added. See `docs/efficiency.md`.
-- **Vulcan integration** — `demo-vulcan-generate` skill added as optional Stage 4.5 in the pipeline. Vulcan outputs land in `data/` and `data/seed/`. See `docs/decisions.md` D-034.
+- **Reference repos for Workflow and Agent Builder builds** — `elastic/workflows` and `elastic/kibana-agent-builder-sdk` cloned at `~/Documents/GitHub/workflows` and `~/Documents/GitHub/kibana-agent-builder-sdk`. Local paths embedded in `demo-kibana-agent-design/SKILL.md` and `demo-deploy/references/serverless-differences.md`. Agent surfaces a blocker if context is missing before any Workflow/Agent Builder build.

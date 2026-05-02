@@ -209,7 +209,7 @@ troubleshooting) and **Kibana OpenAPI** for exact JSON on `POST /api/observabili
 
 Always read these BEFORE writing Workflow YAML or Agent Builder API calls:
 
-- `https://github.com/elastic/workflows` — authoritative Workflow YAML examples, Liquid syntax
-- `https://github.com/elastic/kibana-agent-builder-sdk` — Agent Builder tool/agent API schema
+- `~/Documents/GitHub/workflows` (`https://github.com/elastic/workflows`) — authoritative Workflow YAML examples, Liquid syntax
+- `~/Documents/GitHub/kibana-agent-builder-sdk` (`https://github.com/elastic/kibana-agent-builder-sdk`) — Agent Builder tool/agent API schema
 
 If these repos are not in context, ask the user to provide them before writing any Workflow or Agent Builder code. Do not iterate past 30 minutes on undocumented API behavior without surfacing this as a blocker.
