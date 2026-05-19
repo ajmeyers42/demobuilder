@@ -77,28 +77,80 @@ Before writing any output, determine what this engagement actually needs:
 
 ---
 
-## Step 5: MEDDPIC Qualification
+## Step 5: Two-Score Assessment
+
+Produce two independent scores. They answer different questions and serve different audiences.
+Both are reported in Output 1.
+
+---
+
+### Score 1 — Opportunity Qualification
+
+Answers: *Is this a workable, qualified opportunity worth pursuing?*
+Audience: AE + SDR
 
 Assess the opportunity against MEDDPIC. Be honest about what is confirmed vs. assumed vs. unknown.
-Use these thresholds:
 
 **PROCEED** — Pain confirmed and quantified, champion identified and engaged, economic buyer known
-(even if not yet met), credible timeline. Technical landscape sufficient to scope a demo.
-Open questions exist but don't block scope.
+(even if not yet met), credible timeline. Open questions exist but don't block the deal.
 
 **CONTINUE DISCOVERY** — One or more of: pain stated but not quantified, no clear champion,
-economic buyer unknown, no decision timeline, technical data too vague to scope the demo.
-A focused follow-up could resolve these.
+economic buyer unknown, no decision timeline, or a focused follow-up is needed to confirm
+the opportunity is real. A single call with one contact who has no stated authority is
+CONTINUE DISCOVERY, not PROCEED.
 
 **NOT QUALIFIED** — No confirmed pain, no budget signal, stated non-starter (exclusive competitor
-contract, RFP closed, project already funded internally), or notes contain no actionable signal.
+contract, RFP already closed, project already funded internally, regulatory blocker), or notes
+contain no actionable signal.
 
-Score each dimension:
+Score each MEDDPIC dimension:
 
 - ✅ Confirmed — clearly stated or strongly evidenced
 - 🟡 Partial — implied or partially described
 - ⚠️ Not captured — absent from the notes
 - ❌ Disqualifying — actively rules out proceeding
+
+---
+
+### Score 2 — SA Build Readiness
+
+Answers: *Is enough captured to start building a demo or developing a sizing estimate?*
+Audience: SA
+
+This score is independent of Opportunity Qualification. A deal can be PROCEED on qualification
+but not yet ready to build (technical details missing). Or CONTINUE DISCOVERY on qualification
+but ready to scope a demo (technical picture is clear, business case needs more work).
+
+Score two sub-dimensions independently:
+
+**Demo Direction Readiness** — can the SA identify a viable demo direction?
+
+- Primary use case is identifiable (what problem, for which role)
+- Solution area is determinable (search / observability / security / cross-solution)
+- At least one pain maps to a demonstrable Elastic capability
+- Audience roles are known (technical depth, decision-making level)
+- No hard technical blockers present (data residency requirement, air-gap mandate, exclusive
+  competitor contract that rules out Elastic)
+
+Scores:
+
+- `Ready to scope` — all criteria met; SA can identify a demo archetype and begin scoping
+- `Need: [specific item(s)]` — most criteria met; one or two gaps would sharpen the direction
+- `Cannot scope yet` — use case, audience, or capability mapping is too unclear to start
+
+**Sizing Estimate Readiness** — can the SA develop a rough infrastructure or cost estimate?
+
+- Data volumes captured, even roughly ("~5 GB/day", "millions of records", "a few hundred GB total")
+- At least one data source identified (logs, tickets, documents, metrics, etc.)
+- Ingest frequency known or inferable (batch / near-real-time / real-time)
+- Retention requirements stated or inferable from context
+- Infrastructure environment described (cloud, on-prem, serverless preference, existing Elastic)
+
+Scores:
+
+- `Ready to estimate` — enough to produce a directional sizing; exact numbers can be refined
+- `Need: [specific item(s)]` — one or two technical details would enable a rough estimate
+- `Cannot estimate yet` — volumes, sources, and environment are all unknown
 
 ---
 
@@ -111,31 +163,54 @@ read each section independently.
 
 ### Output 1: Qualification Summary
 
-```text
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- [Company Name] — Opportunity Review
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Output this section using the exact structure below. Use markdown tables as shown — do not
+revert to indented text for the MEDDPIC block.
 
-Recommendation: 🟢 PROCEED / 🟡 CONTINUE DISCOVERY / 🔴 NOT QUALIFIED
+---
 
-[2–3 sentence rationale. Be specific: what is confirmed, what is missing,
-and what would change the recommendation. Do not hedge.]
+**━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━**
+**[Company Name] — Opportunity Review**
+**━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━**
 
-MEDDPIC
-  Metrics           [✅/🟡/⚠️]  [one-line note]
-  Economic Buyer    [✅/🟡/⚠️]  [name or "not identified"]
-  Decision Criteria [✅/🟡/⚠️]  [one-line note]
-  Decision Process  [✅/🟡/⚠️]  [one-line note]
-  Paper Process     [✅/🟡/⚠️]  [timeline or "unknown"]
-  Identify Pain     [✅/🟡/⚠️]  [primary pain in one line]
-  Champion          [✅/🟡/⚠️]  [name or "none identified"]
+**OPPORTUNITY QUALIFICATION**
+**Status:** 🟢 PROCEED / 🟡 CONTINUE DISCOVERY / 🔴 NOT QUALIFIED
 
-[If CONTINUE DISCOVERY or NOT QUALIFIED:]
-To move forward, confirm:
-  1. [specific gap]
-  2. [specific gap]
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-```
+[2–3 sentence rationale. What is confirmed, what is missing, and what would change the status.
+Be specific. Do not hedge, but do not overstate — reflect the confidence level the notes
+actually support.]
+
+| Dimension | Score | Notes |
+| --- | --- | --- |
+| Metrics (M) | ✅/🟡/⚠️/❌ | [business impact or "not quantified"] |
+| Economic Buyer (E) | ✅/🟡/⚠️/❌ | [name / title or "not identified"] |
+| Decision Criteria (D) | ✅/🟡/⚠️/❌ | [one-line note] |
+| Decision Process (D) | ✅/🟡/⚠️/❌ | [one-line note] |
+| Paper Process (P) | ✅/🟡/⚠️/❌ | [timeline or "unknown"] |
+| Identify Pain (I) | ✅/🟡/⚠️/❌ | [primary pain in one line] |
+| Champion (C) | ✅/🟡/⚠️/❌ | [name / role or "none identified"] |
+
+*Score key: ✅ Confirmed  🟡 Partial  ⚠️ Not captured  ❌ Disqualifying*
+
+[If CONTINUE DISCOVERY or NOT QUALIFIED — omit this block if PROCEED:]
+To move forward on qualification, confirm:
+
+1. [specific gap]
+2. [specific gap]
+
+─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─
+
+**SA BUILD READINESS**
+
+| | Status | Details |
+| --- | --- | --- |
+| Demo direction | 🟢 Ready to scope / 🟡 Need: [item(s)] / 🔴 Cannot scope yet | [brief note] |
+| Sizing estimate | 🟢 Ready to estimate / 🟡 Need: [item(s)] / 🔴 Cannot estimate yet | [brief note] |
+
+[1–2 sentences: what the SA can start with today and what is still needed. If both are 🟢,
+say so directly. If both are 🔴, name the single piece of information that would unlock the
+most progress.]
+
+**━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━**
 
 ---
 
@@ -143,6 +218,19 @@ To move forward, confirm:
 
 This goes to the customer. Tone: collaborative, specific, technically credible.
 Not marketing copy. Use the customer's own language and verbatim phrases where impactful.
+
+Before the document, output this instruction line exactly (it is for the AE/SDR, not the customer):
+
+> 📄 **To share:** copy everything between the START and END markers below into a new Word
+> document or Google Doc. Delete the marker lines before sending.
+
+Then output the document between these delimiters exactly as shown:
+
+`--- START CUSTOMER DOCUMENT ---`
+
+[document content here]
+
+`--- END CUSTOMER DOCUMENT ---`
 
 **Document posture — read before writing any section:**
 
@@ -177,13 +265,18 @@ sparse notes produce a shorter document with a more prominent gaps section.
 **Tense:** If the demo is upcoming, write in future tense ("What We'll Demonstrate").
 If notes describe something already built or approved, use past tense ("What We Demonstrated").
 
-```markdown
+The document structure follows. Output it between the START and END markers as instructed above.
+
+---
+
 # Discovery Confirmation — [Company Name]
+
 **Prepared by:** [AE/SA name if present] | **Date:** [date]
 
 ---
 
 ## What We Heard
+
 [3–5 bullets using the customer's language. If they said "scattered everywhere"
 use that phrase, not "data fragmentation".]
 
@@ -215,8 +308,8 @@ manual steps, or improvement in metrics they mentioned.
 > about the current triage process."
 
 If the notes don't support a quantified target, use a directional qualifier:
-> "Significantly faster than today's manual process" or "measurably fewer escalations"
-> are acceptable when no numbers were given. Do not invent figures.
+"Significantly faster than today's manual process" or "measurably fewer escalations"
+are acceptable when no numbers were given. Do not invent figures.
 
 ## What You Can Expect
 
@@ -236,15 +329,16 @@ Keep this section to 2–3 sentences. If the notes don't support even a directio
 statement, omit this section rather than filling it with generic language.
 
 ## Before We Build
+
 [List only genuine gaps — things you actually need from them to proceed.
 Phrase as requests, not requirements. If you have everything: "We have everything
 we need to get started."]
 
 ## Next Steps
+
 | Action | Owner | Target Date |
-|--------|-------|-------------|
-[Fill from next steps in the notes]
-```
+| --- | --- | --- |
+| [action] | [owner] | [date or TBD] |
 
 ---
 
