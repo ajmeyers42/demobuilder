@@ -1,4 +1,5 @@
 {
+  "_comment": "All company names, contacts, and scenario details in this file are illustrative composites — not real customer engagements.",
   "skill_name": "thread-qualify",
   "evals": [
     {
@@ -32,6 +33,26 @@
         "Preserves inline team notes in brackets",
         "Updates only changed facts and open questions",
         "Recomputes qualification recommendation if new information changes MEDDPIC"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Run opportunity review for Apex Cloud — discovery JSON includes two pain_points with quantified impact and two success_criteria with measurable targets ('MTTR under 15 minutes', 'false positive rate below 3%'). Assert the new Customer Overview and Opportunity Overview sections are populated.",
+      "expected_output": "apex-cloud-opportunity-summary.md with Customer Overview paragraph, Opportunity Overview section containing Pain Points table and Success Goals table. apex-cloud-opportunity-profile.json with customer_overview string and opportunity_overview object populated.",
+      "files": [
+        "$HOME/engagements/apex-cloud/demo/apex-cloud-discovery.json"
+      ],
+      "assertions": [
+        "opportunity-summary.md contains a 'Customer Overview' section before the TL;DR",
+        "Customer Overview is 1-2 paragraphs synthesized from customer.* fields in discovery JSON",
+        "opportunity-summary.md contains an 'Opportunity Overview' section with Solution field",
+        "Pain Points table has at least 2 rows with Severity and Quantified impact columns populated",
+        "Success Goals table has at least 2 rows — 'MTTR under 15 minutes' and '< 3% false positive rate' appear in Measure of success column",
+        "opportunity-profile.json contains customer_overview as a non-empty string",
+        "opportunity-profile.json contains opportunity_overview.pain_points as a non-empty array",
+        "opportunity-profile.json contains opportunity_overview.success_goals as a non-empty array with measure fields populated",
+        "opportunity-profile.json opportunity_overview.solution is one of: search | observability | security | cross_solution",
+        "TL;DR is deal-focused (2-3 sentences on sales situation, not opportunity_overview content)"
       ]
     }
   ]

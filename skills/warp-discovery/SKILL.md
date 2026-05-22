@@ -190,6 +190,37 @@ revert to indented text for the MEDDPIC block.
 **[Company Name] — Opportunity Review**
 **━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━**
 
+**CUSTOMER OVERVIEW**
+
+[1 paragraph: who the company is, what industry they're in, their scale (size, markets
+served), and any relevant context about their technical environment or business situation.
+Drawn from what was stated in the notes — use "(inferred)" for any detail not explicitly
+given. No deal language — this describes the company, not the sales opportunity.]
+
+─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─
+
+**OPPORTUNITY OVERVIEW**
+
+**What this is about:** [1–2 sentences on the business initiative — what the customer
+is trying to solve and why it matters now.]
+
+**Elastic solution area:** [Search | Observability | Security | Cross-solution] —
+[one-line rationale connecting the solution to the primary pain.]
+
+**Pain Points**
+
+| Pain | Severity | Quantified impact |
+| --- | --- | --- |
+| [label: description] | Critical / High / Medium / Low | [e.g. "3–4 h/incident manual triage" — or "⚠️ Not quantified"] |
+
+**Success Goals**
+
+| Goal | Measure of success |
+| --- | --- |
+| [goal from notes] | [e.g. "MTTR < 15 min", "< 3% false positive rate" — or "⚠️ Not quantified"] |
+
+─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─
+
 **OPPORTUNITY QUALIFICATION**
 **Status:** 🟢 PROCEED / 🟡 CONTINUE DISCOVERY / 🔴 NOT QUALIFIED
 
@@ -389,8 +420,15 @@ their first conversation about this opportunity. Direct and actionable.
 **Suggested area:** [search | observability | security | cross-solution]
 
 **What success looks like:**
-[1–2 sentences. What specific outcome would make this customer say yes?
-Use their words where possible.]
+[1–2 sentences grounded in what the customer actually said. Name the outcome and, where
+stated, the quantified measure — e.g. "They need MTTR under 15 minutes for the on-call
+team; right now it takes 45 minutes per incident on average." Use their words where
+possible. If no measure was stated, describe the directional outcome.]
+
+**Success goals (from discovery):**
+| Goal | Measure |
+| --- | --- |
+| [goal] | [quantified measure — or "⚠️ Not quantified"] |
 
 **Suggested demo direction:**
 [1–2 sentences. What kind of demo would resonate — what should the SA consider

@@ -66,7 +66,7 @@ isolated per-project; proceed without warning.
 **Primary source — cluster-resident manifest (D-039):**
 
 Read the dynamic asset manifest from the cluster. The manifest schema uses open-list
-format grouped by `space_id` for Kibana assets. See `skills/bolt-launch/references/asset-manifest.md`
+format grouped by `space_id` for Kibana assets. See `skills/references/asset-manifest.md`
 for the full schema and Python helpers.
 
 ```python
@@ -191,7 +191,7 @@ Steps (see teardown-dispatch.md for full ordering and dispatch table):
   9.  Confirm all resources removed
 
 Dispatch: asset deletion is driven by type field in manifest records.
-See: skills/bolt-launch/references/teardown-dispatch.md
+See: skills/references/teardown-dispatch.md
 """
 
 import os, sys, json, time, argparse

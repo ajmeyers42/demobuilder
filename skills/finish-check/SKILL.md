@@ -133,7 +133,7 @@ For each index/data stream in the data model:
   stack version (`keyword`, `text`, `date`, `semantic_text`, etc. — not abstract or invented
   types). See `docs/decisions.md` **D-025**.
 - For each API payload in the data model or bootstrap template, confirm the parameter shapes
-  and required fields match the resolved version's API (use `skills/bolt-launch/references/`
+  and required fields match the resolved version's API (use `skills/references/`
   and `docs/references-observability-slo.md` as the version-scoped reference).
 - If the data model was generated **without** a verified version in Step 0 of `weave-model`,
   mark the data layer as **conditional go** until a live `GET /` confirms the version matches.

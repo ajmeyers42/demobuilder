@@ -26,12 +26,12 @@ before writing any resource. Every pattern comes from those reference files — 
 
 Before writing any HCL, read:
 ```
-skills/bolt-launch/references/terraform-patterns.md    ← ECH HCL patterns
-skills/bolt-launch/references/feature-compatibility.md ← version-specific behavior
-skills/bolt-launch/references/inference-config.md      ← ELSER/EIS config for ECH
-skills/bolt-launch/references/kibana-api-registry.md   ← API shapes (used in bootstrap-data.py)
-skills/bolt-launch/references/pipeline-constants.md    ← thresholds, UUID5 namespace, header values
-skills/bolt-launch/references/asset-manifest.md        ← D-039 manifest helpers
+skills/references/terraform-patterns.md    ← ECH HCL patterns
+skills/references/feature-compatibility.md ← version-specific behavior
+skills/references/inference-config.md      ← ELSER/EIS config for ECH
+skills/references/kibana-api-registry.md   ← API shapes (used in bootstrap-data.py)
+skills/references/pipeline-constants.md    ← thresholds, UUID5 namespace, header values
+skills/references/asset-manifest.md        ← D-039 manifest helpers
 ```
 
 ## Step 2: Generate `deploy/providers.tf`

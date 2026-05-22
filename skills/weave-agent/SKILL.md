@@ -19,7 +19,7 @@ You are specifying how the SE implements **Elastic Agent Builder** in Kibana for
 
 ## Canonical references (read before writing)
 
-- **This repo:** `skills/bolt-launch/references/workflow-patterns.md` — workflow `id` vs name, Agent Builder tool wiring, stale-read warning, workflow DELETE and search-by-name API.
+- **This repo:** `skills/references/workflow-patterns.md` — workflow `id` vs name, Agent Builder tool wiring, stale-read warning, workflow DELETE and search-by-name API.
 - **hive-mind (adopt these — D-034):**
   - `hive-mind/patterns/agent-builder/AGENT_BUILDER_API_MANAGEMENT.md` — CRUD API for agents and tools (tool types, system prompt design, agent cloning pattern)
   - `hive-mind/patterns/agent-builder/WORKFLOW_INTEGRATION.md` — wiring workflows as agent tools
@@ -44,6 +44,14 @@ Write **copy-paste-ready** agent instructions that:
 2. **Route behavior:** when to use **ES|QL tools** vs **index search** vs **workflow tool**.
 3. **Link** to the customer SLA language from discovery (e.g. acknowledge vs resolve windows).
 4. **Safety:** POC only; no production or PII claims.
+5. **Scope to success goals:** Read `opportunity/{slug}-opportunity-profile.json` if available.
+   For each entry in `opportunity_overview.success_goals`, include one sentence in the system
+   prompt that grounds the agent's purpose in the customer's stated outcome — not generic
+   capability language. If the goal has a quantified measure, reference it explicitly.
+   Example: *"Your purpose is to help the fraud analyst reduce investigation time. A successful
+   session is one where the analyst can identify and disposition a suspicious transaction in
+   under 10 minutes."* If the opportunity profile is absent, derive equivalent language from
+   the human story and pain points in the demo script.
 
 ## Step 4: Tools (9.4+ Agent Builder v0.2.0)
 

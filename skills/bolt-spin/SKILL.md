@@ -104,7 +104,7 @@ Capture (from the compose file, for the .env):
 ## Step 3: Write the Per-Engagement .env
 
 Write `.env` to `{engagement_dir}/.env` (at the **engagement root** — not in a subfolder).
-This is the single source of truth for all cluster credentials. See `skills/bolt-launch/references/env-reference.md` for the full variable reference and the endpoint availability table by deployment type.
+This is the single source of truth for all cluster credentials. See `skills/references/env-reference.md` for the full variable reference and the endpoint availability table by deployment type.
 
 **Two branches — choose based on whether the cluster is new or existing:**
 
@@ -161,7 +161,7 @@ The SA fills in values and saves as `.env`.
 
 ```bash
 # .env-sample — fill in values and save as .env
-# See: skills/bolt-launch/references/env-reference.md
+# See: skills/references/env-reference.md
 
 DEMO_SLUG={slug}
 ENGAGEMENT={company}

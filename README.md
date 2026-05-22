@@ -42,6 +42,16 @@ Open `loom` in Cursor (or Claude Code — see [docs/runtimes/claude.md](docs/run
 
 For runtime-specific setup (MCP, rules, plugin paths): [Cursor](docs/runtimes/cursor.md) · [Claude Code](docs/runtimes/claude.md)
 
+## Supported deployment types
+
+| Deployment type | `DEPLOYMENT_TYPE` | Status |
+|---|---|---|
+| **Elastic Cloud Hosted (ECH)** | `ech` | ✅ Supported |
+| **Elastic Cloud Serverless** | `serverless` | ✅ Supported |
+| **Elastic Cloud on Kubernetes (ECK)** | `eck` | 🗓 Roadmap — not yet implemented. See `docs/todo.md`. |
+
+ECK requires research and validation across cloud providers (GKE, EKS, AKS) before a Terraform-based deploy pattern can be documented. Setting `DEPLOYMENT_TYPE=eck` currently halts with an explicit message rather than silently falling through to ECH.
+
 ## What's inside
 
 | | |

@@ -59,6 +59,30 @@ used by the team review. Mark any section where data is insufficient with
 `⚠️ Not yet captured` so the team knows what to ask about, rather than leaving it blank or
 inventing content.
 
+**Sourcing the new top sections — read before writing:**
+
+- **Customer Overview:** Synthesize from `customer.company`, `customer.industry`,
+  `customer.industry_vertical`, `customer.location`, `customer.company_size_signal`,
+  `elastic_relationship.status`, `elastic_relationship.footprint_description`, and any
+  company-level background in the raw notes. Write as a short company biography — not a
+  pain description. If company-level detail is sparse in the discovery JSON, use industry
+  knowledge to provide market context, but flag any inferred detail with "(inferred)".
+
+- **Opportunity Overview — Pain Points table:** Pull from `pain_points[]` in
+  `demo/{slug}-discovery.json`. Map each entry's `label`, `description`, `severity`, and
+  `verbatim_quote` into the table. If `verbatim_quote` is present, include it as a footnote
+  below the table row or in the description cell in italics.
+
+- **Opportunity Overview — Success Goals table:** Pull from `objectives.success_criteria[]`
+  in `demo/{slug}-discovery.json`. For each criterion, surface any quantified measure found
+  in the notes (time savings, percentage targets, throughput goals). If no measure was
+  stated, mark as "⚠️ Not quantified" — never invent a target. Goals without a quantified
+  measure are still listed; they set the qualitative bar for demo success.
+
+- **Solution field:** Derive from `demo_scope.recommended_type` and the primary pain
+  cluster. When cross-solution applies, name the dominant solution first (e.g.,
+  "Observability + Security").
+
 ```markdown
 # Opportunity Summary — {Customer Name}
 **Engagement ID:** {slug}
@@ -67,10 +91,51 @@ inventing content.
 
 ---
 
+## Customer Overview
+
+{1–2 paragraphs profiling the customer as a company. Who they are, what they do, what
+industry/vertical, their scale (size, employee count, markets served, team structure), and
+any relevant technical or market context that shapes the engagement. Sourced from
+`customer.*`, `elastic_relationship.*`, and any company-level background in the discovery
+notes. No deal language — this section describes the company, not the sales situation.
+
+Example: "Acme Corp is a mid-market logistics software provider (~800 employees) serving
+North American freight carriers. They operate a Python/Postgres-centric stack and are
+mid-way through a shift from batch nightly reporting to near-real-time operational
+intelligence across their dispatch and inventory functions."}
+
+---
+
+## Opportunity Overview
+
+**Opportunity:** {1–2 sentences on what this initiative is about — the business problem or
+project the customer is trying to solve, and why it matters now. Describes the initiative,
+not the company. E.g.: "Acme is evaluating Elastic to replace a fragmented log management
+setup that is preventing their SRE team from correlating incidents across services fast
+enough to meet their SLA commitments."}
+
+**Solution:** {Search | Observability | Security | Cross-solution} — {one-line rationale
+tying the solution area to the primary pain and what Elastic addresses.}
+
+### Pain Points
+
+| Pain | Severity | Quantified impact |
+|---|---|---|
+| {label: description} | Critical / High / Medium / Low | {e.g. "3–4 h/incident for manual triage" — or "⚠️ Not quantified"} |
+
+### Success Goals
+
+| Goal | Measure of success |
+|---|---|
+| {goal description} | {e.g. "MTTR < 15 min", "< 3% false positive rate" — or "⚠️ Not quantified"} |
+
+---
+
 ## TL;DR
-{2–3 sentence summary: who they are, what they're trying to solve, and what
-the opportunity looks like for Elastic. Be direct — this is what the AE reads
-in the first 10 seconds.}
+{2–3 sentence deal summary — what the AE reads in the first 10 seconds. Cover the deal
+stage, urgency, what the customer is evaluating Elastic for, and the qualification status
+preview. "Who they are" now lives in Customer Overview above; keep this section focused on
+the sales situation.}
 
 ---
 
@@ -246,6 +311,24 @@ downstream skills.
   "last_updated": "{ISO date}",
   "qualification_status": "proceed | continue_discovery | not_qualified",
   "qualification_rationale": "{one-sentence summary of why}",
+  "customer_overview": "{1–2 paragraph plain-English profile of the customer as a company — industry, scale, what they do, relevant technical or market context. No deal language. Synthesized from customer.*, elastic_relationship.*, and discovery notes.}",
+  "opportunity_overview": {
+    "description": "{1–2 sentences on what this initiative is about — the business problem or project the customer is trying to solve, and why it matters now}",
+    "solution": "search | observability | security | cross_solution",
+    "pain_points": [
+      {
+        "label": "{short name matching pain_points[].label in discovery.json}",
+        "severity": "critical | high | medium | low",
+        "quantified_impact": "{e.g. '3–4 h/incident for manual triage' — or null if not stated}"
+      }
+    ],
+    "success_goals": [
+      {
+        "goal": "{goal description from objectives.success_criteria[]}",
+        "measure": "{quantified target e.g. 'MTTR < 15 min' — or null if not quantified}"
+      }
+    ]
+  },
   "meddpic": {
     "metrics":          { "status": "confirmed | partial | not_captured | disqualifying", "notes": "" },
     "economic_buyer":   { "status": "...", "name": "", "engaged": true },

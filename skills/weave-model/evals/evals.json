@@ -1,13 +1,14 @@
 {
+  "_comment": "All company names, contacts, and scenario details in this file are illustrative composites — not real customer engagements.",
   "skill_name": "weave-model",
   "evals": [
     {
       "id": 1,
-      "prompt": "Generate the data model for the Citizens Bank fraud demo.",
-      "expected_output": "citizens-bank-data-model.json with build order, citizens-bank-data-model.md, mapping files for fraud-claims and fraud-escalations indices",
+      "prompt": "Generate the data model for the Meridian Financial fraud demo.",
+      "expected_output": "meridian-financial-data-model.json with build order, meridian-financial-data-model.md, mapping files for fraud-claims and fraud-escalations indices",
       "files": [
-        "/tmp/ddp-evals/script-test/citizens-bank/citizens-bank-demo-script.md",
-        "/tmp/ddp-evals/iteration-1/citizens-bank/with_skill/outputs/citizens-bank-discovery.json"
+        "$HOME/engagements/meridian-financial/demo/meridian-financial-demo-script.md",
+        "$HOME/engagements/meridian-financial/demo/meridian-financial-discovery.json"
       ],
       "assertions": [
         "data-model.json is valid JSON with build_order array",
@@ -15,15 +16,17 @@
         "fraud-escalations index defined (written by agent tool)",
         "semantic_text field present if ELSER scene is in scope",
         "build_order places ELSER endpoint before any semantic_text mapping",
-        "demo-critical documents enumerated for the Friday 3pm scenario (VND-0412 claims)",
+        "demo-critical documents enumerated for the Friday 3pm scenario",
         "shard counts are reasonable (1 primary for demo-scale indices)"
       ]
     },
     {
       "id": 2,
-      "prompt": "Build the complete Lowe's data model from the demo script.",
-      "expected_output": "lowes-data-model.json with 17-step build order, all 7 indices defined with correct field types, ingest pipeline with scripted_upsert logic, semantic_text on knowledge base",
-      "files": [],
+      "prompt": "Build the complete BuildRight Stores data model from the demo script.",
+      "expected_output": "buildright-stores-data-model.json with 17-step build order, all 7 indices defined with correct field types, ingest pipeline with scripted_upsert logic, semantic_text on knowledge base",
+      "files": [
+        "$HOME/engagements/buildright-stores/demo/buildright-stores-demo-script.md"
+      ],
       "assertions": [
         "store-transactions defined as data stream (append-only events)",
         "inventory-positions has discrepancy_pct as computed float field",
@@ -33,6 +36,23 @@
         "build_order places ELSER endpoint before associate-knowledge-base mapping",
         "ingest pipeline includes scripted_upsert logic for inventory-positions",
         "demo-critical documents enumerate specific SKU/store values from script scenarios"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Build the data model for Apex Cloud when the opportunity profile includes a quantified success goal: 'MTTR under 15 minutes'. Assert that the KPI field is added to the incidents index.",
+      "expected_output": "apex-cloud-data-model.json where the incidents index includes a raw measurement field (e.g. resolution_time_minutes as float) and a derived boolean field (e.g. meets_mttr_target) computed from it. Both fields documented as success_metric_fields in the manifest.",
+      "files": [
+        "$HOME/engagements/apex-cloud/demo/apex-cloud-demo-script.md",
+        "$HOME/engagements/apex-cloud/opportunity/apex-cloud-opportunity-profile.json"
+      ],
+      "assertions": [
+        "opportunity-profile.json is read and opportunity_overview.success_goals processed in Step 1b",
+        "incidents index (or equivalent MTTR-relevant index) contains a raw measurement field typed as float or long",
+        "A derived boolean field (meets_mttr_target or equivalent) is present in the same index",
+        "Both fields appear in success_metric_fields array in the data model manifest",
+        "D-044 assertion comment added for both new fields (non-null required in seed data)",
+        "build_order is not disrupted by the KPI field addition"
       ]
     }
   ]

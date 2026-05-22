@@ -53,7 +53,7 @@ RAG over internal documents
 **Not a fit when:** Customer needs operational telemetry, SIEM, APM, or any real-time
 streaming data story
 
-**hive-mind recipe:** Check `../hive-mind/patterns/` for AI Search pattern if available
+**hive-mind recipe:** Check `{hive-mind-root}/patterns/` for AI Search pattern if available
 
 ---
 
@@ -90,7 +90,7 @@ service reliability, infrastructure cost, or "we can't find root cause fast enou
 
 **Not a fit when:** Customer needs search, SIEM, or AI assistant capabilities
 
-**hive-mind recipe:** Check `../hive-mind/patterns/` for Observability patterns
+**hive-mind recipe:** Check `{hive-mind-root}/patterns/` for Observability patterns
 
 ---
 
@@ -127,7 +127,7 @@ hunting, compliance monitoring, or "our analysts are overwhelmed with alerts"
 
 **Not a fit when:** Customer needs application observability, search, or a cross-solution story
 
-**hive-mind recipe:** Check `../hive-mind/patterns/` for Security patterns
+**hive-mind recipe:** Check `{hive-mind-root}/patterns/` for Security patterns
 
 ---
 

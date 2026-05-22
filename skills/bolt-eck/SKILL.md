@@ -2,47 +2,56 @@
 name: bolt-eck
 description: >
   ECK (Elastic Cloud on Kubernetes) deployment variant for bolt-bootstrap.
-  PLACEHOLDER — ECK support is not yet implemented. This skill will route ECK deployments
-  to the ECH variant with documented exceptions until ECK-specific patterns are validated.
+  BACKLOG — ECK deployment is not yet implemented. bolt-bootstrap halts when
+  DEPLOYMENT_TYPE=eck is set. Use ECH or Serverless for current deployments.
 ---
 
-# Demo Bootstrap — ECK Variant (Placeholder)
+# Demo Bootstrap — ECK Variant
 
-**Status: Placeholder — not yet validated for production use.**
+**Status: BACKLOG — not yet implemented.**  
+**Supported deployment types today: `ech`, `serverless`**  
+**ECK support is on the roadmap — see `docs/todo.md`.**
 
-ECK deployments share most of the ECH API surface but differ in:
-- Cluster endpoint format (ingress/LoadBalancer vs Elastic Cloud URL)
-- API key provisioning (Kubernetes secret vs Cloud API)
-- ILM tier availability (depends on node roles in Kubernetes StatefulSets)
-- Feature flag availability (Agent Builder, Workflows — depends on ECK version and Kibana config)
+---
 
-## Current behavior
+## Halt on invocation
 
-When `DEPLOYMENT_TYPE=eck` is set, this skill:
+When `bolt-bootstrap` routes here because `DEPLOYMENT_TYPE=eck` is set, stop immediately:
 
-1. Reads `references/feature-compatibility.md` for ECK-specific notes
-2. Routes to the ECH variant (`../bolt-ech/SKILL.md`) as the base
-3. Logs a warning:
-   ```
-   ⚠  ECK deployment type detected. ECK-specific patterns are not yet validated.
-      Using ECH variant as a base. Verify the following before deploying:
-      - Cluster endpoints are accessible from the SA's workstation
-      - KIBANA_API_KEY has Kibana system privileges (not just cluster privileges)
-      - Desired Kibana features (Agent Builder, Workflows) are enabled in the Kibana CR
-      - ILM tier availability matches node roles in the StatefulSet
-   ```
+```
+⛔ ECK deployment type is not yet implemented.
 
-## To implement ECK support
+   DEPLOYMENT_TYPE=eck was detected in your .env.
 
-When ECK patterns are validated end-to-end:
+   Supported deployment types today:
+     • ech        → Elastic Cloud Hosted (ECH)
+     • serverless → Elastic Cloud Serverless
 
-1. Document ECK-specific Terraform provider configuration (endpoint format, TLS)
-2. Document feature flag enablement via Kibana CR annotations
-3. Add ECK-specific ILM tier detection (node roles differ from ECH)
-4. Update `references/feature-compatibility.md` ECK column
-5. Update this SKILL.md with the ECK-specific patterns
-6. Remove the placeholder warning
+   ECK support is on the roadmap. It requires research and validation across
+   cloud providers (GKE, EKS, AKS) before a clean Terraform-based deploy
+   pattern can be documented. See docs/todo.md.
 
-## Tracking
+   Action required:
+     1. If you intended ECH or Serverless, update DEPLOYMENT_TYPE in .env and re-run.
+     2. If you need ECK, this is a known gap — track it in the engagement backlog
+        and check docs/todo.md for ECK roadmap status.
+```
 
-File a ticket or note in `docs/todo.md` when ECK validation is planned.
+Do not proceed to ECH as a fallback. Do not generate any deployment artifacts.
+
+---
+
+## What ECK will require (for when this is implemented)
+
+Tracked in `docs/todo.md`. Key differences from ECH that need validated patterns before implementation:
+
+- **Cluster endpoint format** — ingress/LoadBalancer URL vs Elastic Cloud URL; TLS cert handling
+- **API key provisioning** — Kubernetes secret creation vs Cloud API key management
+- **Terraform provider** — `elastic/eck-operator` Terraform resources vs `elastic/elasticstack` provider
+- **ILM tier availability** — depends on node roles defined in Kubernetes StatefulSets
+- **Feature flag availability** — Agent Builder, Workflows: depends on ECK version and Kibana CR config
+- **Cross-cloud-provider differences** — GKE, EKS, AKS each have provider-specific networking and storage patterns
+
+## Roadmap
+
+File or link a ticket in `docs/todo.md` to track ECK implementation progress.
