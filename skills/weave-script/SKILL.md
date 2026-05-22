@@ -58,6 +58,7 @@ Read all available files in this order:
   and `opportunity_overview.pain_points` as a structured source for scene pain mapping.
   If absent, fall back to `pain_points` from `discovery.json` and technical win criteria
   from `demo-goals.md` as before.
+- `opportunity/{slug}-demo-goals.md` — optional but important. When present, the **technical win criteria** defined here must appear verbatim in the Value Confirmation Close (Step 4). If absent, derive win criteria from `success_criteria` in the discovery JSON.
 
 **Stack version:** If the audit or current-state includes `cluster.version` (or equivalent),
 the script must **name the target Elasticsearch/Kibana versions** in an upfront “Environment”

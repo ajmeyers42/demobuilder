@@ -21,9 +21,16 @@ entity, with enough baseline training data to make the anomaly visually obvious.
 A demo ML job that doesn't show a clear red cell is worse than no ML job. Design for the
 wow moment first, then work backwards to the job config.
 
-## Step 1: Identify the ML Scenes
+## Step 1: Read the Required Inputs
 
-Read the demo script (`demo/{slug}-demo-script.md`). For each scene that uses ML:
+Read both files before designing any job configuration:
+
+- **`demo/{slug}-demo-script.md`** — required. Identifies ML scenes, anomaly narratives, and demo timing.
+- **`data/{slug}-data-model.json`** — required. All detector field names, partition/by field names, datafeed source index names, and any `geo_point` fields that need shadow mappings must match the index mappings defined here exactly. A mismatch causes job-creation failures or datafeed schema errors at bootstrap time. If this file does not yet exist, stop and run `weave-model` first.
+
+## Step 2: Identify the ML Scenes
+
+For each scene in the script that uses ML:
 
 - What is the **anomaly narrative**? (e.g., "inventory gap grows faster than normal sales
   velocity", "unusual authentication volume from a single source", "SLA breach rate spikes
@@ -35,7 +42,7 @@ Read the demo script (`demo/{slug}-demo-script.md`). For each scene that uses ML
 - When in the demo does the anomaly need to appear? (T-minus from demo start, or live
   during the presentation)
 
-## Step 2: Design the Anomaly Detection Job
+## Step 3: Design the Anomaly Detection Job
 
 ### Detector selection
 
@@ -172,7 +179,7 @@ directly. Update the demo script accordingly — any scene that references the s
 UI must use a custom dashboard instead. The `record_score` field renders identically
 when displayed in a Kibana heatmap visualization.
 
-## Step 3: Design the Anomaly Injection Plan
+## Step 4: Design the Anomaly Injection Plan
 
 This is what makes the demo work. Define exactly what data to insert, for which entities,
 at what time, to guarantee the anomaly appears.
@@ -227,7 +234,7 @@ training_end = T-3h (clean separation between train and anomaly periods)
 }
 ```
 
-## Step 4: NLP / Trained Model Config (if applicable)
+## Step 5: NLP / Trained Model Config (if applicable)
 
 When the script includes ELSER semantic search or NLP features:
 
@@ -279,7 +286,7 @@ classification on text fields, specify:
 - Target field and output field
 - Inference pipeline processor config
 
-## Step 5: Write the Outputs
+## Step 6: Write the Outputs
 
 ### Output 1: `data/{slug}-ml-config.json`
 

@@ -27,7 +27,7 @@ This repository is meant to be driven by an **assistant** (Cursor, Claude Code, 
 
 | Runtime | Audience | Setup |
 |--------|--------|--------|
-| **Cursor** | Solutions Architects | [`docs/runtimes/cursor.md`](docs/runtimes/cursor.md) |
+| **Cursor** | Solutions Architects | [`docs/runtimes/cursor.md`](docs/runtimes/cursor.md) — includes session boundary rules, model-per-stage table, reasoning_effort guidance, and optional output compression |
 | **Claude Code / Claude projects** | Solutions Architects | [`docs/runtimes/claude.md`](docs/runtimes/claude.md) |
 | **Gemini Gem** | SDRs / AEs (non-technical) | [`docs/runtimes/gem.md`](docs/runtimes/gem.md) — uses `warp-discovery` skill only; no SA pipeline stages |
 | **Slack bot** | SDRs / AEs (non-technical) | `deployments/slack/` — deferred pending IT approval |
