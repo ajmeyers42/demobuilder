@@ -53,6 +53,11 @@ Read all available files in this order:
   Any feature marked `upgrade_required` or `blocked` must not appear as a live scene.
   Features marked `setup_required` can appear but must include a setup note.
 - `demo/{slug}-current-state.json` — optional context for migration or existing-customer demos.
+- `opportunity/{slug}-opportunity-profile.json` — optional. When present, read
+  `opportunity_overview.success_goals` for use in the value confirmation close (Step 4),
+  and `opportunity_overview.pain_points` as a structured source for scene pain mapping.
+  If absent, fall back to `pain_points` from `discovery.json` and technical win criteria
+  from `demo-goals.md` as before.
 
 **Stack version:** If the audit or current-state includes `cluster.version` (or equivalent),
 the script must **name the target Elasticsearch/Kibana versions** in an upfront “Environment”
@@ -272,8 +277,14 @@ confirmation. See references/demo2win-conventions.md Rule 3.]
 [Role] can now [specific outcome]."*
 
 **Technical win statement:**
-*"[The explicit proof point from the technical win criteria in demo-goals.md].
-That's what a successful evaluation looks like: [criteria 1], [criteria 2]."*
+*"[Prioritize `opportunity_overview.success_goals` from the opportunity profile when
+available — reference each goal by name with its measure: 'We set out to show you
+[goal]. What you just saw demonstrates that [measure] is achievable.' If the measure
+is quantified, name the number explicitly. If not quantified, use directional
+language: 'significantly faster than today's manual process.' List each goal as a
+separate sentence. If the opportunity profile is absent or success_goals is empty,
+fall back to the technical win criteria from demo-goals.md: 'That's what a successful
+evaluation looks like: [criteria 1], [criteria 2].']*"
 
 **Next steps (specific, not generic):**
 [Name the person and the action. Pull from next_steps in discovery JSON.

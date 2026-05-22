@@ -82,6 +82,38 @@ Group them into:
 2. **Regular indices** — mutable documents (positions, sessions, metadata)
 3. **System indices** — Kibana/agent artifacts (sessions, telemetry, fulfillment records)
 
+## Step 1b: Success-Goal KPI Field Pass
+
+After extracting script requirements, read `opportunity/{slug}-opportunity-profile.json`
+if available. For each entry in `opportunity_overview.success_goals` where `measure` is
+non-null (e.g. "MTTR < 15 min", "< 3% false positive rate"):
+
+1. **Identify the index** the metric would be computed from — the primary data index
+   the relevant demo scenes operate against.
+2. **Confirm a raw measurement field exists.** If the field is not already required by
+   the script (e.g. `resolution_time_minutes`, `false_positive_count`), add it to the
+   index mapping. It must carry a non-null value in every seed document per D-044.
+3. **Add a derived boolean field** computed at seed time — for example `meets_mttr_target`
+   (`resolution_time_minutes <= 15`). Name it `{goal_slug}_on_track` or a contextually
+   clear equivalent. Store it at seed time; never defer to query time (D-044).
+4. **Document as `success_metric_fields`** in the data model manifest:
+
+```json
+"success_metric_fields": [
+  {
+    "goal": "MTTR < 15 min",
+    "index": "incident-records",
+    "raw_field": "resolution_time_minutes",
+    "derived_field": "meets_mttr_target",
+    "derivation": "resolution_time_minutes <= 15"
+  }
+]
+```
+
+These fields power a "Success Metrics" panel in the demo dashboard — showing the customer
+their stated goals progressing toward or past threshold in Elastic's own data. If
+`opportunity_overview.success_goals` is absent or all measures are null, skip this step.
+
 ## Step 2: Design Each Index
 
 For each index, define:

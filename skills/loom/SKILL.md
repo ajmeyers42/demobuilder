@@ -52,72 +52,15 @@ silently: install the plugin per `docs/todo.md` — **include Security skills**,
 Cursor, Claude, and other hosts is unified — see repo root `AGENTS.md` and
 `docs/runtimes/`. Do not fork skill content per IDE; only loading paths differ.
 
-**Deploy approval:** Before running **Stage 8 (bolt-spin)**, **Stage 8b (finish-verify)**, or **Stage 9 (bolt-bootstrap)**
-against a **live** cluster, confirm the SA wants to provision or deploy **and** has **reviewed**
-`bootstrap.py`, `{slug}-platform-audit`, `{slug}-risks`, `{slug}-demo-checklist.md`, and any
-Kibana/ES files the script will apply — unless they state review is complete. **`bootstrap.py --dry-run`**
-does not require this gate. See `docs/decisions.md` **D-024** and `AGENTS.md`. Planning stages
-(1–7) may proceed when the SA asks to build or refresh artifacts.
+**Key behavioral rules** (rationale in `docs/decisions.md`; these are the actions):
 
-**Elastic version scope:**
-- **New deployment or Serverless project** — Assume the **latest generally available**
-  stack version for that offering **unless the SA specifies otherwise**. Record the
-  actual version in `.env` (`ELASTIC_VERSION`) and in any provision log after create.
-- **Existing deployment / project / cluster** — **Do not** assume latest. Obtain
-  `version` from `GET /` (Elasticsearch) and Kibana `/api/status` (or from diagnostic /
-  `warp-scan` output) **before** writing demo scripts, data models, or
-  execution plans, and thread that version into **thread-audit** and downstream
-  artifacts.
-- **All scripts, plans, and guidance** — Must match the target stack: ES|QL syntax,
-  API shapes, Kibana features, ML APIs, and Agent Builder / Workflows availability all
-  depend on version and deployment type. When in doubt, cite the version the guidance
-  applies to.
-
-**Deployability on Elastic (`docs/decisions.md` D-025):** Data models, bootstrap payloads,
-Agent Builder tools, ML configs, and Kibana imports must be **deployable** on a real cluster
-and use **Elastic datatypes and API conventions** — not hand-wavy JSON. When skills or
-OpenAPI disagree with a first guess, trust the stack and **`elastic/agent-skills`**
-reference behavior.
-
-**Engagement tagging (`docs/decisions.md` D-026):** Generated **`bootstrap.py`** and API payloads
-must merge **`loom:<engagement_id>`** into every resource that supports **`tags`**
-(SLOs, alerting rules, ML jobs, Agent Builder entities, etc.). Derive `<engagement_id>` per
-**`skills/bolt-launch/references/loom-tagging.md`** (`INDEX_PREFIX` normalized, else
-`DEMO_SLUG`; optional **`DEMO_ASSET_TAG`** override).
-
-**Demo scope — enterprise capabilities and solution areas:**
-- **Assume enterprise-appropriate features** when shaping the demo: prefer capabilities that
-  match the **customer outcomes** and pain points in the inputs (discovery, diagnostic,
-  supplemental notes), subject to **thread-audit** and license/version reality.
-  Do not default to “minimal” or core-search-only unless the customer story is search-only.
-- **Inputs** may include: discovery notes, **Elastic diagnostic** exports, **additional
-  notes** from the AE/SE/discovery team, and **architecture diagrams** (current-state
-  systems, data flows). Treat diagrams as first-class context — extract what they imply
-  for integrations, data paths, and operational pain.
-- **Use case domains:** Demos apply equally to **Elasticsearch (search / analytics)**,
-  **Observability**, and **Elastic Security** — pick the primary domain from the artifacts.
-  Past examples often emphasized search; **do not** force search framing when the
-  discovery points to logs, APM, SIEM, or detection workflows.
-- **Cross-solution demos:** When the customer’s needs span domains, it is **acceptable and
-  often desirable** to combine capabilities across **search, Observability, and Security**
-  in one storyline (e.g. unified data platform, correlated investigation, shared ES|QL).
-  Call this out in the script and platform audit so scope stays honest.
-
-**Narrative — solution first:** Unless the SA says otherwise, demo **scripts and plans**
-should lead with **business value and the customer’s key asks** from discovery, then
-detail **supporting Elastic capabilities** (how to get there). If primary goals are unclear
-in the inputs, the agent should **ask for guidance** before finalizing storyline — see
-`weave-script`.
-
-**Scenario adaptability (any demo, not one template):** The pipeline is **analytic**, not
-prescriptive. Each engagement may emphasize different Elastic surfaces — relevance and
-semantic search, log analytics, APM, Synthetics, Security detection and SIEM, Observability
-SLOs, ML anomalies, Agent Builder, cross-cluster search, etc. **Nothing** in the stage
-list assumes a particular vertical (financial services, retail, public sector, etc.) or a
-fixed feature bundle. **thread-audit** and **weave-script** narrow what is
-feasible and what the story needs; **weave-model** and **bolt-launch** materialize
-only that. Do not retrofit every engagement into a “standard” shape that happened to work
-for a prior customer; **read the inputs** and produce artifacts that match **this** demo.
+- **Deploy approval (D-024):** Stages 8–9 against a live cluster require explicit SA confirmation that they've reviewed `bootstrap-data.py`, platform audit, risks, and checklist. `terraform plan` and `bootstrap-data.py --dry-run` are always safe without approval.
+- **Version (D-020, D-033):** New deploy → latest GA unless SA specifies. Existing cluster → probe `GET /` and Kibana `/api/status` first; scope all ES|QL, APIs, and guidance to the confirmed version.
+- **Deployability (D-025):** All mappings, API calls, and bootstrap payloads must use real Elasticsearch field types and Kibana API shapes — not invented JSON. Trust `elastic/agent-skills` reference behavior.
+- **Tagging (D-026):** Every resource that supports `tags` gets `loom:<engagement_id>`. Spec: `skills/references/loom-tagging.md`.
+- **Demo scope:** Enterprise-appropriate features matching the customer's outcomes. Any solution area (search, Observability, Security, cross-solution). Architecture diagrams are first-class inputs. Do not default to search-only.
+- **Narrative:** Lead with outcomes tied to the customer's key asks; capabilities follow. If goals are unclear, ask before locking the storyline.
+- **Scenario adaptability:** Analytic, not prescriptive. Read the inputs; do not retrofit every engagement into a template that worked for a prior customer.
 
 **Additional skills (planning / Kibana / Security):**
 - `warp-spark` — consultative SA coaching to choose demo direction, archetype, and wow moments before discovery. Produces `{slug}-ideation.md` (see Stage 0 above).
@@ -127,14 +70,14 @@ for a prior customer; **read the inputs** and produce artifacts that match **thi
 - **Elastic Security** — when the story includes detection, alerts, cases, or sample security data, read and follow the relevant `security-*` skills from `elastic/agent-skills` (same install as Search/Obs); **platform-audit** must reflect Sec license/tier and feature availability.
 
 **Reference libraries (hive-mind):**
-The `hive-mind` local clone (see currency check, Step 0) provides validated patterns for:
-- Kibana dashboards: `hive-mind/patterns/dashboards/DASHBOARD_NDJSON_FORMAT.md`
-- Workflows API: `hive-mind/patterns/workflows/WORKFLOWS_API_REFERENCE.md`
-- Agent Builder API: `hive-mind/patterns/agent-builder/AGENT_BUILDER_API_MANAGEMENT.md`
-- Probe-based feature detection: `hive-mind/patterns/deployment/SERVERLESS_FEATURE_DETECTION.md`
-- Data fidelity: `hive-mind/patterns/data/DATA_FIDELITY_GUIDE.md`
-- Demo archetypes + coaching: `hive-mind/skills/hive-sa-coaching/`
-Always prefer loom's `docs/decisions.md` and `skills/bolt-launch/references/` for
+The `hive-mind` local clone provides validated patterns. Path: `{hive-mind-root}` = `$HIVE_MIND_PATH` if set, otherwise `../hive-mind` (sibling clone). See `docs/ext-registry.yaml`.
+- Kibana dashboards: `{hive-mind-root}/patterns/dashboards/DASHBOARD_NDJSON_FORMAT.md`
+- Workflows API: `{hive-mind-root}/patterns/workflows/WORKFLOWS_API_REFERENCE.md`
+- Agent Builder API: `{hive-mind-root}/patterns/agent-builder/AGENT_BUILDER_API_MANAGEMENT.md`
+- Probe-based feature detection: `{hive-mind-root}/patterns/deployment/SERVERLESS_FEATURE_DETECTION.md`
+- Data fidelity: `{hive-mind-root}/patterns/data/DATA_FIDELITY_GUIDE.md`
+- Demo archetypes + coaching: `{hive-mind-root}/skills/hive-sa-coaching/`
+Always prefer loom's `docs/decisions.md` and `skills/references/` for
 loom-specific decisions; use hive-mind for upstream pattern reference.
 
 **Additional post-deploy skills** available once a cluster is deployed:
@@ -171,35 +114,33 @@ This is the primary pipeline — proceed through the stages below.
 ## Step 0: Reference Currency Gate (D-041 — before any pipeline work)
 
 Before starting or continuing any pipeline for an engagement, verify that all external
-reference repositories are current. The full repo registry and check methods live in
-**`skills/bolt-launch/references/reference-repos.md`** — read it for paths, env var
-overrides, scope conditions, and blocking rules. Summary below.
+reference repositories are current.
 
-### Repos to check
+**Preferred — run the validator script** (takes ~10 seconds, exits non-zero if loom is blocking-stale):
 
-| Repo | Check | Scope | Blocking? |
-|------|-------|-------|-----------|
-| `elastic/loom` (this repo) | `git fetch origin && git status` | Always | **Yes** |
-| `elastic/hive-mind` | `git fetch origin && git status` on `../hive-mind` or `HIVE_MIND_PATH` | Always | Warn only |
-| `elastic/agent-skills` | Plugin version vs latest GitHub release | Always | Warn only |
-| `elastic/workflows` | `git fetch origin && git status` on `WORKFLOWS_REPO_PATH` | Agent Builder / Workflows in scope | Warn only |
-| `elastic/kibana-agent-builder-sdk` | `git fetch origin && git status` on `AGENT_BUILDER_SDK_PATH` | Agent Builder in scope | Warn only |
-| `elastic/vulcan` | `git fetch origin && git status` on `VULCAN_PATH` | weave-query in scope | Skip if not installed |
-| `terraform-provider-elasticstack` | GitHub Releases API vs `providers.tf` pin | `DEPLOY_MODE=terraform` | Warn only |
-| `terraform-provider-ec` | GitHub Releases API vs `providers.tf` pin | `DEPLOY_MODE=terraform` | Warn only |
+```bash
+python3 scripts/validate_ext_deps.py
+# or to skip network calls: python3 scripts/validate_ext_deps.py --fast
+```
+
+The script reads `docs/ext-registry.yaml` (the machine-readable dependency registry) and
+produces the standard currency report. For scope-conditional deps (Terraform, Workflows,
+Agent Builder SDK), pass `--all-scopes` when those features are in scope.
+
+**If the script is unavailable** (e.g. first-time setup), read `docs/ext-registry.yaml`
+and `skills/references/reference-repos.md` for the full registry and check methods.
 
 ### Report format
 
 ```
-🔄  Reference Currency Gate (Step 0)
-  loom                      ✅  up to date (main, rev abc1234)
-  hive-mind                        ⚠️   2 commits behind — run: git pull --ff-only
-  agent-skills                     ✅  v2.4.1 (latest)
-  elastic/workflows                ✅  up to date (main, rev 9f3a21c)
-  elastic/kibana-agent-builder-sdk ✅  up to date (main, rev c77d802)
-  elastic/vulcan                   ⏭   not installed — skipping
-  terraform-provider-elasticstack  ⚠️   pinned v0.11.4 → latest v0.11.9 (changelog: https://github.com/elastic/terraform-provider-elasticstack/releases/tag/v0.11.9)
-  terraform-provider-ec            ✅  pinned v0.14.1 = latest
+🔄  Reference Currency Gate
+    Registry: docs/ext-registry.yaml
+
+  loom                      ✅  up to date (rev abc1234)
+  hive-mind                 ⚠️   2 commits behind — run: git -C ../hive-mind pull --ff-only  (rev def5678)
+  elastic-agent-skills      ✅  installed at .cursor/plugins/elastic-agent-skills
+  workflows                 ⏭  scope-conditional — skipped
+  ...
 ```
 
 ### Rules
@@ -208,11 +149,40 @@ overrides, scope conditions, and blocking rules. Summary below.
 - **All other repos stale/missing:** note stale state, recommend pull/update, continue unless SA objects.
 - **Missing optional repo (vulcan):** log `⏭ not installed — skipping`; never error.
 - **Scope-conditional:** only check Terraform providers when `DEPLOY_MODE=terraform`; only check `workflows` / `kibana-agent-builder-sdk` when those features are in demo scope.
+- **Adding a new external repo:** add one entry to `docs/ext-registry.yaml` — that is the only file to change.
+
+**Path resolution shorthand:** In SKILL.md files, `{hive-mind-root}` resolves to `$HIVE_MIND_PATH`
+if set, otherwise `../hive-mind`. Same pattern for `{workflows-root}`, `{agent-builder-sdk-root}`, etc.
+All canonical paths are defined in `docs/ext-registry.yaml`.
 
 **Why:** New pattern adoptions (workflow DELETE, search-by-name, probe-based detection,
 dashboard stable UUIDs, inference config changes) are documented in reference repos.
-Running against a stale clone means the agent works from outdated guidance. This check
-adds ~10 seconds and prevents hours of debugging.
+Running against a stale clone means the agent works from outdated guidance.
+
+### warp-discovery drift check
+
+After the repo currency check, scan `skills/warp-discovery/components.md` for `Last synced` dates.
+For each upstream skill listed there, compare the `Last synced` date against the output of:
+
+```bash
+git -C {loom_repo} log -1 --format="%ci" -- skills/{upstream-skill}/SKILL.md
+```
+
+If the skill was modified **after** its `Last synced` date, surface:
+
+```
+⚠️  warp-discovery may be out of sync with {skill} (last synced: {date}, last modified: {commit-date}).
+    Run the re-sync checklist in skills/warp-discovery/components.md before delivering Gem outputs to SDRs/AEs.
+```
+
+This is warn-only — do not block the pipeline. Record it in the Step 2 inventory.
+
+### Pipeline cost tracking (optional — recommended for multi-stage runs)
+
+If the SA wants visibility into token spend across pipeline stages, invoke `hive-token-optimization`
+(`.agents/skills/hive-token-optimization`) to set up session cost tracking before starting.
+This is SA tooling — not required per engagement, but useful for full pipeline runs where
+multiple models and stages accumulate cost. Run once per SA setup, not per engagement.
 
 ## Step 0b: Ideation (always runs — SA commit gate)
 
@@ -362,6 +332,26 @@ sample data, SLO authoring helpers) should still be invoked when the script or a
 those capabilities. Record their outputs in the downstream artifact they enrich (usually
 `{slug}-data-model.json`, `{slug}-demo-checklist.md`, or `bootstrap.py`).
 
+**Model tier guidance** — use this when the SA can configure per-stage models or when cost matters:
+
+| Stage | Skill | Model tier | Reason |
+|---|---|---|---|
+| 0 | warp-spark | **Best** | Creative ideation; high-stakes SA commit gate |
+| 1 | warp-listen | Fast | Structured extraction from notes; predictable schema |
+| 2a | warp-scan | Fast | Structured extraction from diagnostic JSON |
+| 2b | thread-qualify | **Best** | Analytical judgment; MEDDPIC scoring; deal decision |
+| 3 | thread-audit | Fast | Lookup and comparison against feature matrix |
+| 4 | thread-suggest | Fast | Catalog lookup; predefined vs custom decision |
+| 5 | weave-script | **Best** | Customer-facing narrative; highest-stakes artifact |
+| 6a | weave-query | **Best** | ES\|QL correctness critical; API shape validation |
+| 6b | weave-model | **Best** | Technical accuracy critical; field type errors break deployment |
+| 6c | weave-fleet | Fast | Package catalog lookup; manifest generation |
+| 6d | weave-train | **Best** | ML job config accuracy; detector/datafeed shapes |
+| 6e | weave-agent | **Best** | Agent system prompt quality; tool API shapes |
+| 7 | finish-check | Fast | Template-driven checklist generation |
+| 8 | finish-verify | Fast | Probe, compare, and template |
+| 9 | bolt-bootstrap | Fast | Template generation from verified asset-bundle |
+
 Report the inventory to the user before executing:
 ```
 📋 Engagement: [Company] ([slug])
@@ -422,8 +412,9 @@ For each stage that needs to run, in order:
 3. **Execute the stage** using the loaded instructions and available inputs.
 4. **Write outputs** to `{engagement_dir}` with the slug prefix.
 5. **Update `{slug}-pipeline-state.json`** — mark the stage `complete`, record the output filename and input hash. This keeps the next session's inventory instant.
-6. **Announce completion:** `✅ warp-listen complete → {slug}-discovery.json`
-6. **Surface any blockers:** If a stage produces a RED platform audit or critical gaps, pause
+6. **Announce completion:** `✅ Stage N complete — {stage-name} → {output-file}. Proceeding to Stage N+1.`
+   Example: `✅ Stage 1 complete — warp-listen → demo/{slug}-discovery.json. Proceeding to Stage 2a.`
+7. **Surface any blockers:** If a stage produces a RED platform audit or critical gaps, pause
    and report before continuing:
    ```
    ⚠️  Platform audit returned RED. Blocking issues:

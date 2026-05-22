@@ -1,3 +1,11 @@
+---
+name: wind-streams
+description: >
+  Creates, configures, and wires Kibana Streams with ingest pipelines for demo
+  environments. Handles write-side Streams operations not covered by kibana-streams.
+status: planned
+---
+
 # wind-streams
 
 **Status: BACKLOG — not yet implemented**

@@ -27,13 +27,13 @@ from those reference files — not memory.
 
 Before writing any HCL, read:
 ```
-skills/bolt-launch/references/terraform-patterns.md       ← Serverless HCL patterns
-skills/bolt-launch/references/serverless-differences.md   ← Serverless behavioral quirks
-skills/bolt-launch/references/inference-config.md         ← ELSER config for Serverless
-skills/bolt-launch/references/feature-compatibility.md    ← ILM vs DSL rules
-skills/bolt-launch/references/kibana-api-registry.md      ← API shapes
-skills/bolt-launch/references/pipeline-constants.md       ← thresholds, UUID5 namespace
-skills/bolt-launch/references/asset-manifest.md           ← D-039 manifest helpers
+skills/references/terraform-patterns.md       ← Serverless HCL patterns
+skills/references/serverless-differences.md   ← Serverless behavioral quirks
+skills/references/inference-config.md         ← ELSER config for Serverless
+skills/references/feature-compatibility.md    ← ILM vs DSL rules
+skills/references/kibana-api-registry.md      ← API shapes
+skills/references/pipeline-constants.md       ← thresholds, UUID5 namespace
+skills/references/asset-manifest.md           ← D-039 manifest helpers
 ```
 
 ## Step 2: Generate `deploy/providers.tf`

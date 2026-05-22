@@ -40,6 +40,10 @@ import urllib.parse
 import urllib.request
 from pathlib import Path
 
+# Configurable per-request timeout. Override with PULSE_TIMEOUT_SECS env var.
+# Default 10s keeps pre-demo checks fast; raise if cluster is on a slow WAN link.
+PULSE_TIMEOUT_SECS = int(os.environ.get("PULSE_TIMEOUT_SECS", "10"))
+
 
 # ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -116,7 +120,7 @@ def kb_get(path: str) -> tuple[int, dict | list | None]:
     url = f"{base}{kb_url_path(path)}"
     req = urllib.request.Request(url, method="GET", headers=kb_headers())
     try:
-        with urllib.request.urlopen(req, timeout=90) as resp:
+        with urllib.request.urlopen(req, timeout=PULSE_TIMEOUT_SECS) as resp:
             raw = resp.read().decode()
             if not raw:
                 return resp.status, {}
@@ -135,7 +139,7 @@ def es_req(method: str, path: str, body: dict | None = None) -> dict:
     url = f"{es_url}{path}"
     data = None if body is None else json.dumps(body).encode()
     req = urllib.request.Request(url, data=data, method=method, headers=es_headers())
-    with urllib.request.urlopen(req, timeout=90) as resp:
+    with urllib.request.urlopen(req, timeout=PULSE_TIMEOUT_SECS) as resp:
         raw = resp.read().decode()
         return json.loads(raw) if raw else {}
 
