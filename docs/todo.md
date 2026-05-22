@@ -1,7 +1,7 @@
 # loom — Open Items Requiring User Action
 
 *Generated from the post-mortem and current skill review. Updated as items are resolved.*
-*Last updated: 2026-05-01*
+*Last updated: 2026-05-20*
 
 For **agent behavior** (orchestrator path, `$LOOM_ENGAGEMENTS_ROOT` outputs, deploy approvals), see
 [`AGENTS.md`](../AGENTS.md), [`docs/engagements-path.md`](../docs/engagements-path.md), and [`docs/runtimes/`](../docs/runtimes/).
@@ -66,6 +66,36 @@ references them and runs **`saved_objects/_import`** (and related APIs) — not 
 The `online-order-notification` Workflow (Lowe's demo) and any demo using Kibana Workflows that send email requires a pre-configured Kibana Email connector. The `kibana-connectors` skill handles this, but the SMTP settings (or SES/Mailgun config) need to be provided.
 
 **Action:** Using the `kibana-connectors` skill, configure an email connector in the demo cluster before running the Lowe's bootstrap.
+
+---
+
+## 🟢 SDR / AE Discovery Tool
+
+### warp-discovery + Gemini Gem — shipped
+
+The `warp-discovery` skill and Gemini Gem deployment are complete and merged to main.
+SDRs and AEs can use the Gem at [gemini.google.com](https://gemini.google.com) — no Cursor,
+CLI, or `.env` setup required.
+
+**What shipped:**
+- `skills/warp-discovery/` — distilled bundle of `warp-listen` + `thread-qualify` logic
+- `deployments/gem/` — Gemini Gem system prompt, config, and setup guide
+- `docs/runtimes/gem.md` — setup and usage documentation for SDRs/AEs
+- Canonical SA pipeline skills (`warp-listen`, `thread-qualify`, `warp-scout`) updated to
+  match the same two-score format and document posture guardrails
+
+**Ongoing — Gem maintenance:**
+When `warp-listen` or `thread-qualify` are updated, re-sync `skills/warp-discovery/SKILL.md`
+and `deployments/gem/system-prompt.md`. Check sync dates in `skills/warp-discovery/components.md`.
+Update the live Gem by replacing the Instructions field with the updated `system-prompt.md`.
+
+### Slack bot — deferred (pending IT approval)
+
+A Slack bot deployment of `warp-discovery` is designed but not implemented.
+See `deployments/slack/README.md` for the planned architecture.
+
+**Action:** Submit Slack app approval request to Elastic IT. If approved, implement per the
+spec in `deployments/slack/README.md` on a new `feature/sdr-slack` branch.
 
 ---
 

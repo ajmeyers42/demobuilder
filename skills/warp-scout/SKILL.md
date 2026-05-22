@@ -176,34 +176,45 @@ prioritize technical questions that block demo scoping.}
 
 After all three stages are complete, present a compact summary:
 
-```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- DISCOVERY AGENT — {Customer Name} ({slug})
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+**━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━**
+**DISCOVERY AGENT — {Customer Name} ({slug})**
+**━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━**
 
-Qualification: 🟢 PROCEED / 🟡 CONTINUE DISCOVERY / 🔴 NOT QUALIFIED
+**OPPORTUNITY QUALIFICATION**
+**Status:** 🟢 PROCEED / 🟡 CONTINUE DISCOVERY / 🔴 NOT QUALIFIED
+{One-sentence rationale from the qualification summary.}
 
-Suggested demo direction:
-  {One sentence from the Demo Goals Brief}
+─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─
+
+**SA BUILD READINESS**
+
+| | Status |
+| --- | --- |
+| Demo direction | 🟢 Ready to scope / 🟡 Need: {item(s)} / 🔴 Cannot scope yet |
+| Sizing estimate | 🟢 Ready to estimate / 🟡 Need: {item(s)} / 🔴 Cannot estimate yet |
+
+Suggested demo direction: {One sentence from the Demo Goals Brief.}
+
+─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─
 
 SA handoff package:
-  ✅  demo/{slug}-discovery.json
-  ✅  opportunity/{slug}-gaps.md
-  ✅  opportunity/{slug}-confirmation.md       (customer-facing)
-  ✅  opportunity/{slug}-opportunity-summary.md (team review)
-  ✅  opportunity/{slug}-opportunity-profile.json
-  ✅  opportunity/{slug}-demo-goals.md         (SA handoff brief)
 
-  {If diagnostic was run:}
-  ✅  demo/{slug}-current-state.json
-  ✅  demo/{slug}-architecture.md
-  ✅  demo/{slug}-findings.md
+- ✅ `demo/{slug}-discovery.json`
+- ✅ `opportunity/{slug}-gaps.md`
+- ✅ `opportunity/{slug}-confirmation.md` (customer-facing)
+- ✅ `opportunity/{slug}-opportunity-summary.md` (team review)
+- ✅ `opportunity/{slug}-opportunity-profile.json`
+- ✅ `opportunity/{slug}-demo-goals.md` (SA handoff brief)
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SA next step: Open loom with opportunity/{slug}-demo-goals.md
-  to run ideation and commit to a demo direction.
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-```
+{If diagnostic was run:}
+
+- ✅ `demo/{slug}-current-state.json`
+- ✅ `demo/{slug}-architecture.md`
+- ✅ `demo/{slug}-findings.md`
+
+**━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━**
+SA next step: open `opportunity/{slug}-demo-goals.md` and run `warp-spark` to commit to a demo direction.
+**━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━**
 
 ---
 

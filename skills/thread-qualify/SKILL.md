@@ -59,6 +59,30 @@ used by the team review. Mark any section where data is insufficient with
 `⚠️ Not yet captured` so the team knows what to ask about, rather than leaving it blank or
 inventing content.
 
+**Sourcing the new top sections — read before writing:**
+
+- **Customer Overview:** Synthesize from `customer.company`, `customer.industry`,
+  `customer.industry_vertical`, `customer.location`, `customer.company_size_signal`,
+  `elastic_relationship.status`, `elastic_relationship.footprint_description`, and any
+  company-level background in the raw notes. Write as a short company biography — not a
+  pain description. If company-level detail is sparse in the discovery JSON, use industry
+  knowledge to provide market context, but flag any inferred detail with "(inferred)".
+
+- **Opportunity Overview — Pain Points table:** Pull from `pain_points[]` in
+  `demo/{slug}-discovery.json`. Map each entry's `label`, `description`, `severity`, and
+  `verbatim_quote` into the table. If `verbatim_quote` is present, include it as a footnote
+  below the table row or in the description cell in italics.
+
+- **Opportunity Overview — Success Goals table:** Pull from `objectives.success_criteria[]`
+  in `demo/{slug}-discovery.json`. For each criterion, surface any quantified measure found
+  in the notes (time savings, percentage targets, throughput goals). If no measure was
+  stated, mark as "⚠️ Not quantified" — never invent a target. Goals without a quantified
+  measure are still listed; they set the qualitative bar for demo success.
+
+- **Solution field:** Derive from `demo_scope.recommended_type` and the primary pain
+  cluster. When cross-solution applies, name the dominant solution first (e.g.,
+  "Observability + Security").
+
 ```markdown
 # Opportunity Summary — {Customer Name}
 **Engagement ID:** {slug}
@@ -67,10 +91,51 @@ inventing content.
 
 ---
 
+## Customer Overview
+
+{1–2 paragraphs profiling the customer as a company. Who they are, what they do, what
+industry/vertical, their scale (size, employee count, markets served, team structure), and
+any relevant technical or market context that shapes the engagement. Sourced from
+`customer.*`, `elastic_relationship.*`, and any company-level background in the discovery
+notes. No deal language — this section describes the company, not the sales situation.
+
+Example: "Acme Corp is a mid-market logistics software provider (~800 employees) serving
+North American freight carriers. They operate a Python/Postgres-centric stack and are
+mid-way through a shift from batch nightly reporting to near-real-time operational
+intelligence across their dispatch and inventory functions."}
+
+---
+
+## Opportunity Overview
+
+**Opportunity:** {1–2 sentences on what this initiative is about — the business problem or
+project the customer is trying to solve, and why it matters now. Describes the initiative,
+not the company. E.g.: "Acme is evaluating Elastic to replace a fragmented log management
+setup that is preventing their SRE team from correlating incidents across services fast
+enough to meet their SLA commitments."}
+
+**Solution:** {Search | Observability | Security | Cross-solution} — {one-line rationale
+tying the solution area to the primary pain and what Elastic addresses.}
+
+### Pain Points
+
+| Pain | Severity | Quantified impact |
+|---|---|---|
+| {label: description} | Critical / High / Medium / Low | {e.g. "3–4 h/incident for manual triage" — or "⚠️ Not quantified"} |
+
+### Success Goals
+
+| Goal | Measure of success |
+|---|---|
+| {goal description} | {e.g. "MTTR < 15 min", "< 3% false positive rate" — or "⚠️ Not quantified"} |
+
+---
+
 ## TL;DR
-{2–3 sentence summary: who they are, what they're trying to solve, and what
-the opportunity looks like for Elastic. Be direct — this is what the AE reads
-in the first 10 seconds.}
+{2–3 sentence deal summary — what the AE reads in the first 10 seconds. Cover the deal
+stage, urgency, what the customer is evaluating Elastic for, and the qualification status
+preview. "Who they are" now lives in Customer Overview above; keep this section focused on
+the sales situation.}
 
 ---
 
@@ -95,7 +160,7 @@ Stakeholder gaps. This is the open question set for the next call or email.}
 > Score each dimension: ✅ Confirmed | 🟡 Partial | ⚠️ Not captured | ❌ Disqualifying
 
 | Dimension | Status | Evidence | Gaps |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | **M — Metrics** | | | |
 | **E — Economic Buyer** | | | |
 | **D — Decision Criteria** | | | |
@@ -112,7 +177,7 @@ Stakeholder gaps. This is the open question set for the next call or email.}
 
 ## Qualification Recommendation
 
-**Recommendation: [PROCEED / CONTINUE DISCOVERY / NOT QUALIFIED]**
+**Status: [🟢 PROCEED / 🟡 CONTINUE DISCOVERY / 🔴 NOT QUALIFIED]**
 
 {2–4 sentence rationale. Be specific: what is confirmed, what is still missing,
 and what would change the recommendation. Do not hedge with "it depends" —
@@ -121,6 +186,21 @@ give the team something to act on.}
 **To proceed to demo build, the following must be confirmed:**
 {Numbered list of blockers if status is CONTINUE DISCOVERY or conditions for NOT QUALIFIED.
 Leave this section empty (replace with "All qualification criteria met.") for PROCEED.}
+
+---
+
+## SA Build Readiness
+
+> For the SA: independent of deal qualification — answers whether there is enough
+> technical context to start scoping a demo or developing a sizing estimate now.
+
+| | Status | Details |
+| --- | --- | --- |
+| Demo direction | 🟢 Ready to scope / 🟡 Need: {item(s)} / 🔴 Cannot scope yet | {brief note} |
+| Sizing estimate | 🟢 Ready to estimate / 🟡 Need: {item(s)} / 🔴 Cannot estimate yet | {brief note} |
+
+{1–2 sentences: what the SA can act on immediately and what needs to be confirmed
+before committing to a build direction or sizing approach.}
 
 ---
 
@@ -231,6 +311,24 @@ downstream skills.
   "last_updated": "{ISO date}",
   "qualification_status": "proceed | continue_discovery | not_qualified",
   "qualification_rationale": "{one-sentence summary of why}",
+  "customer_overview": "{1–2 paragraph plain-English profile of the customer as a company — industry, scale, what they do, relevant technical or market context. No deal language. Synthesized from customer.*, elastic_relationship.*, and discovery notes.}",
+  "opportunity_overview": {
+    "description": "{1–2 sentences on what this initiative is about — the business problem or project the customer is trying to solve, and why it matters now}",
+    "solution": "search | observability | security | cross_solution",
+    "pain_points": [
+      {
+        "label": "{short name matching pain_points[].label in discovery.json}",
+        "severity": "critical | high | medium | low",
+        "quantified_impact": "{e.g. '3–4 h/incident for manual triage' — or null if not stated}"
+      }
+    ],
+    "success_goals": [
+      {
+        "goal": "{goal description from objectives.success_criteria[]}",
+        "measure": "{quantified target e.g. 'MTTR < 15 min' — or null if not quantified}"
+      }
+    ]
+  },
   "meddpic": {
     "metrics":          { "status": "confirmed | partial | not_captured | disqualifying", "notes": "" },
     "economic_buyer":   { "status": "...", "name": "", "engaged": true },
@@ -341,31 +439,57 @@ of the opportunity summary — it is a forward-looking brief for the SA's next c
 
 ## Step 4: Surface the Recommendation Clearly
 
-After writing all three files, present a compact summary in the chat:
+After writing all three files, present a compact summary in the chat using the two-score
+format below. MEDDPIC as a table first, SA Build Readiness after.
 
-```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- OPPORTUNITY REVIEW — {Customer Name}
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+**━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━**
+**OPPORTUNITY REVIEW — {Customer Name}**
+**━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━**
 
-Recommendation: 🟢 PROCEED / 🟡 CONTINUE DISCOVERY / 🔴 NOT QUALIFIED
+**OPPORTUNITY QUALIFICATION**
+**Status:** 🟢 PROCEED / 🟡 CONTINUE DISCOVERY / 🔴 NOT QUALIFIED
 
-MEDDPIC Summary
-  Metrics          {✅ / 🟡 / ⚠️}  {one-line note}
-  Economic Buyer   {✅ / 🟡 / ⚠️}  {name or "not identified"}
-  Decision Criteria{✅ / 🟡 / ⚠️}  {one-line note}
-  Decision Process {✅ / 🟡 / ⚠️}  {one-line note}
-  Paper Process    {✅ / 🟡 / ⚠️}  {timeline or "unknown"}
-  Identify Pain    {✅ / 🟡 / ⚠️}  {primary pain in one line}
-  Champion         {✅ / 🟡 / ⚠️}  {name or "none identified"}
+{2–3 sentence rationale. What is confirmed, what is missing, what would change the status.
+Be specific — reflect the confidence level the notes actually support.}
 
-Technical Landscape
-  Elastic today:   {version + deployment type, or "none"}
-  Key integrations:{top 2–3 systems}
-  Data volumes:    {summary or "not captured"}
-  Competing tools: {list or "none identified"}
+| Dimension | Score | Notes |
+| --- | --- | --- |
+| Metrics (M) | ✅/🟡/⚠️/❌ | {business impact or "not quantified"} |
+| Economic Buyer (E) | ✅/🟡/⚠️/❌ | {name / title or "not identified"} |
+| Decision Criteria (D) | ✅/🟡/⚠️/❌ | {one-line note} |
+| Decision Process (D) | ✅/🟡/⚠️/❌ | {one-line note} |
+| Paper Process (P) | ✅/🟡/⚠️/❌ | {timeline or "unknown"} |
+| Identify Pain (I) | ✅/🟡/⚠️/❌ | {primary pain in one line} |
+| Champion (C) | ✅/🟡/⚠️/❌ | {name / role or "none identified"} |
 
-Top open questions
+*Score key: ✅ Confirmed  🟡 Partial  ⚠️ Not captured  ❌ Disqualifying*
+
+{If CONTINUE DISCOVERY or NOT QUALIFIED — omit if PROCEED:}
+To move forward on qualification, confirm:
+
+1. {specific gap}
+2. {specific gap}
+
+─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─
+
+**SA BUILD READINESS**
+
+| | Status | Details |
+| --- | --- | --- |
+| Demo direction | 🟢 Ready to scope / 🟡 Need: {item(s)} / 🔴 Cannot scope yet | {brief note} |
+| Sizing estimate | 🟢 Ready to estimate / 🟡 Need: {item(s)} / 🔴 Cannot estimate yet | {brief note} |
+
+{1–2 sentences: what the SA can act on now and what is still needed. If both are 🟢, say so
+directly. If both are 🔴, name the single piece of information that would unlock the most
+progress.}
+
+Technical Landscape snapshot:
+  Elastic today:    {version + deployment type, or "none"}
+  Key integrations: {top 2–3 systems, or "none identified"}
+  Data volumes:     {summary or "not captured"}
+  Competing tools:  {list or "none identified"}
+
+Top open questions:
   1. {most important unanswered question}
   2. {second most important}
   3. {third}
@@ -375,10 +499,9 @@ Outputs written:
   ✅  opportunity/{slug}-opportunity-profile.json (machine-readable for pipeline)
   ✅  opportunity/{slug}-demo-goals.md            (SA handoff brief — ideation input)
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+**━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━**
 Ask the team to review {slug}-opportunity-summary.md before proceeding to platform audit.
 SA: read opportunity/{slug}-demo-goals.md before running warp-spark.
-```
 
 ---
 
@@ -407,21 +530,58 @@ This skill is designed to be re-run. When re-run with updated notes or new infor
 
 ## Qualification Guidance
 
-Use these thresholds consistently:
+### Opportunity Qualification Thresholds
+
+Use these thresholds consistently for the MEDDPIC-based deal score:
 
 **🟢 PROCEED** — At minimum: pain is confirmed and quantified, a champion is identified
 and engaged, economic buyer is known (even if not yet met), and the timeline is credible.
-Technical landscape is sufficient to design a demo data model. Open questions exist but do
-not block scope definition.
+Open questions exist but do not block the deal. A single call with one contact who has no
+stated authority is CONTINUE DISCOVERY, not PROCEED.
 
 **🟡 CONTINUE DISCOVERY** — One or more of: pain is stated but not quantified, no clear
-champion, EB unknown, no decision timeline, OR technical data (volumes, sources, integrations)
-is too vague to scope the demo. A focused follow-up call could resolve these.
+champion, EB unknown, no decision timeline, or a focused follow-up is needed to confirm
+the opportunity is real.
 
 **🔴 NOT QUALIFIED** — Any of: no confirmed pain, no budget signal, stated non-starter
-(e.g. exclusive competitor contract, RFP already closed, internal project funded), or discovery
-notes contain zero actionable signal. Do not invest in demo build. Log the rationale so the
-team can revisit if circumstances change.
+(exclusive competitor contract, RFP already closed, internal project funded, regulatory
+blocker), or discovery notes contain zero actionable signal. Do not invest in demo build.
+Log the rationale so the team can revisit if circumstances change.
+
+---
+
+### SA Build Readiness Thresholds
+
+Produce two independent sub-scores. These are independent of Opportunity Qualification — a
+deal can be PROCEED on qualification but not yet ready to build (technical details missing),
+or CONTINUE DISCOVERY on qualification but ready to scope a demo (technical picture is clear).
+
+**Demo Direction Readiness** — can the SA identify a viable demo direction?
+
+Criteria:
+- Primary use case is identifiable (what problem, for which role)
+- Solution area is determinable (search / observability / security / cross-solution)
+- At least one pain maps to a demonstrable Elastic capability
+- Audience roles are known (technical depth, decision-making level)
+- No hard technical blockers present (data residency requirement, air-gap mandate, exclusive
+  competitor contract that rules out Elastic)
+
+- 🟢 `Ready to scope` — all criteria met; SA can identify a demo archetype and begin scoping
+- 🟡 `Need: [specific item(s)]` — most criteria met; one or two gaps would sharpen the direction
+- 🔴 `Cannot scope yet` — use case, audience, or capability mapping is too unclear to start
+
+**Sizing Estimate Readiness** — can the SA develop a rough infrastructure or cost estimate?
+
+Criteria:
+- Data volumes captured, even roughly ("~5 GB/day", "millions of records")
+- At least one data source identified (logs, tickets, documents, metrics, etc.)
+- Ingest frequency known or inferable (batch / near-real-time / real-time)
+- Retention requirements stated or inferable from context
+- Infrastructure environment described (cloud preference, on-prem, serverless, ECH)
+
+- 🟢 `Ready to estimate` — enough to produce a directional sizing; exact numbers can be refined
+- 🟡 `Need: [specific item(s)]` — one or two technical details would enable a rough estimate
+- 🔴 `Cannot estimate yet` — volumes, sources, and environment are all unknown
 
 ---
 

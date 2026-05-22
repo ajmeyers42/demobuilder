@@ -1,3 +1,12 @@
+---
+name: weave-pipe
+description: >
+  Designs and generates Elasticsearch ingest pipeline definitions from a field mapping
+  specification. Produces deployment-ready pipeline JSON artifacts for Streams wiring
+  or direct ES API deployment.
+status: planned
+---
+
 # weave-pipe
 
 **Status: BACKLOG — not yet implemented**

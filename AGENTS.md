@@ -51,6 +51,22 @@ Cloud provisioning and Kibana / Observability / **Elastic Security** operations 
 [`docs/todo.md`](docs/todo.md)) — not a Search-only subset. If missing, say so clearly instead
 of failing silently.
 
+## Engagement data hygiene
+
+Customer discovery notes, diagnostic exports, opportunity summaries, and any other engagement-specific artifacts are written to `$LOOM_ENGAGEMENTS_ROOT/{slug}/` (default: `~/engagements/{slug}/`). This directory lives **outside** the loom git repo by design.
+
+**Rules the assistant must follow — and remind the SA of on first use:**
+
+1. **No customer data in the repo.** The loom repo holds pipeline code only (`skills/`, `docs/`, `scripts/`). Engagement artifacts — discovery notes, opportunity summaries, demo scripts, bootstrap scripts, `.env` files — go under `~/engagements/{slug}/` exclusively. Eval fixtures in `skills/*/evals/` use illustrative composites only (never real customer names, contacts, or data).
+
+2. **Keep `~/engagements/` outside any git-tracked directory.** If an SA's home directory is itself tracked (e.g. a dotfiles repo), confirm that `~/engagements/` is in `.gitignore` before running the pipeline. A mistakenly committed `.env` file contains cluster API keys.
+
+3. **Never commit `.env` files.** Each engagement's `.env` carries `ES_API_KEY`, `KIBANA_API_KEY`, and `EC_API_KEY`. These are credentials — not config. If accidentally staged, run `git rm --cached .env` immediately.
+
+4. **Retention.** Delete engagement directories when the deal closes or the demo environment is torn down. Discovery notes and confirmation documents may contain customer-identifying information that should not be retained beyond their useful life. Follow your organization's data-handling policy.
+
+5. **Dry-run safety.** `bootstrap-data.py --dry-run` and `terraform plan` are always safe to run without cluster access. Never run `terraform apply` or `bootstrap-data.py` (no `--dry-run`) against a live cluster without the SA's explicit approval per D-024.
+
 ## hive-mind-start
 # Hive Mind
 
@@ -58,7 +74,7 @@ This project has hive-mind skills installed at `.agents/skills/`, `.cursor/skill
 (symlinked to `../hive-mind/skills/`). Use these for Elastic integration patterns.
 
 ## Pattern-First Workflow
-1. Before implementing, check `../hive-mind/.hive-mind-index.json` for relevant patterns by tag.
+1. Before implementing, check `{hive-mind-root}/.hive-mind-index.json` for relevant patterns by tag.
 2. Read the full pattern file before coding.
 3. Follow established conventions and code structure.
 4. Check skill `references/` directories for troubleshooting docs.
@@ -74,7 +90,8 @@ Route tasks through domain skills:
 - Elastic Agent Skills, npx skills, agentskills.io → `.agents/skills/hive-elastic-agent-skills`
 
 ## Discovery Commands
-- /hive-mind list → `python ../hive-mind/scripts/hive-mind-index-cli.py list`
-- /hive-mind search <tag> → `python ../hive-mind/scripts/hive-mind-index-cli.py search <tag>`
-- /hive-mind tags [prefix] → `python ../hive-mind/scripts/hive-mind-index-cli.py tags [prefix]`
+Path: `{hive-mind-root}` = `$HIVE_MIND_PATH` if set, otherwise `../hive-mind`. See `docs/ext-registry.yaml`.
+- /hive-mind list → `python {hive-mind-root}/scripts/hive-mind-index-cli.py list`
+- /hive-mind search <tag> → `python {hive-mind-root}/scripts/hive-mind-index-cli.py search <tag>`
+- /hive-mind tags [prefix] → `python {hive-mind-root}/scripts/hive-mind-index-cli.py tags [prefix]`
 ## hive-mind-end

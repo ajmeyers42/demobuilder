@@ -1,0 +1,129 @@
+# External Dependency Registry
+#
+# Single source of truth for every external repo or plugin the loom pipeline references.
+# Machine-readable source for scripts/validate_ext_deps.py.
+# Human-readable detail (notes, API resource lists) lives alongside in skills/references/reference-repos.md.
+#
+# Adding a repo:   add an entry here + run scripts/validate_ext_deps.py to verify
+# Removing a repo: mark deprecated: true, update any skills that reference it
+# Changing a path: update local_path or env_override here only — skills reference by id
+#
+# Path resolution algorithm (for agents and skills):
+#   1. If env_override is set and non-empty in the shell environment, use its value as root.
+#   2. Otherwise use local_path (relative to loom repo root unless absolute).
+#   3. If the resolved path does not exist, treat as warn-only (blocking: false) or halt (blocking: true).
+#
+# Canonical shorthand in SKILL.md files: {dep-id-root}
+#   e.g. {hive-mind-root} → $HIVE_MIND_PATH or ../hive-mind
+#        {workflows-root}  → $WORKFLOWS_REPO_PATH or ~/Documents/GitHub/workflows
+
+dependencies:
+
+  - id: loom
+    description: "elastic/loom — this repo (pipeline skills and docs)"
+    local_path: "."
+    env_override: ~
+    check_type: git
+    scope: always
+    blocking: true
+    last_validated: "2026-05-22"
+    notes: "If HEAD is behind origin, ask SA before continuing. Record the rev."
+
+  - id: hive-mind
+    description: "elastic/hive-mind — validated Elastic integration patterns"
+    local_path: "../hive-mind"
+    env_override: HIVE_MIND_PATH
+    check_type: git
+    scope: always
+    blocking: false
+    install_cmd: "git clone https://github.com/elastic/hive-mind ../hive-mind"
+    last_validated: "2026-05-22"
+    key_paths:
+      - "patterns/dashboards/DASHBOARD_NDJSON_FORMAT.md"
+      - "patterns/workflows/WORKFLOWS_API_REFERENCE.md"
+      - "patterns/workflows/WORKFLOW_YAML_STEP_TYPES.md"
+      - "patterns/agent-builder/AGENT_BUILDER_API_MANAGEMENT.md"
+      - "patterns/deployment/SERVERLESS_FEATURE_DETECTION.md"
+      - "patterns/data/DATA_FIDELITY_GUIDE.md"
+      - "skills/hive-sa-coaching/"
+      - "skills/hive-token-optimization/"
+    notes: "Sibling clone is the default. Pipeline continues if missing — warn only."
+
+  - id: elastic-agent-skills
+    description: "elastic/agent-skills — Kibana, ES, Observability, Security asset-authoring skills"
+    local_path: ~
+    env_override: ~
+    check_type: cursor_plugin
+    plugin_id: "elastic/agent-skills"
+    scope: always
+    blocking: false
+    install_cmd: "npx skills add elastic/agent-skills"
+    update_cmd: "npx skills update elastic/agent-skills"
+    github_releases_url: "https://api.github.com/repos/elastic/agent-skills/releases/latest"
+    last_validated: "2026-05-22"
+    notes: >
+      Full install required (Search + Observability + Security). Not a local clone —
+      installed as a Cursor/Claude plugin. If missing, surface install command rather than failing silently.
+
+  - id: workflows
+    description: "elastic/workflows — Elastic Workflow Library YAML examples and Liquid reference"
+    local_path: "~/Documents/GitHub/workflows"
+    env_override: WORKFLOWS_REPO_PATH
+    check_type: git
+    scope: "agent-builder or workflow-yaml in demo scope"
+    blocking: false
+    install_cmd: "git clone https://github.com/elastic/workflows ~/Documents/GitHub/workflows"
+    last_validated: "2026-05-22"
+    key_paths:
+      - "examples/"
+      - "docs/liquid-reference.md"
+    notes: "Read before authoring any Workflow YAML. Liquid | first filter, _geo_distance sort limitation documented here."
+
+  - id: kibana-agent-builder-sdk
+    description: "elastic/kibana-agent-builder-sdk — Agent Builder tool/agent API schema"
+    local_path: "~/Documents/GitHub/kibana-agent-builder-sdk"
+    env_override: AGENT_BUILDER_SDK_PATH
+    check_type: git
+    scope: "agent-builder in demo scope"
+    blocking: false
+    install_cmd: "git clone https://github.com/elastic/kibana-agent-builder-sdk ~/Documents/GitHub/kibana-agent-builder-sdk"
+    last_validated: "2026-05-22"
+    notes: "Read before writing any Agent Builder API call. API shapes change with Kibana releases."
+
+  - id: vulcan
+    description: "elastic/vulcan — validated ES|QL generation and synthetic data"
+    local_path: "../vulcan"
+    env_override: VULCAN_PATH
+    check_type: git
+    scope: "weave-query in scope"
+    blocking: false
+    optional: true
+    install_cmd: "git clone https://github.com/elastic/vulcan ../vulcan && cd ../vulcan && pip install -r requirements.txt"
+    last_validated: "2026-05-22"
+    notes: "Optional. If absent, log ⏭ not installed — skipping. Never error."
+
+  - id: terraform-provider-elasticstack
+    description: "elastic/terraform-provider-elasticstack — Terraform resources for ES/Kibana"
+    local_path: ~
+    env_override: ~
+    check_type: github_release
+    github_releases_url: "https://api.github.com/repos/elastic/terraform-provider-elasticstack/releases/latest"
+    scope: "DEPLOY_MODE=terraform"
+    blocking: false
+    last_validated: "2026-05-22"
+    notes: >
+      Compare latest release tag against pin in deploy/providers.tf.
+      Warn SA to confirm pin before HCL generation. See skills/references/reference-repos.md for resource list.
+
+  - id: terraform-provider-ec
+    description: "elastic/terraform-provider-ec — Terraform resources for Elastic Cloud provisioning"
+    local_path: ~
+    env_override: ~
+    check_type: github_release
+    github_releases_url: "https://api.github.com/repos/elastic/terraform-provider-ec/releases/latest"
+    scope: "DEPLOY_MODE=terraform"
+    blocking: false
+    last_validated: "2026-05-22"
+    notes: >
+      Compare latest release tag against pin in deploy/providers.tf.
+      Scope: cloud provisioning only. Stack config belongs in elasticstack provider.

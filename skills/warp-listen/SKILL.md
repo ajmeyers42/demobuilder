@@ -223,19 +223,37 @@ entry in `gaps`.
 This goes TO THE CUSTOMER. Write it as if you're handing it to them the day after the
 discovery call. Tone: collaborative, specific, technically credible. Not marketing copy.
 
-Rules for this document:
+**Document posture — read before writing any section:**
+
+This document summarizes what was heard in a first or early conversation. It is not a
+proposal, a statement of work, or a commitment of any kind. Write it accordingly.
+
+- **No absolute language about Elastic's capabilities or delivery.** Prohibited words and
+  phrases include: "precise", "exact", "final", "guaranteed", "complete", "fully",
+  "will deliver", "will provide", "you will receive", and any phrasing that implies
+  a firm estimate, a committed scope, or a definitive timeline. Use directional,
+  conditional language instead: "based on what we've heard", "we expect to work toward",
+  "our initial read is", "subject to confirming".
+- **No embellishments.** Do not make the opportunity sound more advanced, more confirmed,
+  or more strategically significant than the notes support. If one pain was mentioned,
+  describe one pain — not "a comprehensive initiative across the organization." Match the notes.
+- **No premature conclusions.** Do not conclude that requirements are understood, that a
+  decision is imminent, that the customer is "ready to move forward", or that Elastic is
+  the right fit — unless that was explicitly stated. Discovery is ongoing.
+- **No invented content.** If something wasn't said or strongly implied in the notes,
+  it does not appear in this document. Gaps are named in "Before We Build", not papered over.
+
+Additional rules:
 - Use the customer's own language and verbatim phrases where impactful — it shows you listened
 - Do NOT use internal sales language: no "champion", "deal stage", "blocker", "ICP", "ACV"
-- Do NOT include competitive intelligence (no mention of Bain, AWS Bedrock, rival vendors)
-- Do NOT pad thin notes with generic filler — if you don't know something, say so in
-  "Before We Build" rather than making something up
+- Do NOT include competitive intelligence (no mention of rival vendors, competitor names)
 - Scale length to what was captured: rich notes → full doc; sparse notes → shorter doc with
   more prominent gaps section
-- **Tense matters:** If the demo is already built and approved (the notes are a demo script or
-  post-approved artifact), write in past tense — "What We Demonstrated", "What Was Built". If
-  the demo is upcoming, write in future tense — "What We'll Demonstrate", "What to Expect".
+- **Tense:** If the demo is upcoming, write in future tense ("What We'll Demonstrate").
+  If notes describe something already built or approved, use past tense ("What We Demonstrated").
 
 Structure (adapt as needed — don't be mechanical about it):
+
 ```
 # Discovery Confirmation — [Company Name]
 **Prepared by:** [SA name] | **Date:** [date]
@@ -246,14 +264,37 @@ Structure (adapt as needed — don't be mechanical about it):
 [3–5 bullets in the customer's language. Use their phrases. If they said "scattered everywhere"
 use "scattered everywhere", not "data fragmentation".]
 
-## What We'll Demonstrate
-[Table or brief prose: each demo scenario mapped to a specific pain point they raised.
-Be concrete — "we'll show an agent that answers 'what were the top risks in the 2022 Greenville
-expansion?' against 40 years of project logs" not "we'll demonstrate AI capabilities".]
+## [What We'll Demonstrate — OR — Measures of Success]
+
+Use "What We'll Demonstrate" ONLY if a demo was explicitly requested or confirmed in the
+notes (e.g. "they asked for a demo", "demo scheduled for [date]", "they want to see it in
+action"). If a demo was not mentioned, use "Measures of Success" instead.
+
+If a demo was confirmed — "What We'll Demonstrate":
+Map each planned demo scenario to a specific pain point the customer raised. Name the role,
+the task, and the measurable outcome. Make success criteria quantifiable wherever the notes
+support it.
+  Not: "We'll demonstrate AI search capabilities."
+  Instead: "We'll show how [role] goes from [current state] to [outcome] in under [timeframe]
+  — addressing the '[verbatim pain]' problem directly."
+
+If no demo was mentioned — "Measures of Success":
+Describe what good looks like for the customer — the outcomes they would experience if the
+initiative succeeded. Make these quantifiable wherever the notes support it. If the notes
+don't support a quantified target, use a directional qualifier ("significantly faster than
+today's manual process") rather than inventing numbers.
 
 ## What You Can Expect
-[Concrete outcomes, not vague value propositions. What will they walk away with?
-A working prototype? A migration sizing estimate? A live query against their own data model?]
+
+Based on what we've heard so far, describe the likely shape of next steps — not final
+commitments. This section is directional. More will be defined as discovery continues.
+
+Do not use absolute language ("you will receive", "we will deliver", "precise estimate").
+Use hedged, forward-looking language: "based on what we've heard", "our initial read is",
+"we expect to work toward", "subject to confirming [gap]".
+
+Keep this section to 2–3 sentences. If the notes don't support even a directional statement,
+omit this section rather than filling it with generic language.
 
 ## Before We Build
 [List only genuine gaps — things you actually need from them to proceed.
@@ -263,7 +304,7 @@ If you have everything you need: "We have everything we need to get started."]
 
 ## Next Steps
 | Action | Owner | Target Date |
-|--------|-------|-------------|
+| --- | --- | --- |
 [Fill from the next steps in the notes]
 ```
 

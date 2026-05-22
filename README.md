@@ -17,9 +17,16 @@ Drop in discovery notes (and optionally a diagnostic export) and say **"build th
 
 Six phases — each named after a step in textile production on a loom.
 
-```
-  🧵 WARP       🪡 THREAD      🧶 WEAVE      ✂ FINISH    SA approval   🪢 BOLT       🌀 WIND
-  Discover  ──►  Qualify   ──►   Build   ──►  Validate  ────────────►  Deploy   ──►  Operate
+```mermaid
+flowchart LR
+    WARP["🧵 WARP\nDiscover"]
+    THREAD["🪡 THREAD\nQualify & Audit"]
+    WEAVE["🧶 WEAVE\nBuild"]
+    FINISH["✂️ FINISH\nValidate"]
+    BOLT["🪢 BOLT\nDeploy"]
+    WIND["🌀 WIND\nOperate"]
+
+    WARP --> THREAD --> WEAVE --> FINISH -->|"SA approval"| BOLT --> WIND
 ```
 
 | Phase | Textile metaphor | What it does | Skills |
@@ -27,7 +34,7 @@ Six phases — each named after a step in textile production on a loom.
 | 🧵 **WARP** | Warp threads are the lengthwise foundation strung on the loom before weaving begins | Parse raw discovery notes and optional diagnostic exports into structured intelligence | `warp-spark` · `warp-listen` · `warp-scan` |
 | 🪡 **THREAD** | Threading the needle — precision work before the shuttle moves | Qualify the opportunity (MEDDPIC), audit the platform for feature readiness, and decide predefined vs. custom build path | `thread-qualify` · `thread-audit` · `thread-suggest` |
 | 🧶 **WEAVE** | The active weaving pass — shuttle crossing warp threads to form the cloth | Generate the demo script, data model, ML config, Fleet integrations, Agent Builder spec, and AI cost visibility layer | `weave-script` · `weave-query` · `weave-model` · `weave-fleet` · `weave-train` · `weave-agent` · `weave-cost` |
-| ✂ **FINISH** | Cloth finishing — trim, inspect, and sign off before the fabric leaves the mill | Pre-deploy readiness check and asset verification gate; produces the go/no-go checklist | `finish-check` · `finish-verify` |
+| ✂️ **FINISH** | Cloth finishing — trim, inspect, and sign off before the fabric leaves the mill | Pre-deploy readiness check and asset verification gate; produces the go/no-go checklist | `finish-check` · `finish-verify` |
 | 🪢 **BOLT** | A bolt is a finished roll of fabric ready to ship | Provision the cluster (optional) and generate Terraform + bootstrap script; requires SA approval before touching a live cluster | `bolt-spin` · `bolt-bootstrap` |
 | 🌀 **WIND** | Winding thread on and off the spool | Post-deploy health checks before the demo and prefix-scoped teardown after | `wind-pulse` · `wind-reset` |
 
@@ -61,6 +68,16 @@ Open `loom` in Cursor (or Claude Code — see [docs/runtimes/claude.md](docs/run
 3. The `loom` orchestrator runs the pipeline, asks for approvals before any cluster spend, and delivers a complete engagement workspace under `~/engagements/{slug}/`.
 
 For runtime-specific setup (MCP, rules, plugin paths): [Cursor](docs/runtimes/cursor.md) · [Claude Code](docs/runtimes/claude.md)
+
+## Supported deployment types
+
+| Deployment type | `DEPLOYMENT_TYPE` | Status |
+|---|---|---|
+| **Elastic Cloud Hosted (ECH)** | `ech` | ✅ Supported |
+| **Elastic Cloud Serverless** | `serverless` | ✅ Supported |
+| **Elastic Cloud on Kubernetes (ECK)** | `eck` | 🗓 Roadmap — not yet implemented. See `docs/todo.md`. |
+
+ECK requires research and validation across cloud providers (GKE, EKS, AKS) before a Terraform-based deploy pattern can be documented. Setting `DEPLOYMENT_TYPE=eck` currently halts with an explicit message rather than silently falling through to ECH.
 
 ## What's inside
 

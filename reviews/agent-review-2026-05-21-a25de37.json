@@ -1,0 +1,173 @@
+{
+  "review_session": {
+    "date": "2026-05-21",
+    "agent_id": "loom",
+    "agent_version": "a25de37",
+    "review_tool_version": "agent-codebase-review/v1.0",
+    "frameworks": ["cursor", "claude-code", "kibana-agent-builder"],
+    "overall_score": "amber",
+    "dimension_scores": {
+      "token_efficiency": "amber",
+      "cost_model_selection": "amber",
+      "architecture_decomposition": "amber",
+      "subagent_task_spawning": "green",
+      "ux_dx": "amber",
+      "interoperability": "amber",
+      "telemetry_observability": "red",
+      "security_privacy": "amber",
+      "self_improvement": "amber"
+    }
+  },
+  "findings": [
+    {
+      "id": "F001",
+      "priority": 1,
+      "title": "No eval runner — 17 evals.json files, zero automated execution",
+      "dimensions": ["telemetry_observability", "self_improvement"],
+      "risk": "safe",
+      "summary": "All planning skills have evals.json with assertions but no script runs them. Regressions from skill edits are undetected.",
+      "citations": ["skills/*/evals/evals.json"],
+      "action": "Add scripts/run_evals.py that iterates evals and reports pass/fail. Schema validation mode as minimum viable first step."
+    },
+    {
+      "id": "F002",
+      "priority": 1,
+      "title": "bolt-launch deprecated but still registered as active skill",
+      "dimensions": ["architecture_decomposition"],
+      "risk": "safe",
+      "summary": "bolt-launch/SKILL.md is deprecated since 2026-05-05 but remains symlinked and the loom orchestrator still references it in text. Direct invocations would use stale behavior.",
+      "citations": ["skills/bolt-launch/SKILL.md:1-10", "skills/loom/SKILL.md:55-60"],
+      "action": "Make bolt-launch a redirect-only stub. Remove symlink from .claude/skills/. Clean up loom/SKILL.md Stage 8 language."
+    },
+    {
+      "id": "F003",
+      "priority": 1,
+      "title": "No token/cost tracking on loom pipeline runs",
+      "dimensions": ["cost_model_selection"],
+      "risk": "safe",
+      "summary": "weave-cost tracks demo environment Agent Builder spend but not the pipeline's own token costs. The hive-token-optimization skill is in AGENTS.md routing but never called.",
+      "citations": ["AGENTS.md", "skills/weave-cost/SKILL.md"],
+      "action": "Add Step 0 pointer in loom/SKILL.md directing SA to hive-token-optimization for pipeline session cost tracking."
+    },
+    {
+      "id": "F004",
+      "priority": 1,
+      "title": "bolt-eck silently falls back to ECH without SA warning",
+      "dimensions": ["architecture_decomposition"],
+      "risk": "risky",
+      "summary": "DEPLOYMENT_TYPE=eck routes to bolt-eck which silently deploys using ECH patterns. SA gets no warning that they're getting the wrong deployment type.",
+      "citations": ["skills/bolt-eck/SKILL.md:1-8", "skills/bolt-bootstrap/SKILL.md routing table"],
+      "action": "bolt-eck should HALT with an explicit warning block. Never silently fall through to ECH for a different deployment type."
+    },
+    {
+      "id": "F005",
+      "priority": 1,
+      "title": "warp-discovery sync has no drift detection",
+      "dimensions": ["interoperability"],
+      "risk": "safe",
+      "summary": "After today's thread-qualify changes, warp-discovery/SKILL.md and system-prompt.md were manually resynced. No automated signal exists to catch future drift.",
+      "citations": ["skills/warp-discovery/components.md:32-56"],
+      "action": "Add a Step 0 git-log drift check in loom/SKILL.md that compares last-modified dates from components.md against the git log of upstream skills."
+    },
+    {
+      "id": "F006",
+      "priority": 2,
+      "title": "Orchestrator preamble duplicates decisions.md prose verbatim",
+      "dimensions": ["token_efficiency"],
+      "risk": "safe",
+      "summary": "~80 lines of loom/SKILL.md duplicate D-024, D-025, D-026 policy content from docs/decisions.md. Every pipeline invocation loads both.",
+      "citations": ["skills/loom/SKILL.md:55-90"],
+      "action": "Replace inline policy summaries with pointer references. Keep behavioral instruction, remove rationale."
+    },
+    {
+      "id": "F007",
+      "priority": 2,
+      "title": "Evals for thread-qualify, weave-script, weave-model don't cover today's additions",
+      "dimensions": ["self_improvement"],
+      "risk": "safe",
+      "summary": "Customer Overview, Opportunity Overview, success_goals, and KPI field pass were added today with no corresponding eval assertions.",
+      "citations": ["skills/thread-qualify/evals/evals.json", "skills/weave-script/evals/evals.json", "skills/weave-model/evals/evals.json"],
+      "action": "Add eval cases asserting new fields are populated in each skill's output."
+    },
+    {
+      "id": "F008",
+      "priority": 2,
+      "title": "wind_pulse.py has no configurable request timeout",
+      "dimensions": ["ux_dx"],
+      "risk": "safe",
+      "summary": "urllib.request calls have no timeout argument. On slow or unreachable clusters, a pre-demo pulse check could hang for 60-120 seconds per call.",
+      "citations": ["skills/wind-pulse/wind_pulse.py — all urlopen() calls"],
+      "action": "Add PULSE_TIMEOUT_SECS env var (default 10) and pass timeout= to all urlopen() calls."
+    },
+    {
+      "id": "F009",
+      "priority": 2,
+      "title": "Pipeline-wide reference files namespaced under deprecated bolt-launch",
+      "dimensions": ["architecture_decomposition"],
+      "risk": "needs-review",
+      "summary": "inference-config.md, env-reference.md, terraform-patterns.md etc. live in bolt-launch/references/ but are used by finish-verify, bolt-ech, bolt-serverless, bolt-bootstrap.",
+      "citations": ["skills/bolt-launch/references/", "skills/finish-verify/SKILL.md", "skills/bolt-ech/SKILL.md"],
+      "action": "Move bolt-launch/references/ to skills/references/ and update all cross-references. No content changes needed."
+    },
+    {
+      "id": "F010",
+      "priority": 2,
+      "title": "No model-tiering guidance across pipeline stages",
+      "dimensions": ["cost_model_selection"],
+      "risk": "needs-review",
+      "summary": "Stages with very different complexity requirements (warp-listen extraction vs weave-script narrative) use the same model with no guidance.",
+      "citations": ["skills/loom/SKILL.md stage table"],
+      "action": "Add Model tier column to loom orchestrator stage table annotating which stages benefit from the best model vs fast model."
+    },
+    {
+      "id": "F011",
+      "priority": 2,
+      "title": "Eval fixtures use real-sounding customer names",
+      "dimensions": ["security_privacy"],
+      "risk": "needs-review",
+      "summary": "warp-listen evals reference Citizens Bank, IHG, Thermo Fisher, Lowe's with detailed meeting notes. Need to confirm these are synthetic composites, not real engagement data.",
+      "citations": ["skills/warp-listen/evals/evals.json"],
+      "action": "Add comment confirming synthetic data. If real, anonymize."
+    },
+    {
+      "id": "F012",
+      "priority": 3,
+      "title": "No mid-pipeline progress report",
+      "dimensions": ["ux_dx"],
+      "risk": "safe",
+      "summary": "The loom orchestrator ends each stage silently. SA has no 'you are here' signal during long multi-stage runs.",
+      "citations": ["skills/loom/SKILL.md stage execution loop"],
+      "action": "Add one-line completion banner after each stage: '✅ Stage N complete — {artifact}. Proceeding to Stage N+1.'"
+    },
+    {
+      "id": "F013",
+      "priority": 3,
+      "title": "weave-pipe and wind-streams are undeveloped stubs",
+      "dimensions": ["architecture_decomposition"],
+      "risk": "safe",
+      "summary": "Both have skeleton SKILL.md files with no step structure. May be triggered by orchestrator under the right conditions.",
+      "citations": ["skills/weave-pipe/SKILL.md", "skills/wind-streams/SKILL.md"],
+      "action": "Add 'status: planned' to frontmatter and 'Not yet implemented' header."
+    },
+    {
+      "id": "F014",
+      "priority": 3,
+      "title": "No data retention guidance for engagement directories",
+      "dimensions": ["security_privacy"],
+      "risk": "safe",
+      "summary": "Customer discovery notes land in ~/engagements/{slug}/ with no guidance on retention, encryption at rest, or git hygiene.",
+      "citations": ["AGENTS.md", "docs/engagements-path.md"],
+      "action": "Add 'Engagement data hygiene' section to AGENTS.md."
+    },
+    {
+      "id": "F015",
+      "priority": 3,
+      "title": "External dependencies (hive-mind, elastic/agent-skills) are unpinned",
+      "dimensions": ["interoperability"],
+      "risk": "needs-review",
+      "summary": "Both are referenced by local path / latest-clone with no version pinning. Breaking changes could affect loom silently on next pull.",
+      "citations": ["AGENTS.md hive-mind section", "skills/loom/SKILL.md:29-50"],
+      "action": "Add docs/dependency-pins.md recording git SHA or version of each external dependency."
+    }
+  ]
+}
