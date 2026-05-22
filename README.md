@@ -13,6 +13,33 @@ Drop in discovery notes (and optionally a diagnostic export) and say **"build th
 - **Agent-first.** The assistant executes; you review and approve before anything touches a live cluster.
 - **Elastic 9.4+ native.** Scripts target supported APIs and correct field types — nothing that fails on a real cluster.
 
+## The Pipeline
+
+Six phases — each named after a step in textile production on a loom.
+
+```mermaid
+flowchart LR
+    WARP["🧵 WARP\nDiscover"]
+    THREAD["🪡 THREAD\nQualify & Audit"]
+    WEAVE["🧶 WEAVE\nBuild"]
+    FINISH["✂️ FINISH\nValidate"]
+    BOLT["🪢 BOLT\nDeploy"]
+    WIND["🌀 WIND\nOperate"]
+
+    WARP --> THREAD --> WEAVE --> FINISH -->|"SA approval"| BOLT --> WIND
+```
+
+| Phase | Textile metaphor | What it does | Skills |
+|---|---|---|---|
+| 🧵 **WARP** | Warp threads are the lengthwise foundation strung on the loom before weaving begins | Parse raw discovery notes and optional diagnostic exports into structured intelligence | `warp-spark` · `warp-listen` · `warp-scan` |
+| 🪡 **THREAD** | Threading the needle — precision work before the shuttle moves | Qualify the opportunity (MEDDPIC), audit the platform for feature readiness, and decide predefined vs. custom build path | `thread-qualify` · `thread-audit` · `thread-suggest` |
+| 🧶 **WEAVE** | The active weaving pass — shuttle crossing warp threads to form the cloth | Generate the demo script, data model, ML config, Fleet integrations, Agent Builder spec, and AI cost visibility layer | `weave-script` · `weave-query` · `weave-model` · `weave-fleet` · `weave-train` · `weave-agent` · `weave-cost` |
+| ✂️ **FINISH** | Cloth finishing — trim, inspect, and sign off before the fabric leaves the mill | Pre-deploy readiness check and asset verification gate; produces the go/no-go checklist | `finish-check` · `finish-verify` |
+| 🪢 **BOLT** | A bolt is a finished roll of fabric ready to ship | Provision the cluster (optional) and generate Terraform + bootstrap script; requires SA approval before touching a live cluster | `bolt-spin` · `bolt-bootstrap` |
+| 🌀 **WIND** | Winding thread on and off the spool | Post-deploy health checks before the demo and prefix-scoped teardown after | `wind-pulse` · `wind-reset` |
+
+Each phase writes structured JSON outputs that feed the next — nothing is re-inferred downstream. The orchestrator (`loom`) runs all phases in order, skips completed stages on re-runs, and pauses for approval at the BOLT boundary. See [Pipeline & skills](docs/pipeline.md) for the full stage-by-stage reference.
+
 ## Prerequisites
 
 | Requirement | How to satisfy |
