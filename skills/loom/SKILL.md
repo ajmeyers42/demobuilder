@@ -411,6 +411,26 @@ structured JSON output is written, that output is the canonical representation �
 active context. Downstream stages read the parsed JSON, not the original files.
 This keeps context windows proportional to the current stage, not cumulative across the pipeline.
 
+**Session boundaries — one stage per chat session.**
+Each stage should ideally run in its own Cursor chat. At stage completion, emit a session
+handoff line so the SA knows exactly what to attach to the next session:
+
+```
+🔁 Next session: start fresh, attach `{primary-output-file}` (and `.env` if cluster work follows)
+   Stage to run next: {next-stage}
+   Model: [fast] or [full] — see cursor.md model table
+```
+
+A fresh session starting with only the prior stage's output file avoids context
+accumulation costs and keeps the model focused on the current stage's task only.
+`{slug}-pipeline-state.json` is the inventory shortcut — a new session can orient
+in seconds without re-reading all prior outputs.
+
+**Model selection per stage** — see `docs/runtimes/cursor.md` for the full table.
+Stages tagged `[fast-model]` below work well with a cheaper/faster model (e.g.
+claude-3-5-haiku, gpt-4o-mini). Stages tagged `[full-model]` require a capable model
+(Sonnet/Opus/GPT-4o) — creative generation or correctness-sensitive code.
+
 For each stage that needs to run, in order:
 
 1. **Announce the stage:** `🔄 Running: warp-listen...`
@@ -423,6 +443,7 @@ For each stage that needs to run, in order:
 4. **Write outputs** to `{engagement_dir}` with the slug prefix.
 5. **Update `{slug}-pipeline-state.json`** — mark the stage `complete`, record the output filename and input hash. This keeps the next session's inventory instant.
 6. **Announce completion:** `✅ warp-listen complete → {slug}-discovery.json`
+7. **Emit session handoff:** `🔁 Next session: attach demo/{slug}-discovery.json — run thread-qualify [fast-model ok]`
 6. **Surface any blockers:** If a stage produces a RED platform audit or critical gaps, pause
    and report before continuing:
    ```
@@ -438,25 +459,25 @@ For each stage that needs to run, in order:
 
 ### Stage execution order and skip conditions
 
-**Stage 0 — warp-spark** *(optional — run when no discovery notes or diagnostic exist)*
+**Stage 0 — warp-spark** `[fast-model ok]` *(optional — run when no discovery notes or diagnostic exist)*
 - Skip if: `{slug}-discovery.json` OR `{slug}-ideation.md` exists, OR discovery notes provided
 - Read: `../warp-spark/SKILL.md`
 - Inputs: SA description, customer vertical, or "I have a meeting with X" context
 - Outputs: `{slug}-ideation.md` (frozen contract: archetype, wow moments, capability map, data strategy)
 
-**Stage 1 — warp-listen**
+**Stage 1 — warp-listen** `[fast-model ok]`
 - Skip if: `demo/{slug}-discovery.json` exists AND no new discovery notes provided
 - Read: `../warp-listen/SKILL.md`
 - Inputs: discovery notes (PDF/text/markdown); optionally `{slug}-ideation.md` for narrative validation
 - Outputs: `{slug}-discovery.json`, `{slug}-confirmation.md`, `{slug}-gaps.md`
 
-**Stage 2 — warp-scan** *(optional)*
+**Stage 2 — warp-scan** `[fast-model ok]` *(optional)*
 - Skip if: no diagnostic file provided OR `demo/{slug}-current-state.json` already exists
 - Read: `../warp-scan/SKILL.md`
 - Inputs: diagnostic ZIP or API exports
 - Outputs: `{slug}-current-state.json`, `{slug}-architecture.md`, `{slug}-findings.md`
 
-**Stage 2b — thread-qualify**
+**Stage 2b — thread-qualify** `[fast-model ok]`
 - Skip if **all** of the following are true:
   1. `opportunity/{slug}-opportunity-summary.md` AND `opportunity/{slug}-opportunity-profile.json` both exist
   2. `{slug}-discovery.json` and `{slug}-gaps.md` have not changed since the last run
@@ -483,7 +504,7 @@ For each stage that needs to run, in order:
   If `continue_discovery`, surface the open questions and ask the SA whether to continue
   building or wait for answers.
 
-**Stage 3 — thread-audit**
+**Stage 3 — thread-audit** `[fast-model ok]`
 - Skip if: `demo/{slug}-platform-audit.json` exists AND neither discovery, current-state, nor
   opportunity-profile have changed
 - Read: `../thread-audit/SKILL.md`
@@ -493,7 +514,7 @@ For each stage that needs to run, in order:
 - **Blocker check:** If overall_status is RED, surface the blocking features before
   proceeding. Auto-adjust scope: remove blocked features from the script brief, continue.
 
-**Stage 3b — thread-suggest** *(required — D-049)*
+**Stage 3b — thread-suggest** `[fast-model ok]` *(required — D-049)*
 - **Decision gate: predefined vs. custom build.** Every engagement must make this decision
   explicitly before scripting begins.
 - Read: `../thread-suggest/SKILL.md`
@@ -504,7 +525,7 @@ For each stage that needs to run, in order:
 - **CUSTOM path:** Sets `custom_required: true`, proceeds to Stage 4.
 - Skip if: `{slug}-ideation.md` is missing — halt and run Stage 0b first.
 
-**Stage 4 — weave-script** *(custom path only — skip if predefined was recommended)*
+**Stage 4 — weave-script** `[full-model required]` *(custom path only — skip if predefined was recommended)*
 - Skip if: `demo/{slug}-demo-script.md` exists AND platform-audit hasn't changed AND ideation hasn't changed
 - Read: `../weave-script/SKILL.md`
 - **Before authoring:** read `skills/weave-script/references/demo2win-conventions.md` (D-051)
@@ -512,7 +533,7 @@ For each stage that needs to run, in order:
 - Outputs: `{slug}-demo-script.md`, `{slug}-demo-brief.md`, `{slug}-live-script.md`
 - Script must include: opening punch, 3–5 self-contained vignettes, value confirmation close
 
-**Stage 4b — weave-agent** *(conditional — Agent Builder only)*
+**Stage 4b — weave-agent** `[full-model required]` *(conditional — Agent Builder only)*
 - Skip if: `demo/{slug}-demo-script.md` does not include Agent Builder / custom agents / tools /
   workflows, OR `demo/{slug}-agent-builder-spec.md` exists AND the script and audit have not changed
 - Read: `../weave-agent/SKILL.md`
@@ -521,7 +542,7 @@ For each stage that needs to run, in order:
 - If the platform audit marks Agent Builder blocked, do not write a runnable full spec; surface
   the blocker and fallback.
 
-**Stage 4c — weave-cost** *(conditional — AI / Agent Builder only)*
+**Stage 4c — weave-cost** `[fast-model ok]` *(conditional — AI / Agent Builder only)*
 - Skip if: no Agent Builder or AI-powered component is in scope, OR `INCLUDE_TOKEN_VISIBILITY=false`
 - Read: `../weave-cost/SKILL.md`
 - Inputs: `{slug}-demo-script.md`, `{slug}-data-model.json` if it exists, `.env` if available
@@ -529,7 +550,7 @@ For each stage that needs to run, in order:
   `{slug}-data-model.json`, `{slug}-demo-checklist.md`, dashboards, and `bootstrap.py`
 - Include by default for Agent Builder demos per D-036.
 
-**Stage 4.5 — weave-query** *(conditional — ES|QL / RAG / integration-grounded data)*
+**Stage 4.5 — weave-query** `[full-model required]` *(conditional — ES|QL / RAG / integration-grounded data)*
 - Skip if **all** of the following are true:
   1. `data/{slug}-vulcan-queries.json` exists AND the script hasn't changed
   2. Vulcan is not installed at `../vulcan` and the SA does not want to install it now
@@ -544,7 +565,7 @@ For each stage that needs to run, in order:
 - Outputs: `{slug}-vulcan-queries.json`, `{slug}-vulcan-data-profile.json`,
   `{slug}-vulcan-query-results.json`, `{engagement_dir}/vulcan-data/*.csv`
 
-**Stage 5 — weave-model**
+**Stage 5 — weave-model** `[full-model required]`
 - Skip if: `data/{slug}-data-model.json` exists AND script hasn't changed AND Vulcan outputs unchanged
 - Read: `../weave-model/SKILL.md` and `../weave-model/references/mapping-patterns.md`
 - Inputs: `{slug}-demo-script.md`, `{slug}-discovery.json`, `{slug}-agent-builder-spec.md`
@@ -552,7 +573,7 @@ For each stage that needs to run, in order:
   and weave-cost guidance if Agent Builder / AI is in scope
 - Outputs: `{slug}-data-model.json`, `{slug}-data-model.md`, individual mapping files
 
-**Stage 5.5 — weave-fleet** *(required when logs/metrics streams exist)*
+**Stage 5.5 — weave-fleet** `[full-model required]` *(required when logs/metrics streams exist)*
 - Skip only if **all** of the following are true:
   1. `deploy/{slug}-integrations-manifest.json` exists AND data model and script are unchanged
   2. `data/{slug}-data-model.json` contains no `logs-*` and no `metrics-*` data streams
@@ -574,7 +595,7 @@ For each stage that needs to run, in order:
 - **Human gate:** if Step 3 finds `storyline_enhancement` assets, skill pauses and asks SA
   whether to re-run `weave-script` before proceeding
 
-**Stage 6 — weave-train** *(conditional)*
+**Stage 6 — weave-train** `[full-model required]` *(conditional)*
 - Skip if: no ML scenes detected in `demo/{slug}-demo-script.md`, OR `data/{slug}-ml-config.json`
   exists AND data model hasn't changed
 - Detect ML scenes: look for terms like "ML anomaly", "anomaly detection", "swimlane",
@@ -583,13 +604,13 @@ For each stage that needs to run, in order:
 - Inputs: `{slug}-demo-script.md`, `{slug}-data-model.json`
 - Outputs: `{slug}-ml-config.json`, `{slug}-ml-setup.md`
 
-**Stage 7 — finish-check**
+**Stage 7 — finish-check** `[fast-model ok]`
 - Always run last before deploy — regenerate even if it exists
 - Read: `../finish-check/SKILL.md`
 - Inputs: all available `{slug}-*.json` and `{slug}-*.md` files in `{engagement_dir}`
 - Outputs: `{slug}-demo-checklist.md`, `{slug}-risks.md`
 
-**Stage 8 — bolt-spin** *(optional — new cluster path only)*
+**Stage 8 — bolt-spin** `[fast-model ok]` *(optional — new cluster path only)*
 - **Requires explicit SA approval** to spend resources / create infrastructure (unless
   the user already clearly requested provisioning this session)
 - Skip if: `{engagement_dir}/.env` already exists at the engagement root and credentials are valid
@@ -602,7 +623,7 @@ For each stage that needs to run, in order:
   from the prior engagement's workspace and update `DEMO_SLUG`, `ENGAGEMENT`, and `INDEX_PREFIX` —
   no re-provisioning needed
 
-**Stage 8b — finish-verify** *(required before deployment — D-045)*
+**Stage 8b — finish-verify** `[full-model required]` *(required before deployment — D-045)*
 - **Mandatory gate between planning and deployment.** No Terraform or Python deployment
   artifacts are generated until this stage writes `deploy/asset-bundle/asset-schema.json`.
 - Skip if: `deploy/asset-bundle/asset-schema.json` exists AND data model, script, and platform audit are all unchanged since last run
@@ -612,7 +633,7 @@ For each stage that needs to run, in order:
 - Outputs: `deploy/asset-bundle/asset-schema.json`, `deploy/asset-bundle/asset-index.json`, and all authored asset files per skill dispatch table in finish-verify
 - **Blockers (halt Stage 9):** Failed ES|QL validation, null viz-queried fields, version gate fail, disabled required feature. SA must resolve before continuing.
 
-**Stage 9 — bolt-bootstrap** *(optional — runs after asset verifier)*
+**Stage 9 — bolt-bootstrap** `[full-model required]` *(optional — runs after asset verifier)*
 - **Requires explicit SA approval** before running Terraform apply or bootstrap-data.py
   against a **live** cluster. `terraform plan` and `python3 bootstrap-data.py --dry-run`
   do not require approval. See `docs/decisions.md` **D-024**.

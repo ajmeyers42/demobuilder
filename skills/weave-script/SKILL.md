@@ -53,6 +53,7 @@ Read all available files in this order:
   Any feature marked `upgrade_required` or `blocked` must not appear as a live scene.
   Features marked `setup_required` can appear but must include a setup note.
 - `demo/{slug}-current-state.json` — optional context for migration or existing-customer demos.
+- `opportunity/{slug}-demo-goals.md` — optional but important. When present, the **technical win criteria** defined here must appear verbatim in the Value Confirmation Close (Step 4). If absent, derive win criteria from `success_criteria` in the discovery JSON.
 
 **Stack version:** If the audit or current-state includes `cluster.version` (or equivalent),
 the script must **name the target Elasticsearch/Kibana versions** in an upfront “Environment”
