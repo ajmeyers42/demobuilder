@@ -69,6 +69,8 @@ Different stages have very different cost/quality requirements. See
 
 ## 4. Subagents — parallelize independent stages
 
+Full decision matrix (skills vs subagents vs CLI, Tier A–E): [`docs/agent-patterns.md`](agent-patterns.md).
+
 Some stages have no dependency on each other and can run concurrently when the runtime
 supports parallel subagents (e.g. Cursor with parallel tool calls, Claude Code with
 multiple tasks):
@@ -76,12 +78,15 @@ multiple tasks):
 | Parallel pair | Condition |
 |---------------|-----------|
 | warp-listen + warp-scan | Both inputs provided at the start |
-| weave-train + weave-agent | Both need only the completed data model |
+| weave-fleet + weave-train | Both need the completed data model (Stages 5.5 + 6) |
 | wind-pulse (all health checks) | Independent probes (cluster, ML, ELSER, Kibana) |
+
+Do **not** parallel weave-agent with weave-train — agent is Stage 4b (post-script); train is Stage 6 (post-model).
 
 The orchestrator runs stages sequentially by default because most setups don't have reliable
 parallel execution. If your runtime does, run the pairs above as concurrent subagents and
-merge their outputs before moving to the next dependent stage.
+merge their outputs before moving to the next dependent stage. Parent merges via
+`{slug}-pipeline-state.json` (see orchestrator Subagent routing in `skills/loom/SKILL.md`).
 
 **subprocess CLIs as lightweight subagents:**
 - `wind_pulse.py` (in `skills/wind-pulse/`) runs as a subprocess — it checks cluster health
@@ -129,4 +134,4 @@ no "let me check" round-trips.
 | Context pruning | 30–60% context reduction | Raw inputs dropped after parsing |
 | Model routing | 50–80% cost on extraction stages | Fast model for parsing, full model for design |
 | CLI pre-session | Eliminates full sessions for status | `inventory.py` and `wind_pulse.py` |
-| Subagent parallelism | Wall-clock time, not token cost | Parallel stages where dependencies allow |
+| Subagent parallelism | Wall-clock time, not token cost | Parallel stages where dependencies allow — see [`agent-patterns.md`](agent-patterns.md) |

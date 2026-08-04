@@ -48,6 +48,14 @@ the canonical handoff — they contain everything downstream stages need.
 start a fresh session, attach `{slug}-pipeline-state.json`, and ask *"what stage is next?"*.
 This file is the authoritative record of what has run and what files were produced.
 
+## Subagents (optional)
+
+Fresh chats remain the default for sequential stages. For **parallel** or **noisy** Tier A
+work inside a long session, use Cursor Task workers or the thin wrappers under
+[`.cursor/agents/`](../../.cursor/agents/) — they only point at `skills/*/SKILL.md` (no
+procedure fork). Decision matrix: [`docs/agent-patterns.md`](../agent-patterns.md).
+Parallel pairs: [`docs/efficiency.md`](../efficiency.md) §4.
+
 ## Model selection by stage
 
 Cursor lets you switch models per chat. Different pipeline stages have different cost/quality
