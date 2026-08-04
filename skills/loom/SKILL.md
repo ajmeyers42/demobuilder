@@ -421,6 +421,34 @@ Stages tagged `[fast-model]` below work well with a cheaper/faster model (e.g.
 claude-3-5-haiku, gpt-4o-mini). Stages tagged `[full-model]` require a capable model
 (Sonnet/Opus/GPT-4o) — creative generation or correctness-sensitive code.
 
+**Subagent routing** — see `docs/agent-patterns.md` for the full Tier A–E matrix.
+
+Skills stay the source of truth (`skills/<name>/SKILL.md`). Subagents are an optional
+**execution mode** (Cursor Task / Claude Task, or thin wrappers under `.cursor/agents/`).
+Do not put D-024, ideation freeze, or qualification stop decisions inside unattended workers.
+
+When the runtime supports parallel or isolated workers, the orchestrator **may** spawn
+these **Tier A** stages as subagents instead of running them inline:
+
+| Stage | Skill path | Typical inputs to pass |
+|-------|------------|------------------------|
+| warp-listen | `skills/warp-listen/SKILL.md` | Raw discovery notes |
+| warp-scan | `skills/warp-scan/SKILL.md` | Diagnostic ZIP / exports |
+| thread-audit | `skills/thread-audit/SKILL.md` | discovery.json, opportunity-profile.json, current-state.json (if any) |
+| weave-fleet | `skills/weave-fleet/SKILL.md` | data-model.json, demo-script.md |
+| weave-train | `skills/weave-train/SKILL.md` | data-model.json, demo-script.md |
+| finish-check | `skills/finish-check/SKILL.md` | Prior planning artifacts + pipeline-state |
+| finish-verify | `skills/finish-verify/SKILL.md` | `.env`, demo-script, data-model, platform-audit |
+| bolt-bootstrap | `skills/bolt-bootstrap/SKILL.md` | `asset-bundle/` (codegen only; live apply stays gated in parent) |
+
+**Spawn rules:**
+
+1. Brief the worker with: engagement slug, `{engagement_dir}`, skill path, input file list, and exit condition (which artifacts to write).
+2. Prefer parallel pairs from `docs/efficiency.md` §4 when both sides are pending (e.g. warp-listen ∥ warp-scan; weave-fleet ∥ weave-train).
+3. After each worker returns, **read the artifacts it claims to have written**, then **update `{slug}-pipeline-state.json`** in the parent (mark stage `complete`, output filename, input hash). Do not trust the summary alone.
+4. Keep Tier C stages (warp-spark, thread-qualify, weave-script, bolt-spin, wind-reset) and all approval gates in the **main** interactive chat.
+5. Prefer CLI (`scripts/inventory.py`, `wind_pulse.py`) over an AI subagent for deterministic status/health.
+
 For each stage that needs to run, in order:
 
 1. **Announce the stage:** `🔄 Running: warp-listen...`

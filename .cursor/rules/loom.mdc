@@ -31,4 +31,4 @@ alwaysApply: true
 - **Stable UUIDs:** All dashboard and saved object IDs use `uuid.uuid5(NS, f"{SLUG}:{name}")` for idempotent re-deploy. See `skills/bolt-launch/SKILL.md` Step 13d.
 - **Space solution field:** Space creation includes `"solution": KIBANA_SOLUTION` (es/oblt/security) and `"disabledFeatures": []`. Set `KIBANA_SOLUTION` in `.env`.
 - **Research order:** This repo (`skills/`, `docs/`) first; then **hive-mind** (`../hive-mind`) for patterns; then **github.com/elastic** repos (e.g. **integration-packages-slo** for SLO/Fleet packages — see `docs/runtimes/cursor.md`); **general web or non-Elastic sources — ask the SA before relying on them** (see `AGENTS.md`).
-- **Details:** See repo root `AGENTS.md` and `docs/runtimes/cursor.md`.
+- **Details:** See repo root `AGENTS.md` and `docs/runtimes/cursor.md`. Skills vs subagents vs CLI: `docs/agent-patterns.md`.
