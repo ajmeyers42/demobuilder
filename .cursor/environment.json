@@ -1,0 +1,4 @@
+{
+  "name": "loom",
+  "install": "python3 -m pip install --quiet pyyaml && mkdir -p \"${LOOM_ENGAGEMENTS_ROOT:-$HOME/engagements}\""
+}
